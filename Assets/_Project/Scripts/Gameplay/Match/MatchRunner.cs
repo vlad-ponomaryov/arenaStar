@@ -17,7 +17,7 @@ namespace Arena.Gameplay.Match
     /// Local (offline) implementation of the match loop (D-038): accumulates frame time, runs <see cref="MatchSimulation.Tick"/>
     /// with a fixed 1/30 s step (at most <see cref="MatchRunnerConfig.MaxTicksPerFrame"/> per frame), feeds the local player's
     /// <see cref="PlayerInput"/> from <see cref="InputCollector"/> (other slots get zero input — dummies until bots, S2.8),
-    /// then interpolates the views (D-015) and drives the camera. Thin layer: no game logic here.
+    /// then interpolates the views (D-015): fighters, projectiles (pooled), health bars; drives the camera. Thin layer: no game logic here.
     /// </summary>
     public sealed class MatchRunner : MonoBehaviour
     {
@@ -30,9 +30,11 @@ namespace Arena.Gameplay.Match
         private readonly MatchViewState _viewState = new MatchViewState();
         private readonly PlayerInput[] _inputs = new PlayerInput[SimLimits.MaxFighters];
         private readonly FighterView[] _fighterViews = new FighterView[SimLimits.MaxFighters];
+        private readonly HealthBarView[] _healthBars = new HealthBarView[SimLimits.MaxFighters];
 
         private MatchSimulation _simulation;
         private AimIndicatorView _aimIndicator;
+        private ProjectileViewPool _projectileViews;
         private int _maxTicksPerFrame;
         private float _accumulator;
 
@@ -65,6 +67,7 @@ namespace Arena.Gameplay.Match
         {
             if (_database == null) throw new InvalidOperationException("MatchRunner: GameDatabase is not set");
             if (_viewCatalog == null) throw new InvalidOperationException("MatchRunner: ViewCatalog is not set");
+            if (_viewCatalog.ProjectilePrefab == null) throw new InvalidOperationException("MatchRunner: ViewCatalog.ProjectilePrefab is not set");
             if (_database.MatchRunner == null) throw new InvalidOperationException("MatchRunner: GameDatabase.MatchRunner is not set");
             if (_database.Camera == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Camera is not set");
 
@@ -85,8 +88,11 @@ namespace Arena.Gameplay.Match
             _aimIndicator = Instantiate(_viewCatalog.AimIndicatorPrefab, transform);
             _aimIndicator.name = "AimIndicator";
             _aimIndicator.Hide();
+            _projectileViews = new ProjectileViewPool(_viewCatalog.ProjectilePrefab, transform, _viewCatalog.ProjectilePoolPrewarm,
+                _viewCatalog.ProjectileHeight);
 
             _viewState.Reset(_simulation.State);
+            _projectileViews.Capture(_simulation.State);
             if (_cameraController != null)
                 _cameraController.Init(_database.Camera, defs.Bounds, _inputCollector.ViewRotated, LocalWorldPosition(0f));
             RenderViews(0f);
@@ -115,6 +121,7 @@ namespace Arena.Gameplay.Match
             float alpha = _accumulator / SimTime.Dt;
             RenderViews(alpha);
             if (_cameraController != null) _cameraController.Follow(LocalWorldPosition(alpha), Time.deltaTime);
+            RenderHealthBars(alpha);
         }
 
         private void RunTick()
@@ -124,6 +131,7 @@ namespace Arena.Gameplay.Match
             _inputs[LocalSlot] = _inputCollector.ConsumeForTick();
             _simulation.Tick(_inputs);
             _viewState.Capture(_simulation.State);
+            _projectileViews.Capture(_simulation.State);
         }
 
         private void RenderViews(float alpha)
@@ -139,6 +147,8 @@ namespace Arena.Gameplay.Match
                     view.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), WorldCoords.DirectionToWorld(_viewState.Facing(i)));
             }
 
+            _projectileViews.Render(alpha);
+
             Vec2 aim = _inputCollector.Aim;
             if (aim.IsZero || !_viewState.Alive(LocalSlot))
             {
@@ -147,6 +157,25 @@ namespace Arena.Gameplay.Match
             }
             float range = _simulation.Defs.Fighters[_simulation.State.Fighters[LocalSlot].DefIndex].AttackRange;
             _aimIndicator.Show(LocalWorldPosition(alpha), WorldCoords.DirectionToWorld(aim.Normalized), range);
+        }
+
+        private void RenderHealthBars(float alpha)
+        {
+            UnityEngine.Camera cam = _cameraController != null ? _cameraController.Camera : null;
+            Quaternion facing = cam != null ? cam.transform.rotation : Quaternion.identity;
+            int maxCharges = _simulation.Defs.Rules.MaxCharges;
+            int count = _viewState.Count;
+            for (int i = 0; i < count; i++)
+            {
+                HealthBarView bar = _healthBars[i];
+                if (bar == null) continue;
+                bool alive = _viewState.Alive(i);
+                bar.SetVisible(alive);
+                if (!alive) continue;
+                ref FighterState f = ref _simulation.State.Fighters[i];
+                bar.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), facing);
+                bar.SetValues(f.MaxHealth > 0 ? (float)f.Health / f.MaxHealth : 0f, f.Charges, maxCharges);
+            }
         }
 
         private Vector3 LocalWorldPosition(float alpha) => WorldCoords.ToWorld(_viewState.Position(LocalSlot, alpha));
@@ -168,6 +197,12 @@ namespace Arena.Gameplay.Match
                 view.name = "Fighter" + i + "_" + _simulation.Defs.Fighters[setup.Slots[i].FighterIndex].Id;
                 view.SetTeamMaterial(setup.Slots[i].Team == LocalTeam ? _viewCatalog.TeamAlly : _viewCatalog.TeamEnemy);
                 _fighterViews[i] = view;
+
+                if (_viewCatalog.HealthBarPrefab == null) continue;
+                HealthBarView bar = Instantiate(_viewCatalog.HealthBarPrefab, transform);
+                bar.name = "HealthBar" + i;
+                bar.SetFillMaterial(setup.Slots[i].Team == LocalTeam ? _viewCatalog.BarAlly : _viewCatalog.BarEnemy);
+                _healthBars[i] = bar;
             }
         }
     }

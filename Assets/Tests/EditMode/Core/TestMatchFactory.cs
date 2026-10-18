@@ -17,6 +17,37 @@ namespace Arena.Tests.EditMode.Core
         public const float RegenFraction = 0.12f;
         public const float ArenaWidth = 21f;
         public const float ArenaHeight = 31f;
+        public const int RespawnTicks = 90;
+
+        // Fighter 0 ("test", Pix-like): burst of straight drops.
+        public const float ShooterRange = 8f;
+        public const float DropSpeed = 12f;
+        public const float DropRadius = 0.2f;
+        public const int BurstCount = 4;
+        public const int BurstIntervalTicks = 3;
+        public const int DropDamage = 380;
+
+        // Fighter 1 ("test2", Bruno-like): instant 90° cone.
+        public const float ConeRange = 2.5f;
+        public const float ConeAngle = 90f;
+        public const int ConeDamage = 1200;
+        public const float TankRadius = 0.55f;
+        public const int TankHealth = 5600;
+
+        public static AbilityDef ShooterAttack() => new AbilityDef
+        {
+            Delivery = DeliveryKind.Projectile, Range = ShooterRange, ProjectileSpeed = DropSpeed, ProjectileRadius = DropRadius,
+            BurstCount = BurstCount, BurstIntervalTicks = BurstIntervalTicks, Effects = EnemyDamage(DropDamage)
+        };
+
+        public static AbilityDef ConeAttack() => new AbilityDef
+        {
+            Delivery = DeliveryKind.MeleeCone, Range = ConeRange, ConeAngleDegrees = ConeAngle, BurstCount = 1,
+            Effects = EnemyDamage(ConeDamage)
+        };
+
+        public static EffectDef[] EnemyDamage(int value) =>
+            new[] { new EffectDef { Kind = EffectKind.Damage, Filter = TargetFilter.Enemy, Value = value } };
 
         public static MatchDefs CreateDefs(float moveSpeed = Speed, int rechargeTicks = RechargeTicks)
         {
@@ -27,6 +58,7 @@ namespace Arena.Tests.EditMode.Core
                     MaxCharges = 3,
                     RegenDelayTicks = RegenDelayTicks,
                     RegenFractionPerSecond = RegenFraction,
+                    RespawnTicks = RespawnTicks,
                     LevelBonusPerLevel = 0.06f
                 },
                 Fighters = new[]
@@ -34,12 +66,12 @@ namespace Arena.Tests.EditMode.Core
                     new FighterDef
                     {
                         Id = "test", NameKey = "fighter.test.name", MaxHealth = MaxHealth, MoveSpeed = moveSpeed,
-                        Radius = Radius, AttackRange = 8f, AttackRechargeTicks = rechargeTicks, AttackDamage = 380
+                        Radius = Radius, AttackRechargeTicks = rechargeTicks, Attack = ShooterAttack()
                     },
                     new FighterDef
                     {
-                        Id = "test2", NameKey = "fighter.test2.name", MaxHealth = 5600, MoveSpeed = 2.2f,
-                        Radius = 0.55f, AttackRange = 2.5f, AttackRechargeTicks = 33, AttackDamage = 1200
+                        Id = "test2", NameKey = "fighter.test2.name", MaxHealth = TankHealth, MoveSpeed = 2.2f,
+                        Radius = TankRadius, AttackRechargeTicks = 33, Attack = ConeAttack()
                     }
                 },
                 Bounds = ArenaBounds.FromSize(ArenaWidth, ArenaHeight)
@@ -69,6 +101,12 @@ namespace Arena.Tests.EditMode.Core
             };
             return new MatchSimulation(CreateDefs(moveSpeed), setup);
         }
+
+        /// <summary>Simulation with explicit slots (fighter index, team, spawn).</summary>
+        public static MatchSimulation CreateWith(MatchDefs defs, params PlayerSlotSetup[] slots) =>
+            new MatchSimulation(defs, new MatchSetup { Seed = 1, Slots = slots });
+
+        public static PlayerSlotSetup Slot(int fighter, int team, float x, float y) => new PlayerSlotSetup(fighter, team, 1, new Vec2(x, y));
 
         public static PlayerInput[] Inputs() => new PlayerInput[SimLimits.MaxFighters];
 

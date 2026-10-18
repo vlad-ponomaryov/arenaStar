@@ -42,6 +42,7 @@ namespace Arena.Data.Conversion
                 MaxCharges = c.MaxCharges,
                 RegenDelayTicks = SimTime.SecondsToTicks(c.RegenDelaySeconds),
                 RegenFractionPerSecond = c.RegenFractionPerSecond,
+                RespawnTicks = SimTime.SecondsToTicks(c.RespawnSeconds),
                 LevelBonusPerLevel = c.LevelBonusPerLevel
             };
         }
@@ -57,12 +58,43 @@ namespace Arena.Data.Conversion
                 MaxHealth = c.MaxHealth,
                 MoveSpeed = rules.SpeedFor(c.Speed),
                 Radius = c.Radius,
-                AttackRange = c.AttackRange,
                 AttackRechargeTicks = MathUtil.Max(1, SimTime.SecondsToTicks(c.AttackRechargeSeconds)),
-                AttackDamage = c.AttackDamage
+                Attack = ToAbilityDef(c.Attack, c.Id + ".Attack")
             };
             def.Validate();
             return def;
+        }
+
+        public static AbilityDef ToAbilityDef(AbilityConfig c, string owner)
+        {
+            if (c == null) throw new ArgumentException(owner + ": ability is not set");
+            int effectCount = c.Effects == null ? 0 : c.Effects.Length;
+            var effects = new EffectDef[effectCount];
+            for (int i = 0; i < effectCount; i++)
+            {
+                EffectConfig e = c.Effects[i];
+                if (e == null) throw new ArgumentException(owner + ": effect " + i + " is null");
+                effects[i] = new EffectDef
+                {
+                    Kind = e.Kind,
+                    Filter = e.Filter,
+                    Value = e.Value,
+                    DurationTicks = SimTime.SecondsToTicks(e.DurationSeconds),
+                    Distance = e.Distance
+                };
+            }
+            return new AbilityDef
+            {
+                Delivery = c.Delivery,
+                Range = c.Range,
+                ProjectileSpeed = c.ProjectileSpeed,
+                ProjectileRadius = c.ProjectileRadius,
+                PierceCount = c.PierceCount,
+                ConeAngleDegrees = c.ConeAngleDegrees,
+                BurstCount = c.BurstCount,
+                BurstIntervalTicks = SimTime.SecondsToTicks(c.BurstIntervalSeconds),
+                Effects = effects
+            };
         }
     }
 }

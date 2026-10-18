@@ -18,7 +18,14 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(catalog.FighterViewPrefab);
             Assert.IsNotNull(catalog.AimIndicatorPrefab);
             Assert.IsNotNull(catalog.FloorPrefab);
-            Material[] materials = { catalog.TeamAlly, catalog.TeamEnemy, catalog.FighterBody, catalog.Floor, catalog.AimLine };
+            Assert.IsNotNull(catalog.ProjectilePrefab);
+            Assert.IsNotNull(catalog.HealthBarPrefab);
+            Assert.Greater(catalog.ProjectilePoolPrewarm, 0);
+            Material[] materials =
+            {
+                catalog.TeamAlly, catalog.TeamEnemy, catalog.FighterBody, catalog.Floor, catalog.AimLine, catalog.Projectile,
+                catalog.BarAlly, catalog.BarEnemy, catalog.BarBackground, catalog.BarCharge
+            };
             foreach (Material m in materials)
             {
                 Assert.IsNotNull(m);
@@ -34,7 +41,14 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(catalog.FighterViewPrefab.Body);
             Assert.IsNotNull(catalog.FighterViewPrefab.Ring);
             Assert.IsNotNull(catalog.AimIndicatorPrefab.Line);
-            GameObject[] prefabs = { catalog.FighterViewPrefab.gameObject, catalog.AimIndicatorPrefab.gameObject, catalog.FloorPrefab };
+            Assert.IsNotNull(catalog.HealthBarPrefab.FillPivot);
+            Assert.IsNotNull(catalog.HealthBarPrefab.Fill);
+            Assert.AreEqual(3, catalog.HealthBarPrefab.SegmentCount, "one segment per attack charge (GDD §5.2)");
+            GameObject[] prefabs =
+            {
+                catalog.FighterViewPrefab.gameObject, catalog.AimIndicatorPrefab.gameObject, catalog.FloorPrefab,
+                catalog.ProjectilePrefab, catalog.HealthBarPrefab.gameObject
+            };
             foreach (GameObject p in prefabs)
                 Assert.AreEqual(0, p.GetComponentsInChildren<Collider>(true).Length, p.name + " has colliders");
         }

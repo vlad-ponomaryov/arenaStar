@@ -20,7 +20,14 @@ namespace Arena.Core.State
         /// <summary>Match RNG — use by reference: <c>ref state.Globals.Rng</c>.</summary>
         public DeterministicRng Rng;
 
-        public bool Equals(MatchGlobals o) => Tick == o.Tick && FighterCount == o.FighterCount && Seed == o.Seed && Rng.Equals(o.Rng);
+        /// <summary>Projectiles not fired because all <c>SimLimits.MaxProjectiles</c> slots were busy (D-004).</summary>
+        public int DroppedProjectiles;
+
+        /// <summary>Areas not created because all <c>SimLimits.MaxAreas</c> slots were busy.</summary>
+        public int DroppedAreas;
+
+        public bool Equals(MatchGlobals o) => Tick == o.Tick && FighterCount == o.FighterCount && Seed == o.Seed && Rng.Equals(o.Rng)
+            && DroppedProjectiles == o.DroppedProjectiles && DroppedAreas == o.DroppedAreas;
         public override bool Equals(object obj) => obj is MatchGlobals other && Equals(other);
         public override int GetHashCode() => (Tick * 397) ^ FighterCount ^ Rng.GetHashCode();
     }

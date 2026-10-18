@@ -74,6 +74,8 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(runner.Database.MatchRunner, "GameDatabase.MatchRunner");
             Assert.IsNotNull(runner.ViewCatalog.FighterViewPrefab);
             Assert.IsNotNull(runner.ViewCatalog.AimIndicatorPrefab);
+            Assert.IsNotNull(runner.ViewCatalog.ProjectilePrefab);
+            Assert.IsNotNull(runner.ViewCatalog.HealthBarPrefab);
 
             MatchHud hud = FindSingle<MatchHud>(scene);
             AssertAllReferencesSet(hud);
@@ -98,6 +100,10 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsFalse(runner.InputCollector.ViewRotated);
             Assert.AreEqual(6, runner.GetComponentsInChildren<Arena.Gameplay.View.FighterView>(true).Length);
             Assert.AreEqual(1, runner.GetComponentsInChildren<Arena.Gameplay.View.AimIndicatorView>(true).Length);
+            Assert.AreEqual(6, runner.GetComponentsInChildren<Arena.Gameplay.View.HealthBarView>(true).Length);
+            int pooled = 0;
+            foreach (Transform child in runner.transform) if (child.name == "Projectile") pooled++;
+            Assert.AreEqual(runner.ViewCatalog.ProjectilePoolPrewarm, pooled, "projectile views prewarmed at match start");
 
             Transform cam = runner.CameraController.transform;
             Assert.Greater(cam.position.y, 0f, "camera above the ground");

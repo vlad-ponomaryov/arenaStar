@@ -15,6 +15,9 @@ namespace Arena.Core.Defs
         /// <summary>Regenerated fraction of max health per second (0.12).</summary>
         public float RegenFractionPerSecond;
 
+        /// <summary>Ticks from defeat to respawn in team modes (3 s = 90, GDD §5.2).</summary>
+        public int RespawnTicks;
+
         /// <summary>Health/damage bonus per level above 1 (0.06).</summary>
         public float LevelBonusPerLevel;
 
@@ -32,6 +35,7 @@ namespace Arena.Core.Defs
             if (MaxCharges <= 0) throw new ArgumentException("CombatRules.MaxCharges must be > 0");
             if (RegenDelayTicks < 0) throw new ArgumentException("CombatRules.RegenDelayTicks must be ≥ 0");
             if (RegenFractionPerSecond < 0f) throw new ArgumentException("CombatRules.RegenFractionPerSecond must be ≥ 0");
+            if (RespawnTicks < 0) throw new ArgumentException("CombatRules.RespawnTicks must be ≥ 0");
             if (LevelBonusPerLevel < 0f) throw new ArgumentException("CombatRules.LevelBonusPerLevel must be ≥ 0");
         }
     }

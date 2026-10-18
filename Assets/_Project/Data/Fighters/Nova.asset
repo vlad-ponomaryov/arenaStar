@@ -17,6 +17,19 @@ MonoBehaviour:
   MaxHealth: 2600
   Speed: 1
   Radius: 0.45
-  AttackRange: 10
   AttackRechargeSeconds: 2
-  AttackDamage: 1500
+  Attack:
+    Delivery: 1
+    Range: 10
+    ProjectileSpeed: 18
+    ProjectileRadius: 0.15
+    PierceCount: 1
+    ConeAngleDegrees: 0
+    BurstCount: 1
+    BurstIntervalSeconds: 0
+    Effects:
+    - Kind: 1
+      Filter: 1
+      Value: 1500
+      DurationSeconds: 0
+      Distance: 0

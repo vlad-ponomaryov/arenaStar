@@ -11,6 +11,9 @@ namespace Arena.Core.Math
         /// <summary>Technical tolerance for "zero length" checks (not a gameplay parameter).</summary>
         public const float Epsilon = 1e-6f;
 
+        /// <summary>Technical tolerance for distances accumulated over many ticks (projectile range), not a gameplay parameter.</summary>
+        public const float DistanceEpsilon = 1e-4f;
+
         public const float DegToRad = MathF.PI / 180f;
         public const float RadToDeg = 180f / MathF.PI;
 

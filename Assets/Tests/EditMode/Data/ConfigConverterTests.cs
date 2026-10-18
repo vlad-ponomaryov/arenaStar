@@ -29,8 +29,24 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(2.5f, pix.MoveSpeed, 1e-5f);
             Assert.AreEqual(42, pix.AttackRechargeTicks);
             Assert.AreEqual(8f, pix.AttackRange, 1e-5f);
-            Assert.AreEqual(380, pix.AttackDamage);
+            Assert.AreEqual(DeliveryKind.Projectile, pix.Attack.Delivery);
+            Assert.AreEqual(4, pix.Attack.BurstCount);
+            Assert.AreEqual(1, pix.Attack.Effects.Length);
+            Assert.AreEqual(EffectKind.Damage, pix.Attack.Effects[0].Kind);
+            Assert.AreEqual(TargetFilter.Enemy, pix.Attack.Effects[0].Filter);
+            Assert.AreEqual(380, pix.Attack.Effects[0].Value);
             Assert.AreEqual("fighter.pix.name", pix.NameKey);
+        }
+
+        [Test]
+        public void Bruno_FromAsset_HasCone90()
+        {
+            MatchDefs defs = LoadDefs();
+            FighterDef bruno = defs.Fighters[defs.IndexOfFighter("bruno")];
+            Assert.AreEqual(DeliveryKind.MeleeCone, bruno.Attack.Delivery);
+            Assert.AreEqual(90f, bruno.Attack.ConeAngleDegrees, 1e-5f);
+            Assert.AreEqual(2.5f, bruno.AttackRange, 1e-5f);
+            Assert.AreEqual(1200, bruno.Attack.Effects[0].Value);
         }
 
         [TestCase("kora", 2.2f)]
@@ -48,6 +64,7 @@ namespace Arena.Tests.EditMode.Data
             MatchDefs defs = LoadDefs();
             Assert.AreEqual(3, defs.Rules.MaxCharges);
             Assert.AreEqual(90, defs.Rules.RegenDelayTicks);
+            Assert.AreEqual(90, defs.Rules.RespawnTicks, "respawn 3 s (GDD §5.2)");
             Assert.AreEqual(0.12f, defs.Rules.RegenFractionPerSecond, 1e-6f);
             Assert.AreEqual(0.06f, defs.Rules.LevelBonusPerLevel, 1e-6f);
             Assert.AreEqual(21f, defs.Bounds.Width, 1e-5f);

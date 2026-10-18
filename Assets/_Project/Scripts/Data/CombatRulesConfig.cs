@@ -20,6 +20,10 @@ namespace Arena.Data
         [Tooltip("Fraction of max health regenerated per second (0.12 = 12 %).")]
         [Min(0f)] public float RegenFractionPerSecond;
 
+        [Header("Respawn")]
+        [Tooltip("Seconds from defeat to respawn in team modes.")]
+        [Min(0f)] public float RespawnSeconds;
+
         [Header("Levels")]
         [Tooltip("Health and damage bonus per level above 1 (0.06 = +6 %).")]
         [Min(0f)] public float LevelBonusPerLevel;

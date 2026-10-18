@@ -14,6 +14,23 @@ namespace Arena.Core.Defs
         /// <summary>Temporary arena rectangle until the grid map (S2.5).</summary>
         public ArenaBounds Bounds;
 
+        /// <summary>Ability slots per fighter in an ability reference (<see cref="AbilitySlot"/>).</summary>
+        public const int AbilitySlotsPerFighter = 3;
+
+        /// <summary>
+        /// Ability reference stored in state (projectiles, areas): an <c>int</c> instead of an object reference (D-002).
+        /// </summary>
+        public static int MakeAbilityRef(int fighterIndex, AbilitySlot slot) => fighterIndex * AbilitySlotsPerFighter + (int)slot;
+
+        /// <summary>Ability by reference from <see cref="MakeAbilityRef"/>, or null.</summary>
+        public AbilityDef GetAbility(int abilityRef)
+        {
+            if (abilityRef < 0) return null;
+            int fighter = abilityRef / AbilitySlotsPerFighter;
+            if (fighter >= Fighters.Length) return null;
+            return Fighters[fighter].GetAbility((AbilitySlot)(abilityRef % AbilitySlotsPerFighter));
+        }
+
         /// <summary>Index of the fighter with <paramref name="id"/> in <see cref="Fighters"/>, or −1.</summary>
         public int IndexOfFighter(string id)
         {

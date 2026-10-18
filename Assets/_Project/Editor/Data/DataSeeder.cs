@@ -1,3 +1,4 @@
+using Arena.Core.Defs;
 using Arena.Data;
 using Arena.Editor.Setup;
 using UnityEditor;
@@ -32,6 +33,7 @@ namespace Arena.Editor.Data
         private const float SlowSpeed = 2.2f;
         private const float NormalSpeed = 2.5f;
         private const float FastSpeed = 2.8f;
+        private const float RespawnSeconds = 3f;
 
         // Temporary arena = size of the Acorns map (GDD §5.4), until grid maps (S2.5).
         private static readonly Vector2 TempArenaSize = new Vector2(21f, 31f);
@@ -40,6 +42,24 @@ namespace Arena.Editor.Data
         private const float RadiusDefault = 0.45f;
         private const float RadiusLarge = 0.55f;
         private const float RadiusMedium = 0.5f;
+
+        // PROTO (D-013): attack delivery. Pix and Bruno are final for S2.3; the others are placeholders until their
+        // own deliveries (lob, bounce, pierce falloff) arrive in S2.11–S2.12.
+        private const float PixDropSpeed = 12f;
+        private const float PixDropRadius = 0.2f;
+        private const int PixBurstCount = 4;
+        private const float PixBurstInterval = 0.1f;
+        private const float BrunoConeAngle = 90f;
+        private const float ChompBombSpeed = 9f;
+        private const float ChompBombRadius = 0.3f;
+        private const float KoraCupSpeed = 10f;
+        private const float KoraCupRadius = 0.25f;
+        private const float NovaConeSpeed = 18f;
+        private const float NovaConeRadius = 0.15f;
+        private const int NovaPierce = 1;
+        private const float VexClawAngle = 90f;
+        private const int VexClawHits = 2;
+        private const float VexClawInterval = 0.15f;
 
         // Camera (GDD §5.5: ~55°); the rest PROTO (D-013).
         private const float CameraPitch = 55f;
@@ -71,13 +91,13 @@ namespace Arena.Editor.Data
 
             var fighters = new[]
             {
-                //                     id       HP    speed               radius          range  recharge  damage
-                SeedFighter("pix",   3400, SpeedClass.Normal, RadiusDefault, 8f,    1.4f,     380),
-                SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   2.5f,  1.1f,     1200),
-                SeedFighter("chomp", 3000, SpeedClass.Normal, RadiusDefault, 7f,    1.6f,     1100),
-                SeedFighter("kora",  4200, SpeedClass.Slow,   RadiusMedium,  7f,    1.5f,     600),
-                SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 10f,   2.0f,     1500),
-                SeedFighter("vex",   3600, SpeedClass.Fast,   RadiusDefault, 1.8f,  0.9f,     520)
+                //                     id       HP    speed               radius         recharge  attack (range, damage — GDD §6)
+                SeedFighter("pix",   3400, SpeedClass.Normal, RadiusDefault, 1.4f, Projectile(8f, PixDropSpeed, PixDropRadius, 0, PixBurstCount, PixBurstInterval, 380)),
+                SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   1.1f, Cone(2.5f, BrunoConeAngle, 1, 0f, 1200)),
+                SeedFighter("chomp", 3000, SpeedClass.Normal, RadiusDefault, 1.6f, Projectile(7f, ChompBombSpeed, ChompBombRadius, 0, 1, 0f, 1100)),
+                SeedFighter("kora",  4200, SpeedClass.Slow,   RadiusMedium,  1.5f, Projectile(7f, KoraCupSpeed, KoraCupRadius, 0, 1, 0f, 600)),
+                SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 2.0f, Projectile(10f, NovaConeSpeed, NovaConeRadius, NovaPierce, 1, 0f, 1500)),
+                SeedFighter("vex",   3600, SpeedClass.Fast,   RadiusDefault, 0.9f, Cone(1.8f, VexClawAngle, VexClawHits, VexClawInterval, 520))
             };
 
             GameDatabase db = LoadOrCreate<GameDatabase>(GameDatabasePath);
@@ -100,6 +120,7 @@ namespace Arena.Editor.Data
             c.MaxCharges = MaxCharges;
             c.RegenDelaySeconds = RegenDelaySeconds;
             c.RegenFractionPerSecond = RegenFractionPerSecond;
+            c.RespawnSeconds = RespawnSeconds;
             c.LevelBonusPerLevel = LevelBonusPerLevel;
             c.SlowSpeed = SlowSpeed;
             c.NormalSpeed = NormalSpeed;
@@ -138,8 +159,30 @@ namespace Arena.Editor.Data
             return c;
         }
 
-        private static FighterConfig SeedFighter(string id, int maxHealth, SpeedClass speed, float radius, float attackRange,
-            float attackRechargeSeconds, int attackDamage)
+        private static AbilityConfig Projectile(float range, float speed, float radius, int pierce, int burstCount,
+            float burstInterval, int damage)
+        {
+            return new AbilityConfig
+            {
+                Delivery = DeliveryKind.Projectile, Range = range, ProjectileSpeed = speed, ProjectileRadius = radius,
+                PierceCount = pierce, BurstCount = burstCount, BurstIntervalSeconds = burstInterval, Effects = EnemyDamage(damage)
+            };
+        }
+
+        private static AbilityConfig Cone(float range, float angle, int burstCount, float burstInterval, int damage)
+        {
+            return new AbilityConfig
+            {
+                Delivery = DeliveryKind.MeleeCone, Range = range, ConeAngleDegrees = angle,
+                BurstCount = burstCount, BurstIntervalSeconds = burstInterval, Effects = EnemyDamage(damage)
+            };
+        }
+
+        private static EffectConfig[] EnemyDamage(int damage) =>
+            new[] { new EffectConfig { Kind = EffectKind.Damage, Filter = TargetFilter.Enemy, Value = damage } };
+
+        private static FighterConfig SeedFighter(string id, int maxHealth, SpeedClass speed, float radius,
+            float attackRechargeSeconds, AbilityConfig attack)
         {
             FighterConfig c = LoadOrCreate<FighterConfig>(FighterAssetPath(id));
             c.Id = id;
@@ -147,9 +190,8 @@ namespace Arena.Editor.Data
             c.MaxHealth = maxHealth;
             c.Speed = speed;
             c.Radius = radius;
-            c.AttackRange = attackRange;
             c.AttackRechargeSeconds = attackRechargeSeconds;
-            c.AttackDamage = attackDamage;
+            c.Attack = attack;
             EditorUtility.SetDirty(c);
             return c;
         }

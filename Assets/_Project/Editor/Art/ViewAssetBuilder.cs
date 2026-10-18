@@ -27,6 +27,8 @@ namespace Arena.Editor.Art
         public const string FighterViewPrefabPath = PrefabsFolder + "/FighterView.prefab";
         public const string AimIndicatorPrefabPath = PrefabsFolder + "/AimIndicator.prefab";
         public const string FloorPrefabPath = PrefabsFolder + "/Floor.prefab";
+        public const string ProjectilePrefabPath = PrefabsFolder + "/Projectile.prefab";
+        public const string HealthBarPrefabPath = PrefabsFolder + "/HealthBar.prefab";
 
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
@@ -39,6 +41,23 @@ namespace Arena.Editor.Art
         private static readonly Color BodyColor = new Color(0.86f, 0.80f, 0.70f, 1f);
         private static readonly Color FloorColor = new Color(0.42f, 0.55f, 0.36f, 1f);
         private static readonly Color AimLineColor = new Color(1f, 1f, 1f, 1f);
+        private static readonly Color ProjectileColor = new Color(0.55f, 0.88f, 1f, 1f);
+        private static readonly Color BarBackgroundColor = new Color(0.08f, 0.08f, 0.1f, 1f);
+        private static readonly Color BarChargeColor = new Color(1f, 0.78f, 0.2f, 1f);
+
+        // Projectiles: pool prewarm (S2.3 plan) and flight height (view only).
+        private const int ProjectilePoolPrewarm = 64;
+        private const float ProjectileHeight = 0.8f;
+
+        // Health bar (world units): bar above the head, charge segments under it, drawn layers slightly towards the camera.
+        private const float BarAboveFeet = 2.1f;
+        private const float BarWidth = 1.0f;
+        private const float BarHeight = 0.14f;
+        private const float BarPadding = 0.03f;
+        private const float ChargeHeight = 0.08f;
+        private const float ChargeGap = 0.03f;
+        private const float LayerOffset = 0.005f;
+        private const int ChargeSegments = 3;
 
         // Fighter view geometry (cells): capsule of diameter 0.9 (≈ body radius 0.45), ring slightly larger.
         private const float BodyDiameter = 0.9f;
@@ -66,15 +85,31 @@ namespace Arena.Editor.Art
             Material body = SaveMaterial("FighterBody", LitShader, BodyColor);
             Material floor = SaveMaterial("Floor", LitShader, FloorColor);
             Material aimLine = SaveMaterial("AimLine", UnlitShader, AimLineColor);
+            Material projectile = SaveMaterial("Projectile", UnlitShader, ProjectileColor);
+            Material barAlly = SaveMaterial("BarAlly", UnlitShader, AllyColor);
+            Material barEnemy = SaveMaterial("BarEnemy", UnlitShader, EnemyColor);
+            Material barBackground = SaveMaterial("BarBackground", UnlitShader, BarBackgroundColor);
+            Material barCharge = SaveMaterial("BarCharge", UnlitShader, BarChargeColor);
 
             FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine);
             AimIndicatorView aimIndicator = BuildAimIndicatorPrefab(aimLine);
             GameObject floorPrefab = BuildFloorPrefab(floor);
+            GameObject projectilePrefab = BuildProjectilePrefab(projectile);
+            HealthBarView healthBar = BuildHealthBarPrefab(barAlly, barBackground, barCharge);
 
             ViewCatalog catalog = LoadOrCreate<ViewCatalog>(ViewCatalogPath);
             catalog.FighterViewPrefab = fighterView;
             catalog.AimIndicatorPrefab = aimIndicator;
             catalog.FloorPrefab = floorPrefab;
+            catalog.ProjectilePrefab = projectilePrefab;
+            catalog.HealthBarPrefab = healthBar;
+            catalog.ProjectilePoolPrewarm = ProjectilePoolPrewarm;
+            catalog.ProjectileHeight = ProjectileHeight;
+            catalog.Projectile = projectile;
+            catalog.BarAlly = barAlly;
+            catalog.BarEnemy = barEnemy;
+            catalog.BarBackground = barBackground;
+            catalog.BarCharge = barCharge;
             catalog.TeamAlly = ally;
             catalog.TeamEnemy = enemy;
             catalog.FighterBody = body;
@@ -182,6 +217,72 @@ namespace Arena.Editor.Art
                 GameObject quad = CreatePart(PrimitiveType.Quad, "Quad", root.transform, floor);
                 quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 return SavePrefab(root, FloorPrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static GameObject BuildProjectilePrefab(Material material)
+        {
+            var root = new GameObject("Projectile");
+            try
+            {
+                // Unity sphere: diameter 1 = the runtime scale is the hit diameter.
+                CreatePart(PrimitiveType.Sphere, "Sphere", root.transform, material);
+                return SavePrefab(root, ProjectilePrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static HealthBarView BuildHealthBarPrefab(Material fill, Material background, Material charge)
+        {
+            var root = new GameObject("HealthBar");
+            try
+            {
+                // Quads face −Z; the bar takes the camera rotation, so "towards the camera" is −Z.
+                GameObject back = CreatePart(PrimitiveType.Quad, "Background", root.transform, background);
+                float segmentsHeight = ChargeGap + ChargeHeight;
+                back.transform.localScale = new Vector3(BarWidth + BarPadding * 2f, BarHeight + segmentsHeight + BarPadding * 2f, 1f);
+                back.transform.localPosition = new Vector3(0f, -segmentsHeight * 0.5f, 0f);
+
+                var pivot = new GameObject("FillPivot");
+                pivot.transform.SetParent(root.transform, false);
+                pivot.transform.localPosition = new Vector3(-BarWidth * 0.5f, 0f, -LayerOffset);
+                GameObject fillGo = CreatePart(PrimitiveType.Quad, "Fill", pivot.transform, fill);
+                fillGo.transform.localScale = new Vector3(BarWidth, BarHeight, 1f);
+                fillGo.transform.localPosition = new Vector3(BarWidth * 0.5f, 0f, 0f);
+
+                var segments = new Renderer[ChargeSegments];
+                float segmentWidth = (BarWidth - ChargeGap * (ChargeSegments - 1)) / ChargeSegments;
+                float y = -(BarHeight * 0.5f + ChargeGap + ChargeHeight * 0.5f);
+                for (int i = 0; i < ChargeSegments; i++)
+                {
+                    GameObject seg = CreatePart(PrimitiveType.Quad, "Charge" + i, root.transform, charge);
+                    seg.transform.localScale = new Vector3(segmentWidth, ChargeHeight, 1f);
+                    float x = -BarWidth * 0.5f + segmentWidth * 0.5f + i * (segmentWidth + ChargeGap);
+                    seg.transform.localPosition = new Vector3(x, y, -LayerOffset);
+                    segments[i] = seg.GetComponent<Renderer>();
+                }
+
+                var view = root.AddComponent<HealthBarView>();
+                var so = new SerializedObject(view);
+                SetRef(so, "_fillPivot", pivot.transform);
+                SetRef(so, "_fill", fillGo.GetComponent<Renderer>());
+                SerializedProperty segs = so.FindProperty("_chargeSegments");
+                if (segs == null) throw new InvalidOperationException("ViewAssetBuilder: field not found: _chargeSegments");
+                segs.arraySize = segments.Length;
+                for (int i = 0; i < segments.Length; i++) segs.GetArrayElementAtIndex(i).objectReferenceValue = segments[i];
+                SerializedProperty height = so.FindProperty("_height");
+                if (height == null) throw new InvalidOperationException("ViewAssetBuilder: field not found: _height");
+                height.floatValue = BarAboveFeet;
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                return SavePrefab(root, HealthBarPrefabPath).GetComponent<HealthBarView>();
             }
             finally
             {

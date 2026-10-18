@@ -15,10 +15,15 @@ namespace Arena.Core.Sim
     /// Order of systems in a tick (fixed; new systems are inserted at their documented place):
     ///   0. events cleared;
     ///   1. input: sanitize, latch buttons (PrevButtons ← Buttons ← input) for rising-edge detection;
-    ///   2. movement;            (S2.3+: targeting → attacks → projectiles → areas → damage → respawn)
-    ///   3. attack charges;
-    ///   4. regeneration;
-    ///   5. Tick++.
+    ///   2. movement;
+    ///   3. attacks (aim resolution inside, then shots: projectiles spawned, cones applied at once);
+    ///   4. projectiles (move, hit, apply effects);
+    ///   5. areas (delayed zones);
+    ///      damage, healing and defeat happen inside 3–5 through DamageSystem (single point);
+    ///   6. respawn;
+    ///   7. attack charges;
+    ///   8. regeneration;
+    ///   9. Tick++.
     ///
     /// No allocations per tick: the state, the event buffer and the input scratch array are allocated once here.
     /// </summary>
@@ -72,6 +77,10 @@ namespace Arena.Core.Sim
             Events.Clear();
             ApplyInputs(inputs, count);
             MovementSystem.Run(State, Defs, _inputs);
+            AttackSystem.Run(State, Defs, _inputs, Events);
+            ProjectileSystem.Run(State, Defs, Events);
+            AreaSystem.Run(State, Defs, Events);
+            RespawnSystem.Run(State, Defs, Setup, Events);
             ChargeSystem.Run(State, Defs, Events);
             RegenSystem.Run(State, Defs);
             State.Globals.Tick++;

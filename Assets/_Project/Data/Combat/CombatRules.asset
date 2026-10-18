@@ -15,6 +15,7 @@ MonoBehaviour:
   MaxCharges: 3
   RegenDelaySeconds: 3
   RegenFractionPerSecond: 0.12
+  RespawnSeconds: 3
   LevelBonusPerLevel: 0.06
   SlowSpeed: 2.2
   NormalSpeed: 2.5

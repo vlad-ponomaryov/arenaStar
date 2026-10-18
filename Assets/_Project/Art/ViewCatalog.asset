@@ -15,8 +15,17 @@ MonoBehaviour:
   FighterViewPrefab: {fileID: 350873538404402149, guid: fd9a69428cc9b2345bed37489ba18b7f, type: 3}
   AimIndicatorPrefab: {fileID: 6559715094259858551, guid: c5c1e6eaae3a13845894978c9a830632, type: 3}
   FloorPrefab: {fileID: 5125847828497573453, guid: a3e4093613d7b3c499233bf9868d4554, type: 3}
+  ProjectilePrefab: {fileID: 4008496338427880208, guid: 91b8421af3a1b1f4a907abb21cb85093, type: 3}
+  HealthBarPrefab: {fileID: 5199385430744116495, guid: 9235dc2b177f0734d89a4362e273aa93, type: 3}
+  ProjectilePoolPrewarm: 64
+  ProjectileHeight: 0.8
   TeamAlly: {fileID: 2100000, guid: 89d46a19bb4786245b570381bc47fa54, type: 2}
   TeamEnemy: {fileID: 2100000, guid: c8caa291b8137274eae2ca5c5297b215, type: 2}
   FighterBody: {fileID: 2100000, guid: fdbcdef65fc496244b97b8ef226946b3, type: 2}
   Floor: {fileID: 2100000, guid: 07f2808a38404f0499794e3a1440c155, type: 2}
   AimLine: {fileID: 2100000, guid: 32bb080ca4c8b0f4a86adba860087d94, type: 2}
+  Projectile: {fileID: 2100000, guid: 5ca33bc87168aa549a02119242a423ed, type: 2}
+  BarAlly: {fileID: 2100000, guid: a25b49683c2cd1f478f6046b3673c310, type: 2}
+  BarEnemy: {fileID: 2100000, guid: 1d9f5dff3baa2544cb5957db583be50b, type: 2}
+  BarBackground: {fileID: 2100000, guid: a6412a28c0457b346b1cd3ae0522da64, type: 2}
+  BarCharge: {fileID: 2100000, guid: dfde183becc8a3845a060f8c32c07a8e, type: 2}

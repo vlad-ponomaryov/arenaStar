@@ -45,6 +45,21 @@ namespace Arena.Core.State
         /// <summary>Fractional health regenerated but not yet applied (0..1).</summary>
         public float RegenRemainder;
 
+        /// <summary>Tick at which a defeated fighter respawns (valid while <see cref="Alive"/> is false).</summary>
+        public int RespawnTick;
+
+        /// <summary>Shots of the current attack burst still to fire (Pix: 3 after the first drop).</summary>
+        public int BurstShotsLeft;
+
+        /// <summary>Tick of the next burst shot.</summary>
+        public int NextBurstTick;
+
+        /// <summary>Direction fixed when the burst started (all shots of a burst fly the same way).</summary>
+        public Vec2 BurstDir;
+
+        /// <summary>Ult charge from damage dealt (field reserved in S2.3; logic in S2.4).</summary>
+        public int UltCharge;
+
         /// <summary>Buttons of the current tick's input and of the previous tick (rising-edge detection, D-006).</summary>
         public InputButtons Buttons;
         public InputButtons PrevButtons;
@@ -61,6 +76,8 @@ namespace Arena.Core.State
                 && Health == o.Health && MaxHealth == o.MaxHealth
                 && Charges == o.Charges && ChargeProgressTicks == o.ChargeProgressTicks
                 && LastCombatTick == o.LastCombatTick && RegenRemainder == o.RegenRemainder
+                && RespawnTick == o.RespawnTick && BurstShotsLeft == o.BurstShotsLeft && NextBurstTick == o.NextBurstTick
+                && BurstDir == o.BurstDir && UltCharge == o.UltCharge
                 && Buttons == o.Buttons && PrevButtons == o.PrevButtons;
         }
 

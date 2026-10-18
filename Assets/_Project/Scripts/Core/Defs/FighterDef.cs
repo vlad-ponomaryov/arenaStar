@@ -5,7 +5,7 @@ namespace Arena.Core.Defs
     /// <summary>
     /// Immutable-by-convention description of a fighter for the simulation (D-010): converted from FighterConfig, values
     /// already in cells / ticks / int. Base values are for level 1; level scaling is applied at spawn
-    /// (<see cref="CombatRules.ScaleByLevel"/>). Abilities are added in S2.3–S2.4.
+    /// (<see cref="CombatRules.ScaleByLevel"/>). Abilities: the attack (S2.3); ult, trick, talent — S2.4.
     /// </summary>
     public sealed class FighterDef
     {
@@ -24,14 +24,17 @@ namespace Arena.Core.Defs
         /// <summary>Collision / hit radius in cells.</summary>
         public float Radius;
 
-        /// <summary>Main attack range in cells (also the auto-aim radius, D-007).</summary>
-        public float AttackRange;
-
         /// <summary>Ticks to restore one attack charge.</summary>
         public int AttackRechargeTicks;
 
-        /// <summary>Main attack damage per hit at level 1 (used from S2.3).</summary>
-        public int AttackDamage;
+        /// <summary>Main attack (S2.3); ult and trick come in S2.4.</summary>
+        public AbilityDef Attack;
+
+        /// <summary>Main attack range in cells (also the auto-aim radius, D-007) = <c>Attack.Range</c>.</summary>
+        public float AttackRange => Attack != null ? Attack.Range : 0f;
+
+        /// <summary>Ability by slot, or null if the fighter has none there.</summary>
+        public AbilityDef GetAbility(AbilitySlot slot) => slot == AbilitySlot.Attack ? Attack : null;
 
         public void Validate()
         {
@@ -39,9 +42,9 @@ namespace Arena.Core.Defs
             if (MaxHealth <= 0) throw new ArgumentException("FighterDef " + Id + ": MaxHealth must be > 0");
             if (MoveSpeed < 0f) throw new ArgumentException("FighterDef " + Id + ": MoveSpeed must be ≥ 0");
             if (Radius <= 0f) throw new ArgumentException("FighterDef " + Id + ": Radius must be > 0");
-            if (AttackRange <= 0f) throw new ArgumentException("FighterDef " + Id + ": AttackRange must be > 0");
             if (AttackRechargeTicks <= 0) throw new ArgumentException("FighterDef " + Id + ": AttackRechargeTicks must be > 0");
-            if (AttackDamage < 0) throw new ArgumentException("FighterDef " + Id + ": AttackDamage must be ≥ 0");
+            if (Attack == null) throw new ArgumentException("FighterDef " + Id + ": Attack is null");
+            Attack.Validate("FighterDef " + Id + ".Attack");
         }
     }
 }

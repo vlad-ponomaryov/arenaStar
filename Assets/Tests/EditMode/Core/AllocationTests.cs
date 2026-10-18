@@ -1,4 +1,5 @@
 using Arena.Core.Input;
+using Arena.Core.Math;
 using Arena.Core.Random;
 using Arena.Core.Sim;
 using Arena.Core.Sim.Systems;
@@ -36,6 +37,36 @@ namespace Arena.Tests.EditMode.Core
                 for (int t = 0; t < MeasuredTicks; t++) Step(sim, inputs, ref rng, t);
             }, MeasuredTicks + " ticks");
             Assert.AreEqual(WarmupTicks + MeasuredTicks, sim.State.Tick);
+        }
+
+        [Test]
+        public void Tick_WithShootingDeathsAndRespawns_DoesNotAllocate()
+        {
+            var defs = TestMatchFactory.CreateDefs();
+            var sim = TestMatchFactory.CreateWith(defs,
+                TestMatchFactory.Slot(0, 0, 8f, 12f), TestMatchFactory.Slot(1, 0, 10f, 14f), TestMatchFactory.Slot(0, 0, 12f, 12f),
+                TestMatchFactory.Slot(0, 1, 8f, 17f), TestMatchFactory.Slot(1, 1, 10f, 15.5f), TestMatchFactory.Slot(0, 1, 12f, 17f));
+            var inputs = TestMatchFactory.Inputs();
+
+            for (int t = 0; t < WarmupTicks; t++) CombatStep(sim, inputs, t);
+            AllocationAssert.NoGcAllocations(() =>
+            {
+                for (int t = WarmupTicks; t < WarmupTicks + CombatTicks; t++) CombatStep(sim, inputs, t);
+            }, CombatTicks + " combat ticks");
+
+            int deaths = 0;
+            for (int i = 0; i < Fighters; i++) deaths += sim.State.Stats[i].Deaths;
+            Assert.Greater(deaths, 0, "the measured ticks must include defeats and respawns");
+        }
+
+        private const int CombatTicks = 900;
+
+        private static void CombatStep(MatchSimulation sim, PlayerInput[] inputs, int t)
+        {
+            // Everyone taps auto-aim attack every other tick (rising edge each time).
+            InputButtons buttons = t % 2 == 0 ? InputButtons.Attack | InputButtons.AutoAim : InputButtons.None;
+            for (int i = 0; i < Fighters; i++) inputs[i] = new PlayerInput(Vec2.Zero, Vec2.Zero, buttons);
+            sim.Tick(inputs);
         }
 
         [Test]
