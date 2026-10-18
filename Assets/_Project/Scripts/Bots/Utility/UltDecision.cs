@@ -12,7 +12,9 @@ namespace Arena.Bots.Utility
     /// enemies are in its zone along the direction to the target, or the ult alone finishes the target. Then it is used with
     /// <see cref="BotDifficultyDef.UltUseChance"/> per decision; otherwise, with the target in the zone, it is wasted with
     /// <see cref="BotDifficultyDef.UltMisuseChance"/> ("rarely and off the mark"). Zones by delivery: a fan / single projectile
-    /// (range and angle, the body counts), a dash (a strip of the caster's width), a cone, a circle around the caster.
+    /// (range and angle, the body counts), a dash (a strip of the caster's width), a cone, a circle around the caster, a lob
+    /// (the blast circle at the target — any enemy that close to the target, within the throw range), a placed area (its
+    /// circle around the caster).
     /// Pure functions.
     /// </summary>
     public static class UltDecision
@@ -43,6 +45,10 @@ namespace Arena.Bots.Utility
                     return distance <= targetRadius || MathUtil.AngleBetween(dir, to) <= ult.ConeAngleDegrees * 0.5f;
                 case DeliveryKind.SelfArea:
                     return distance <= ult.Range + targetRadius;
+                case DeliveryKind.Lob:
+                    return distance <= ult.Range + ult.AreaRadius + targetRadius;
+                case DeliveryKind.PlaceArea:
+                    return distance <= ult.AreaRadius + targetRadius;
                 default:
                     return false; // self buffs have no zone
             }

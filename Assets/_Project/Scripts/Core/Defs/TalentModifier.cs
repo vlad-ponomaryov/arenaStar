@@ -15,10 +15,11 @@ namespace Arena.Core.Defs
         /// <summary>Damage dealt +Value %.</summary>
         DamageMul = 2,
 
-        /// <summary>Reserved (Chomp, S2.11): area radius +Value %.</summary>
+        /// <summary>Radius of the areas the fighter creates (lob, placed) +Value % (Chomp).</summary>
         AreaRadiusMul = 3,
 
-        /// <summary>Reserved (Kora, S2.11): regeneration delay of allies.</summary>
+        /// <summary>Regeneration delay of the allies in the aura becomes <see cref="TalentDef.Ticks"/> (Kora; with
+        /// <see cref="TalentCondition.AllyAura"/> only).</summary>
         RegenDelay = 4,
 
         /// <summary>Reserved (Vex, S2.12): refill all attack charges.</summary>

@@ -295,7 +295,7 @@ namespace Arena.Bots
             ref FighterState t = ref state.Fighters[target];
             Vec2 dir = (t.Position - f.Position).Normalized;
             if (dir.IsZero) return;
-            if (!ult.IgnoresWalls && !ult.BreaksWalls && !Perception.HasClearShot(state.Grid, f.Position, t.Position)) return;
+            if (NeedsClearShot(ult) && !Perception.HasClearShot(state.Grid, f.Position, t.Position)) return;
             float targetRadius = defs.Fighters[t.DefIndex].Radius;
             bool inZone = UltDecision.IsInZone(ult, f.Position, dir, def.Radius, t.Position, targetRadius);
             bool worth = false;
@@ -566,7 +566,9 @@ namespace Arena.Bots
                 else if (AbilitySystem.CanActivate(in f) && UltSystem.IsCharged(defs, in f) && !f.IsHeld(InputButtons.Ult))
                 {
                     b.UltPending = false;
-                    Vec2 ultAim = BotAim.Apply(state.Fighters[target].Position - position, _difficulty[slot].AimSpreadDegrees, ref b.Rng);
+                    Vec2 toTarget = state.Fighters[target].Position - position;
+                    Vec2 ultAim = BotAim.ForAbility(BotAim.Apply(toTarget, _difficulty[slot].AimSpreadDegrees, ref b.Rng), def.Ult,
+                        toTarget.Length);
                     if (!ultAim.IsZero) return new PlayerInput(move, ultAim, InputButtons.Ult);
                 }
             }
@@ -621,6 +623,22 @@ namespace Arena.Bots
             return IsReached(position, goal) ? Vec2.Zero : (goal - position).Normalized;
         }
 
+        /// <summary>The ult travels along a line that walls stop (not over walls, not breaking them, not placed / around the caster).</summary>
+        private static bool NeedsClearShot(AbilityDef ult)
+        {
+            if (ult.IgnoresWalls || ult.BreaksWalls) return false;
+            switch (ult.Delivery)
+            {
+                case DeliveryKind.Lob:
+                case DeliveryKind.PlaceArea:
+                case DeliveryKind.SelfArea:
+                case DeliveryKind.SelfBuff:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
         private bool CanPressAttack(in FighterState f, in BotBrain b, int tick) =>
             f.BurstShotsLeft <= 0 && f.Charges > 0 && !f.IsHeld(InputButtons.Attack) && !f.IsDashing && !f.Stunned && tick >= b.NextShotTick;
 
@@ -642,7 +660,7 @@ namespace Arena.Bots
             int damage = FireDecision.EstimateAttackDamage(def, f.Level, defs.Rules);
             if (!FireDecision.ShouldSpendCharge(f.Charges, t.Health, damage, distance, _behaviour.LastChargeEnemyDistance)) return false;
 
-            aim = BotAim.Apply(t.Position - f.Position, difficulty.AimSpreadDegrees, ref b.Rng);
+            aim = BotAim.ForAbility(BotAim.Apply(t.Position - f.Position, difficulty.AimSpreadDegrees, ref b.Rng), def.Attack, distance);
             if (aim.IsZero) return false;
             b.NextShotTick = tick + _behaviour.MinShotIntervalTicks;
             return true;
@@ -659,7 +677,8 @@ namespace Arena.Bots
             if (Vec2.Distance(f.Position, point) > def.AttackRange * _behaviour.FireRangeFraction) return false;
             if (!def.Attack.IgnoresWalls && !Perception.HasClearShot(state.Grid, f.Position, point)) return false;
 
-            aim = BotAim.Apply(point - f.Position, _difficulty[slot].AimSpreadDegrees, ref b.Rng);
+            aim = BotAim.ForAbility(BotAim.Apply(point - f.Position, _difficulty[slot].AimSpreadDegrees, ref b.Rng), def.Attack,
+                Vec2.Distance(f.Position, point));
             if (aim.IsZero) return false;
             b.NextShotTick = tick + _behaviour.MinShotIntervalTicks;
             return true;

@@ -99,17 +99,80 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(15, bruno.Talent.Value);
         }
 
-        [TestCase("chomp")]
-        [TestCase("kora")]
         [TestCase("nova")]
         [TestCase("vex")]
         public void OtherFighters_HaveNoUltTrickTalentYet(string id)
         {
             MatchDefs defs = LoadDefs();
             FighterDef f = defs.Fighters[defs.IndexOfFighter(id)];
-            Assert.IsNull(f.Ult, "S2.11–S2.12");
+            Assert.IsNull(f.Ult, "S2.12");
             Assert.IsNull(f.Trick);
             Assert.IsNull(f.Talent);
+        }
+
+        [Test]
+        public void Chomp_FromAsset_HasGddSet()
+        {
+            MatchDefs defs = LoadDefs();
+            FighterDef chomp = defs.Fighters[defs.IndexOfFighter("chomp")];
+            Assert.AreEqual(3000, chomp.MaxHealth);
+            Assert.AreEqual(48, chomp.AttackRechargeTicks, "1.6 s");
+            Assert.AreEqual(DeliveryKind.Lob, chomp.Attack.Delivery);
+            Assert.AreEqual(7f, chomp.Attack.Range, 1e-5f);
+            Assert.AreEqual(1.2f, chomp.Attack.AreaRadius, 1e-5f);
+            Assert.AreEqual(15, chomp.Attack.AreaDelayTicks, "zone shown 0.5 s before (GDD 6)");
+            Assert.AreEqual(1100, chomp.Attack.Effects[0].Value);
+
+            Assert.AreEqual(DeliveryKind.Projectile, chomp.Ult.Delivery);
+            Assert.AreEqual(9f, chomp.Ult.Range, 1e-5f);
+            Assert.IsTrue(chomp.Ult.PierceAll);
+            Assert.IsTrue(chomp.Ult.BreaksWalls);
+            Assert.AreEqual(1600, chomp.Ult.Effects[0].Value);
+            Assert.AreEqual(EffectKind.Knockback, chomp.Ult.Effects[1].Kind);
+            Assert.AreEqual(2f, chomp.Ult.Effects[1].Distance, 1e-5f);
+
+            Assert.AreEqual(DeliveryKind.PlaceArea, chomp.Trick.Delivery);
+            Assert.AreEqual(AreaKind.Mine, chomp.Trick.PlacedArea);
+            Assert.AreEqual(300, chomp.Trick.AreaDurationTicks, "10 s");
+            Assert.AreEqual(900, chomp.Trick.Effects[0].Value);
+            Assert.IsTrue(chomp.Trick.HiddenFromEnemies, "D-030");
+
+            Assert.AreEqual(TalentModifier.AreaRadiusMul, chomp.Talent.Modifier);
+            Assert.AreEqual(20, chomp.Talent.Value);
+            Assert.AreEqual(BotTrickHint.PlaceAtObjective, chomp.BotTrickHint);
+        }
+
+        [Test]
+        public void Kora_FromAsset_HasGddSet()
+        {
+            MatchDefs defs = LoadDefs();
+            FighterDef kora = defs.Fighters[defs.IndexOfFighter("kora")];
+            Assert.AreEqual(4200, kora.MaxHealth);
+            Assert.AreEqual(45, kora.AttackRechargeTicks, "1.5 s");
+            Assert.AreEqual(7f, kora.Attack.Range, 1e-5f);
+            Assert.AreEqual(2, kora.Attack.BounceCount, "3 targets in all");
+            Assert.AreEqual(EffectKind.Damage, kora.Attack.Effects[0].Kind);
+            Assert.AreEqual(600, kora.Attack.Effects[0].Value);
+            Assert.AreEqual(EffectKind.Heal, kora.Attack.Effects[1].Kind);
+            Assert.AreEqual(TargetFilter.Ally, kora.Attack.Effects[1].Filter);
+            Assert.AreEqual(500, kora.Attack.Effects[1].Value);
+
+            Assert.AreEqual(DeliveryKind.PlaceArea, kora.Ult.Delivery);
+            Assert.AreEqual(AreaKind.Field, kora.Ult.PlacedArea);
+            Assert.AreEqual(2.5f, kora.Ult.AreaRadius, 1e-5f);
+            Assert.AreEqual(90, kora.Ult.AreaDurationTicks, "3 s");
+            Assert.IsTrue(kora.Ult.BlocksEnemyProjectiles);
+            Assert.AreEqual(1000, kora.Ult.Effects[0].Value);
+
+            Assert.AreEqual(DeliveryKind.SelfArea, kora.Trick.Delivery);
+            Assert.AreEqual(3f, kora.Trick.Range, 1e-5f);
+            Assert.AreEqual(1200, kora.Trick.Effects[0].Value);
+
+            Assert.AreEqual(TalentCondition.AllyAura, kora.Talent.Condition);
+            Assert.AreEqual(3, kora.Talent.Param);
+            Assert.AreEqual(TalentModifier.RegenDelay, kora.Talent.Modifier);
+            Assert.AreEqual(60, kora.Talent.Ticks, "2 s instead of 3");
+            Assert.AreEqual(BotTrickHint.HealAllies, kora.BotTrickHint);
         }
 
         [Test]

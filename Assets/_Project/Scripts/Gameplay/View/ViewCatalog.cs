@@ -24,6 +24,25 @@ namespace Arena.Gameplay.View
         [Tooltip("Ground marker of a pending area attack (zone disc + growing fill), diameter 1.")]
         public TelegraphView TelegraphPrefab;
 
+        [Header("Areas and special projectiles (S2.11)")]
+        [Tooltip("Rolling log: cylinder with its axis along local X, length 1 and diameter 1; scaled at runtime.")]
+        public GameObject LogPrefab;
+
+        [Tooltip("Thickness (diameter) of a rolling log, world units (view only).")]
+        [Min(0.01f)] public float LogThickness;
+
+        [Tooltip("Lobbed bomb in flight, pivot at the centre, real size.")]
+        public GameObject LobBombPrefab;
+
+        [Tooltip("Peak height of a lob's arc above the straight line, world units (view only).")]
+        [Min(0f)] public float LobArcHeight;
+
+        [Tooltip("Placed mine, pivot at the bottom centre, real size.")]
+        public GameObject MinePrefab;
+
+        [Tooltip("Dome of a field area: sphere of diameter 1 (half under the ground); scaled to the area diameter. Its renderer gets the team's zone material.")]
+        public GameObject DomePrefab;
+
         [Tooltip("Breakable wall cube of 1 cell, pivot at the bottom centre.")]
         public GameObject BreakableWallPrefab;
 

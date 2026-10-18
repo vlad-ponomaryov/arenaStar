@@ -4,7 +4,8 @@ using Arena.Core.State;
 namespace Arena.Core.Sim.Systems
 {
     /// <summary>
-    /// Health regeneration (GDD §5.2): after <see cref="CombatRules.RegenDelayTicks"/> without attacking or taking damage,
+    /// Health regeneration (GDD §5.2): after <see cref="CombatRules.RegenDelayTicks"/> (shorter next to an ally with a regen
+    /// aura talent — <see cref="TalentSystem.RegenDelayTicks"/>) without attacking or taking damage,
     /// +<see cref="CombatRules.RegenFractionPerSecond"/> of max health per second. The fractional part is accumulated in
     /// <see cref="FighterState.RegenRemainder"/>, so the per-second amount is exact over time.
     /// Attack and damage systems call <see cref="MarkInCombat"/>.
@@ -21,7 +22,7 @@ namespace Arena.Core.Sim.Systems
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active || !f.Alive) continue;
 
-                if (f.Health >= f.MaxHealth || tick - f.LastCombatTick < rules.RegenDelayTicks)
+                if (f.Health >= f.MaxHealth || tick - f.LastCombatTick < TalentSystem.RegenDelayTicks(state, defs, i))
                 {
                     f.RegenRemainder = 0f;
                     continue;

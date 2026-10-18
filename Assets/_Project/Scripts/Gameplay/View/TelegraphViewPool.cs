@@ -1,3 +1,4 @@
+using Arena.Core.Defs;
 using Arena.Core.Sim;
 using Arena.Core.State;
 using UnityEngine;
@@ -6,7 +7,8 @@ namespace Arena.Gameplay.View
 {
     /// <summary>
     /// Telegraphs of <see cref="MatchState.Areas"/> by slot (S2.10 frame for the area attacks of S2.11–S2.12): an area that has not
-    /// triggered yet is shown during the last <c>telegraphTicks</c> before its <see cref="AreaState.ActivateTick"/>, coloured by
+    /// triggered yet (bursts only — mines and fields are drawn by <see cref="AreaViewPool"/>) is shown during the last
+    /// <c>telegraphTicks</c> before its <see cref="AreaState.ActivateTick"/>, coloured by
     /// the owner's team relative to the local player. Views are created on first need and reused; no allocations afterwards.
     /// </summary>
     public sealed class TelegraphViewPool
@@ -39,7 +41,7 @@ namespace Arena.Gameplay.View
         /// </summary>
         public static float Progress(in AreaState a, int tick, int telegraphTicks, float alpha)
         {
-            if (!a.Active || a.Triggered || telegraphTicks <= 0) return -1f;
+            if (!a.Active || a.Triggered || a.Kind != AreaKind.Burst || telegraphTicks <= 0) return -1f;
             float left = a.ActivateTick - tick - alpha;
             if (left > telegraphTicks) return -1f;
             if (left < 0f) left = 0f;

@@ -14,8 +14,6 @@ namespace Arena.Tests.EditMode.Core
             Assert.DoesNotThrow(() => A.CreateDefs().Validate());
         }
 
-        [TestCase(DeliveryKind.Lob)]
-        [TestCase(DeliveryKind.PlaceArea)]
         [TestCase(DeliveryKind.Hook)]
         [TestCase(DeliveryKind.None)]
         public void ReservedDeliveries_AreRejected(DeliveryKind kind)
@@ -71,11 +69,53 @@ namespace Arena.Tests.EditMode.Core
 
         [TestCase(TalentCondition.TargetMarked)]
         [TestCase(TalentCondition.OnKill)]
-        [TestCase(TalentCondition.AllyAura)]
         public void ReservedTalentConditions_AreRejected(TalentCondition condition)
         {
             var t = new TalentDef { Condition = condition, Modifier = TalentModifier.DamageMul, Value = 10 };
             Assert.Throws<ArgumentException>(() => t.Validate("test"));
+        }
+
+        [Test]
+        public void ChompAndKoraSets_AreValid()
+        {
+            Assert.DoesNotThrow(() => SupportFighterTestFactory.CreateDefs().Validate());
+        }
+
+        [Test]
+        public void AreaAbilities_NeedTheirParameters()
+        {
+            FighterDef chomp = SupportFighterTestFactory.CreateChomp();
+            chomp.Attack.AreaRadius = 0f;
+            Assert.Throws<ArgumentException>(() => chomp.Validate(), "lob without a blast radius");
+
+            chomp = SupportFighterTestFactory.CreateChomp();
+            chomp.Trick.AreaDurationTicks = 0;
+            Assert.Throws<ArgumentException>(() => chomp.Validate(), "mine without a lifetime");
+
+            FighterDef kora = SupportFighterTestFactory.CreateKora();
+            kora.Ult.AreaPulseTicks = 0;
+            Assert.Throws<ArgumentException>(() => kora.Validate(), "field without pulses");
+
+            kora = SupportFighterTestFactory.CreateKora();
+            kora.Attack.BounceRange = 0f;
+            Assert.Throws<ArgumentException>(() => kora.Validate(), "bounce without a range");
+
+            kora = SupportFighterTestFactory.CreateKora();
+            kora.Trick.BlocksEnemyProjectiles = true;
+            Assert.Throws<ArgumentException>(() => kora.Validate(), "only a placed field blocks projectiles");
+        }
+
+        [Test]
+        public void RegenDelayTalent_IsAnAllyAura()
+        {
+            var aura = new TalentDef { Condition = TalentCondition.AllyAura, Param = 3, Modifier = TalentModifier.RegenDelay, Ticks = 60 };
+            Assert.DoesNotThrow(() => aura.Validate("test"));
+            Assert.Throws<ArgumentException>(() =>
+                new TalentDef { Condition = TalentCondition.Always, Modifier = TalentModifier.RegenDelay, Ticks = 60 }.Validate("test"));
+            Assert.Throws<ArgumentException>(() =>
+                new TalentDef { Condition = TalentCondition.AllyAura, Param = 3, Modifier = TalentModifier.RegenDelay }.Validate("test"));
+            Assert.Throws<ArgumentException>(() =>
+                new TalentDef { Condition = TalentCondition.AllyAura, Param = 3, Modifier = TalentModifier.DamageMul, Value = 10 }.Validate("test"));
         }
     }
 }

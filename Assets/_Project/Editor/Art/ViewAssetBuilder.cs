@@ -35,6 +35,10 @@ namespace Arena.Editor.Art
         public const string AcornGoldenPrefabPath = PrefabsFolder + "/AcornGolden.prefab";
         public const string HollowPrefabPath = PrefabsFolder + "/Hollow.prefab";
         public const string TelegraphPrefabPath = PrefabsFolder + "/Telegraph.prefab";
+        public const string LogPrefabPath = PrefabsFolder + "/Log.prefab";
+        public const string LobBombPrefabPath = PrefabsFolder + "/LobBomb.prefab";
+        public const string MinePrefabPath = PrefabsFolder + "/Mine.prefab";
+        public const string DomePrefabPath = PrefabsFolder + "/Dome.prefab";
 
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
@@ -103,6 +107,16 @@ namespace Arena.Editor.Art
         // Projectiles: pool prewarm (S2.3 plan) and flight height (view only).
         private const int ProjectilePoolPrewarm = 64;
         private const float ProjectileHeight = 0.8f;
+
+        // S2.11 views (PROTO, D-060): Chomp's log, lobbed pine cone and mine; Kora's dome uses the team zone materials.
+        private const float LogThickness = 0.5f;
+        private const float LobBombDiameter = 0.4f;
+        private const float LobArcHeight = 2f;
+        private const float MineDiameter = 0.6f;
+        private const float MineHeight = 0.15f;
+        private static readonly Color LogColor = new Color(0.50f, 0.32f, 0.16f, 1f);
+        private static readonly Color PineConeColor = new Color(0.42f, 0.26f, 0.12f, 1f);
+        private static readonly Color MineColor = new Color(0.30f, 0.20f, 0.10f, 1f);
 
         // Health bar (world units): bar above the head, charge segments under it, drawn layers slightly towards the camera.
         private const float BarAboveFeet = 2.1f;
@@ -175,6 +189,13 @@ namespace Arena.Editor.Art
             GameObject acornPrefab = BuildSpherePrefab("Acorn", AcornPrefabPath, acorn, AcornDiameter);
             GameObject acornGoldenPrefab = BuildSpherePrefab("AcornGolden", AcornGoldenPrefabPath, acornGolden, AcornGoldenDiameter);
             GameObject hollowPrefab = BuildHollowPrefab(hollow);
+            Material log = SaveMaterial("Log", LitShader, LogColor);
+            Material pineCone = SaveMaterial("PineCone", LitShader, PineConeColor);
+            Material mine = SaveMaterial("Mine", LitShader, MineColor);
+            GameObject logPrefab = BuildLogPrefab(log);
+            GameObject lobBombPrefab = BuildSpherePrefab("LobBomb", LobBombPrefabPath, pineCone, LobBombDiameter);
+            GameObject minePrefab = BuildMinePrefab(mine);
+            GameObject domePrefab = BuildDomePrefab(telegraphAllyZone);
 
             ViewCatalog catalog = LoadOrCreate<ViewCatalog>(ViewCatalogPath);
             catalog.FighterViewPrefab = fighterView;
@@ -188,6 +209,12 @@ namespace Arena.Editor.Art
             catalog.AcornGoldenPrefab = acornGoldenPrefab;
             catalog.HollowPrefab = hollowPrefab;
             catalog.TelegraphPrefab = telegraph;
+            catalog.LogPrefab = logPrefab;
+            catalog.LogThickness = LogThickness;
+            catalog.LobBombPrefab = lobBombPrefab;
+            catalog.LobArcHeight = LobArcHeight;
+            catalog.MinePrefab = minePrefab;
+            catalog.DomePrefab = domePrefab;
             catalog.TeamEnemyAlt = enemyAlt;
             catalog.BarEnemyAlt = barEnemyAlt;
             catalog.FighterFlash = flash;
@@ -452,6 +479,54 @@ namespace Arena.Editor.Art
                 stump.transform.localScale = new Vector3(HollowDiameter, HollowHeight * 0.5f, HollowDiameter);
                 stump.transform.localPosition = new Vector3(0f, HollowHeight * 0.5f, 0f);
                 return SavePrefab(root, HollowPrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static GameObject BuildLogPrefab(Material material)
+        {
+            var root = new GameObject("Log");
+            try
+            {
+                // Unity cylinder: height 2 along Y, diameter 1 → turned to lie along X, length 1 (root scale = length, thickness).
+                GameObject trunk = CreatePart(PrimitiveType.Cylinder, "Trunk", root.transform, material);
+                trunk.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+                trunk.transform.localScale = new Vector3(1f, 0.5f, 1f);
+                return SavePrefab(root, LogPrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static GameObject BuildMinePrefab(Material material)
+        {
+            var root = new GameObject("Mine");
+            try
+            {
+                GameObject disc = CreatePart(PrimitiveType.Cylinder, "Cone", root.transform, material);
+                disc.transform.localScale = new Vector3(MineDiameter, MineHeight * 0.5f, MineDiameter);
+                disc.transform.localPosition = new Vector3(0f, MineHeight * 0.5f, 0f);
+                return SavePrefab(root, MinePrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static GameObject BuildDomePrefab(Material material)
+        {
+            var root = new GameObject("Dome");
+            try
+            {
+                // Unity sphere of diameter 1 centred on the ground: the upper half is the dome (root scale = area diameter).
+                CreatePart(PrimitiveType.Sphere, "Shell", root.transform, material);
+                return SavePrefab(root, DomePrefabPath);
             }
             finally
             {

@@ -27,6 +27,8 @@ namespace Arena.Core.Sim.Systems
                     return UltSystem.IsCharged(defs, in f);
                 case TalentCondition.HealthBelow:
                     return (long)f.Health * 100 < (long)f.MaxHealth * talent.Param;
+                case TalentCondition.AllyAura:
+                    return true; // the aura is on; who is inside is checked by its user (RegenDelayTicks)
                 default:
                     return false;
             }
@@ -37,6 +39,34 @@ namespace Arena.Core.Sim.Systems
 
         public static float DamageMultiplier(MatchState state, MatchDefs defs, int slot) =>
             Multiplier(state, defs, slot, TalentModifier.DamageMul);
+
+        /// <summary>Radius multiplier of the areas the fighter creates (Chomp's "Big Boom").</summary>
+        public static float AreaRadiusMultiplier(MatchState state, MatchDefs defs, int slot) =>
+            Multiplier(state, defs, slot, TalentModifier.AreaRadiusMul);
+
+        /// <summary>
+        /// Regeneration delay of the fighter in <paramref name="slot"/>: the rules' delay, or the shortest
+        /// <see cref="TalentDef.Ticks"/> of an alive ally (not itself) with an active <see cref="TalentModifier.RegenDelay"/>
+        /// aura within <see cref="TalentDef.Param"/> cells (Kora's "Herbal Blend": 2 s instead of 3).
+        /// </summary>
+        public static int RegenDelayTicks(MatchState state, MatchDefs defs, int slot)
+        {
+            int delay = defs.Rules.RegenDelayTicks;
+            ref FighterState f = ref state.Fighters[slot];
+            int count = state.Globals.FighterCount;
+            for (int j = 0; j < count; j++)
+            {
+                if (j == slot) continue;
+                ref FighterState o = ref state.Fighters[j];
+                if (o.Team != f.Team || !IsActive(state, defs, j)) continue;
+                TalentDef talent = defs.Fighters[o.DefIndex].Talent;
+                if (talent.Modifier != TalentModifier.RegenDelay || talent.Condition != TalentCondition.AllyAura) continue;
+                if (talent.Ticks >= delay) continue;
+                float r = talent.Param;
+                if (Vec2.SqrDistance(o.Position, f.Position) <= r * r) delay = talent.Ticks;
+            }
+            return delay;
+        }
 
         /// <summary><c>1 + Value %</c> if the fighter's active talent has this modifier, otherwise 1.</summary>
         public static float Multiplier(MatchState state, MatchDefs defs, int slot, TalentModifier modifier)

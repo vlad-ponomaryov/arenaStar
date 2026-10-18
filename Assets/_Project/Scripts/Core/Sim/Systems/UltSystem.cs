@@ -68,7 +68,8 @@ namespace Arena.Core.Sim.Systems
             f.UltCharge = 0;
             Vec2 dir = AbilitySystem.ResolveDirection(state, slot, in input, ult);
             f.Facing = dir;
-            AbilitySystem.Activate(state, defs, events, slot, ult, MatchDefs.MakeAbilityRef(f.DefIndex, AbilitySlot.Ult), dir);
+            AbilitySystem.Activate(state, defs, events, slot, ult, MatchDefs.MakeAbilityRef(f.DefIndex, AbilitySlot.Ult), dir,
+                AbilitySystem.ResolveDistance(state, slot, in input, ult));
         }
     }
 }

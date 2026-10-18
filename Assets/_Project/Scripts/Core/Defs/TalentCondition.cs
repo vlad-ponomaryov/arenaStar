@@ -22,7 +22,7 @@ namespace Arena.Core.Defs
         /// <summary>Reserved (Vex, S2.12): triggered by defeating an enemy.</summary>
         OnKill = 4,
 
-        /// <summary>Reserved (Kora, S2.11): allies within <see cref="TalentDef.Param"/> cells.</summary>
+        /// <summary>Aura (Kora): affects allies (not the owner) within <see cref="TalentDef.Param"/> cells of the owner.</summary>
         AllyAura = 5
     }
 }

@@ -185,7 +185,11 @@ namespace Arena.Data.Conversion
         public static TalentDef ToTalentDef(TalentConfig c)
         {
             if (c == null || c.Modifier == TalentModifier.None) return null;
-            return new TalentDef { Condition = c.Condition, Modifier = c.Modifier, Value = c.ValuePercent, Param = c.Param };
+            return new TalentDef
+            {
+                Condition = c.Condition, Modifier = c.Modifier, Value = c.ValuePercent, Param = c.Param,
+                Ticks = SimTime.SecondsToTicks(c.Seconds)
+            };
         }
 
         public static AbilityDef ToAbilityDef(AbilityConfig c, string owner)
@@ -215,6 +219,9 @@ namespace Arena.Data.Conversion
                 ProjectileCount = c.ProjectileCount,
                 SpreadDegrees = c.SpreadDegrees,
                 PierceCount = c.PierceCount,
+                PierceAll = c.PierceAll,
+                BounceCount = c.BounceCount,
+                BounceRange = c.BounceRange,
                 ConeAngleDegrees = c.ConeAngleDegrees,
                 BurstCount = c.BurstCount,
                 BurstIntervalTicks = SimTime.SecondsToTicks(c.BurstIntervalSeconds),
@@ -223,6 +230,13 @@ namespace Arena.Data.Conversion
                 BreaksWalls = c.BreaksWalls,
                 IgnoresWalls = c.IgnoresWalls,
                 UsesMoveDirection = c.UsesMoveDirection,
+                AreaRadius = c.AreaRadius,
+                AreaDelayTicks = SimTime.SecondsToTicks(c.AreaDelaySeconds),
+                AreaDurationTicks = SimTime.SecondsToTicks(c.AreaDurationSeconds),
+                AreaPulseTicks = SimTime.SecondsToTicks(c.AreaPulseSeconds),
+                PlacedArea = c.PlacedArea,
+                BlocksEnemyProjectiles = c.BlocksEnemyProjectiles,
+                HiddenFromEnemies = c.HiddenFromEnemies,
                 Effects = effects
             };
         }

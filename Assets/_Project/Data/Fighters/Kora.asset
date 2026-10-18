@@ -26,6 +26,10 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceAll: 0
+    BounceCount: 2
+    BounceRange: 3
+    ProjectileView: 0
     ConeAngleDegrees: 0
     BurstCount: 1
     BurstIntervalSeconds: 0
@@ -34,21 +38,37 @@ MonoBehaviour:
     BreaksWalls: 0
     IgnoresWalls: 0
     UsesMoveDirection: 0
+    AreaRadius: 0
+    AreaDelaySeconds: 0
+    AreaDurationSeconds: 0
+    AreaPulseSeconds: 0
+    PlacedArea: 0
+    BlocksEnemyProjectiles: 0
+    HiddenFromEnemies: 0
     Effects:
     - Kind: 1
       Filter: 1
       Value: 600
       DurationSeconds: 0
       Distance: 0
-  UltChargeRequired: 0
+    - Kind: 2
+      Filter: 2
+      Value: 500
+      DurationSeconds: 0
+      Distance: 0
+  UltChargeRequired: 4800
   Ult:
-    Delivery: 0
+    Delivery: 7
     Range: 0
     ProjectileSpeed: 0
     ProjectileRadius: 0
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceAll: 0
+    BounceCount: 0
+    BounceRange: 0
+    ProjectileView: 0
     ConeAngleDegrees: 0
     BurstCount: 1
     BurstIntervalSeconds: 0
@@ -57,15 +77,31 @@ MonoBehaviour:
     BreaksWalls: 0
     IgnoresWalls: 0
     UsesMoveDirection: 0
-    Effects: []
+    AreaRadius: 2.5
+    AreaDelaySeconds: 0
+    AreaDurationSeconds: 3
+    AreaPulseSeconds: 0.5
+    PlacedArea: 2
+    BlocksEnemyProjectiles: 1
+    HiddenFromEnemies: 0
+    Effects:
+    - Kind: 2
+      Filter: 6
+      Value: 1000
+      DurationSeconds: 0
+      Distance: 0
   Trick:
-    Delivery: 0
-    Range: 0
+    Delivery: 4
+    Range: 3
     ProjectileSpeed: 0
     ProjectileRadius: 0
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceAll: 0
+    BounceCount: 0
+    BounceRange: 0
+    ProjectileView: 0
     ConeAngleDegrees: 0
     BurstCount: 1
     BurstIntervalSeconds: 0
@@ -74,10 +110,23 @@ MonoBehaviour:
     BreaksWalls: 0
     IgnoresWalls: 0
     UsesMoveDirection: 0
-    Effects: []
+    AreaRadius: 0
+    AreaDelaySeconds: 0
+    AreaDurationSeconds: 0
+    AreaPulseSeconds: 0
+    PlacedArea: 0
+    BlocksEnemyProjectiles: 0
+    HiddenFromEnemies: 0
+    Effects:
+    - Kind: 2
+      Filter: 6
+      Value: 1200
+      DurationSeconds: 0
+      Distance: 0
   Talent:
-    Condition: 0
-    Modifier: 0
+    Condition: 5
+    Modifier: 4
     ValuePercent: 0
-    Param: 0
-  BotTrickHint: 0
+    Param: 3
+    Seconds: 2
+  BotTrickHint: 4

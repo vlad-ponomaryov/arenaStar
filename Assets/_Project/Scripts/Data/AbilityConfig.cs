@@ -33,6 +33,18 @@ namespace Arena.Data
         [Tooltip("Extra targets passed through after the first hit.")]
         [Min(0)] public int PierceCount;
 
+        [Tooltip("Passes through every target (ignores PierceCount).")]
+        public bool PierceAll;
+
+        [Tooltip("Jumps to a new target after a hit, up to this many times (3 targets = 2).")]
+        [Min(0)] public int BounceCount;
+
+        [Tooltip("Cells: bounce search radius from the hit point and flight distance after it (PROTO).")]
+        [Min(0f)] public float BounceRange;
+
+        [Tooltip("View of the projectile (view only).")]
+        public ProjectileViewKind ProjectileView;
+
         [Header("Cone")]
         [Tooltip("Full angle in degrees.")]
         [Range(0f, 360f)] public float ConeAngleDegrees;
@@ -60,6 +72,28 @@ namespace Arena.Data
 
         [Tooltip("Direction = movement stick (else facing) instead of the aim.")]
         public bool UsesMoveDirection;
+
+        [Header("Area (Lob, PlaceArea)")]
+        [Tooltip("Cells: radius of the area (explosion, mine, dome).")]
+        [Min(0f)] public float AreaRadius;
+
+        [Tooltip("Seconds from the activation to the area being live: lob flight (≥ 0.5 s telegraph), arming of a placed area.")]
+        [Min(0f)] public float AreaDelaySeconds;
+
+        [Tooltip("Seconds a placed mine / field lasts after it is live.")]
+        [Min(0f)] public float AreaDurationSeconds;
+
+        [Tooltip("Seconds between the effect pulses of a field (damage/heal values are totals over the duration).")]
+        [Min(0f)] public float AreaPulseSeconds;
+
+        [Tooltip("Kind of the placed area (a lob is always a burst).")]
+        public AreaKind PlacedArea;
+
+        [Tooltip("A placed field stops enemy projectiles coming from outside.")]
+        public bool BlocksEnemyProjectiles;
+
+        [Tooltip("Visible to enemies only from close by (bush reveal distance), D-030.")]
+        public bool HiddenFromEnemies;
 
         public EffectConfig[] Effects = new EffectConfig[0];
     }

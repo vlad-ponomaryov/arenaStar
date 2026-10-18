@@ -18,6 +18,7 @@ namespace Arena.Core.Sim.Effects
             int amount = defs.Rules.ScaleByLevel(effect.Value, level);
             float mul = TalentSystem.DamageMultiplier(state, defs, ctx.Source);
             if (mul != 1f) amount = MathUtil.RoundToInt(amount * mul);
+            amount = ctx.Portion(amount);
             DamageSystem.ApplyDamage(state, defs, events, ctx.Source, target, amount, ctx.ChargesUlt, ctx.AbilityRef);
         }
     }

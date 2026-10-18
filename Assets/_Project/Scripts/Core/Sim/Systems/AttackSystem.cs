@@ -41,7 +41,8 @@ namespace Arena.Core.Sim.Systems
             f.BurstDir = dir;
             f.BurstShotsLeft = attack.BurstCount - 1;
             f.NextBurstTick = tick + attack.BurstIntervalTicks;
-            AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, dir);
+            AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, dir,
+                AbilitySystem.ResolveDistance(state, slot, in input, attack));
         }
     }
 }

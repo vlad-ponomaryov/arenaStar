@@ -11,6 +11,9 @@ namespace Arena.Gameplay.View
     /// The pool is prewarmed at match start; it only grows if more projectiles fly at once than were prewarmed.
     /// Positions of the two latest ticks are kept per slot for interpolation (D-015); a slot reused by a new projectile
     /// (different spawn tick) snaps instead of sliding. No allocations per frame after warm-up.
+    /// One pool per look: an optional mask by ability reference selects the projectiles it draws (spheres vs Chomp's logs,
+    /// <c>ProjectileViewKind</c>); a "rolling" pool lays its prefab (axis along local X) across the flight direction, the
+    /// hit diameter being its length.
     /// </summary>
     public sealed class ProjectileViewPool
     {
@@ -20,6 +23,9 @@ namespace Arena.Gameplay.View
         private readonly int[] _spawnTick = new int[SimLimits.MaxProjectiles];
         private readonly bool[] _active = new bool[SimLimits.MaxProjectiles];
         private readonly float[] _radius = new float[SimLimits.MaxProjectiles];
+        private readonly Vec2[] _dir = new Vec2[SimLimits.MaxProjectiles];
+        private readonly bool[] _include;
+        private readonly float _rollThickness;
         private readonly Transform[] _warm;
 
         private readonly ObjectPool<Transform> _pool;
@@ -29,11 +35,17 @@ namespace Arena.Gameplay.View
 
         /// <param name="prefab">Unit-diameter view (sphere); scaled to the projectile's hit diameter.</param>
         /// <param name="height">Flight height above the ground in world units (view only).</param>
-        public ProjectileViewPool(GameObject prefab, Transform parent, int prewarm, float height)
+        /// <param name="includeByAbilityRef">Draw only projectiles whose ability reference is true here (null = all; references
+        /// outside the array are not drawn).</param>
+        /// <param name="rollThickness">&gt; 0: rolling look — scale (hit diameter, thickness, thickness), turned across the flight.</param>
+        public ProjectileViewPool(GameObject prefab, Transform parent, int prewarm, float height, bool[] includeByAbilityRef = null,
+            float rollThickness = 0f)
         {
             _prefab = prefab;
             _parent = parent;
             _height = height;
+            _include = includeByAbilityRef;
+            _rollThickness = rollThickness;
             _pool = new ObjectPool<Transform>(Create, OnGet, OnRelease, OnDestroy, false, prewarm, SimLimits.MaxProjectiles);
             _warm = new Transform[prewarm];
             for (int i = 0; i < prewarm; i++) _warm[i] = _pool.Get();
@@ -53,12 +65,14 @@ namespace Arena.Gameplay.View
             for (int i = 0; i < items.Length; i++)
             {
                 ref ProjectileState p = ref items[i];
-                bool fresh = p.Active && (!_active[i] || _spawnTick[i] != p.SpawnTick);
+                bool active = p.Active && Includes(p.AbilityRef);
+                bool fresh = active && (!_active[i] || _spawnTick[i] != p.SpawnTick);
                 _prev[i] = fresh ? p.Position : _curr[i];
                 _curr[i] = p.Position;
                 _spawnTick[i] = p.SpawnTick;
-                _active[i] = p.Active;
+                _active[i] = active;
                 _radius[i] = p.Radius;
+                _dir[i] = p.Dir;
             }
         }
 
@@ -83,8 +97,17 @@ namespace Arena.Gameplay.View
                     _views[i] = view;
                 }
                 float diameter = _radius[i] * 2f;
-                view.localScale = new Vector3(diameter, diameter, diameter);
-                view.position = WorldCoords.ToWorld(Vec2.Lerp(_prev[i], _curr[i], alpha), _height);
+                Vector3 position = WorldCoords.ToWorld(Vec2.Lerp(_prev[i], _curr[i], alpha), _height);
+                if (_rollThickness > 0f && !_dir[i].IsZero)
+                {
+                    view.localScale = new Vector3(diameter, _rollThickness, _rollThickness);
+                    view.SetPositionAndRotation(position, Quaternion.LookRotation(WorldCoords.DirectionToWorld(_dir[i]), Vector3.up));
+                }
+                else
+                {
+                    view.localScale = new Vector3(diameter, diameter, diameter);
+                    view.position = position;
+                }
             }
         }
 
@@ -99,6 +122,9 @@ namespace Arena.Gameplay.View
                 _active[i] = false;
             }
         }
+
+        private bool Includes(int abilityRef) =>
+            _include == null || (abilityRef >= 0 && abilityRef < _include.Length && _include[abilityRef]);
 
         private Transform Create()
         {

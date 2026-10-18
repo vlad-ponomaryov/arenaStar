@@ -1,9 +1,9 @@
 namespace Arena.Core.Defs
 {
     /// <summary>
-    /// How an ability reaches its targets (D-011). Implemented: projectile (single or fan), melee cone, dash, self area,
-    /// self buff. Reserved (rejected by <see cref="AbilityDef.Validate"/> until their steps): lob, placed area, hook
-    /// (S2.11–S2.12). Append new kinds at the end — the value is serialized in configs.
+    /// How an ability reaches its targets (D-011). Implemented: projectile (single or fan, pierce, bounce), melee cone, dash,
+    /// self area, self buff, lob, placed area (S2.11). Reserved (rejected by <see cref="AbilityDef.Validate"/> until S2.12):
+    /// hook. Append new kinds at the end — the value is serialized in configs.
     /// </summary>
     public enum DeliveryKind : byte
     {
@@ -27,10 +27,12 @@ namespace Arena.Core.Defs
         /// <summary>Effects applied to the caster only (shield, invisibility…).</summary>
         SelfBuff = 5,
 
-        /// <summary>Reserved (S2.11): arcing projectile over walls that creates a delayed area at the aim point.</summary>
+        /// <summary>Arc over walls: a <see cref="AreaKind.Burst"/> area of <see cref="AbilityDef.AreaRadius"/> lands at
+        /// <c>direction × aim length × Range</c> (auto-aim: at the target, no aim: full range) and triggers
+        /// <see cref="AbilityDef.AreaDelayTicks"/> later (the flight time; telegraphed to everyone).</summary>
         Lob = 6,
 
-        /// <summary>Reserved (S2.11): an area placed at the caster position (mine).</summary>
+        /// <summary>An area of <see cref="AbilityDef.PlacedArea"/> kind placed at the caster position (mine, dome).</summary>
         PlaceArea = 7,
 
         /// <summary>Reserved (S2.12): hook that pulls the caster to a wall or a target.</summary>

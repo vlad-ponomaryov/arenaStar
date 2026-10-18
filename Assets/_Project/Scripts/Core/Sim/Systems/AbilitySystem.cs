@@ -53,9 +53,29 @@ namespace Arena.Core.Sim.Systems
             return TargetingSystem.ResolveAim(state, slot, in input, ability.Range);
         }
 
-        /// <summary>Delivers one shot of <paramref name="ability"/> from the fighter in <paramref name="slot"/> along the unit <paramref name="dir"/>.</summary>
+        /// <summary>
+        /// Throw distance of a <see cref="DeliveryKind.Lob"/> (cells, ≤ <see cref="AbilityDef.Range"/>): auto-aim — the
+        /// distance to the auto-aim target, manual aim — aim length × range (D-006), no aim — the full range. Other deliveries:
+        /// the range.
+        /// </summary>
+        public static float ResolveDistance(MatchState state, int slot, in PlayerInput input, AbilityDef ability)
+        {
+            if (ability.Delivery != DeliveryKind.Lob) return ability.Range;
+            if (input.Has(InputButtons.AutoAim))
+            {
+                int target = TargetingSystem.FindNearestEnemy(state, slot, ability.Range);
+                if (target < 0) return ability.Range;
+                float d = Vec2.Distance(state.Fighters[target].Position, state.Fighters[slot].Position);
+                return MathUtil.Min(d, ability.Range);
+            }
+            if (!input.Aim.IsZero) return MathUtil.Min(input.Aim.Length, 1f) * ability.Range;
+            return ability.Range;
+        }
+
+        /// <summary>Delivers one shot of <paramref name="ability"/> from the fighter in <paramref name="slot"/> along the unit
+        /// <paramref name="dir"/>; <paramref name="distance"/> is the throw distance of a lob (negative = full range).</summary>
         public static void Activate(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, AbilityDef ability,
-            int abilityRef, Vec2 dir)
+            int abilityRef, Vec2 dir, float distance = -1f)
         {
             ref FighterState f = ref state.Fighters[slot];
             int tick = state.Globals.Tick;
@@ -85,7 +105,33 @@ namespace Arena.Core.Sim.Systems
                     var ctx = new EffectContext(ability, abilityRef, slot, f.Team, f.Position, dir);
                     EffectSystem.ApplyAbility(state, defs, events, in ctx, slot);
                     break;
+                case DeliveryKind.Lob:
+                    float d = distance < 0f || distance > ability.Range ? ability.Range : distance;
+                    Vec2 point = GridCollision.ClampToMap(f.Position + dir * d, MathUtil.DistanceEpsilon, state.Globals.MapWidth, state.Globals.MapHeight);
+                    SpawnArea(state, defs, slot, f.Position, point, ability, abilityRef);
+                    break;
+                case DeliveryKind.PlaceArea:
+                    SpawnArea(state, defs, slot, f.Position, f.Position, ability, abilityRef);
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Area of a lob / placed ability at <paramref name="point"/>: radius × the caster's area talent, live after
+        /// <see cref="AbilityDef.AreaDelayTicks"/>; a mine / field lasts <see cref="AbilityDef.AreaDurationTicks"/> more.
+        /// Returns the area slot, or −1 if all slots are busy (counted).
+        /// </summary>
+        public static int SpawnArea(MatchState state, MatchDefs defs, int slot, Vec2 origin, Vec2 point, AbilityDef ability, int abilityRef)
+        {
+            ref FighterState f = ref state.Fighters[slot];
+            int tick = state.Globals.Tick;
+            float radius = ability.AreaRadius * TalentSystem.AreaRadiusMultiplier(state, defs, slot);
+            AreaKind kind = ability.CreatedAreaKind;
+            int activate = tick + ability.AreaDelayTicks;
+            int expire = kind == AreaKind.Burst ? activate : activate + ability.AreaDurationTicks;
+            int area = AreaSystem.TrySpawn(state, slot, f.Team, point, radius, activate, expire, abilityRef, kind, origin);
+            if (area >= 0 && kind == AreaKind.Field) state.Areas[area].NextPulseTick = activate + ability.AreaPulseTicks;
+            return area;
         }
 
         /// <summary>

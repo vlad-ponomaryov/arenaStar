@@ -14,6 +14,8 @@ namespace Arena.Core.Sim.Systems
     ///   - it is not invisible, and either not in a bush or an alive fighter of T is closer than
     ///     <see cref="CombatRules.BushRevealDistance"/>.
     /// The team-wide reveal (Nova's ult) is added with Nova in S2.12.
+    /// Areas (<see cref="AreaState.VisibleToTeams"/>): visible to all, except <see cref="AbilityDef.HiddenFromEnemies"/> ones
+    /// (Chomp's mine, D-030) — own team, plus teams with an alive fighter strictly closer than the reveal distance.
     /// </summary>
     public static class VisibilitySystem
     {
@@ -50,20 +52,38 @@ namespace Arena.Core.Sim.Systems
                 }
                 f.VisibleToTeams = mask;
             }
+
+            AreaState[] areas = state.Areas;
+            for (int i = 0; i < areas.Length; i++)
+            {
+                ref AreaState a = ref areas[i];
+                if (!a.Active)
+                {
+                    a.VisibleToTeams = 0u;
+                    continue;
+                }
+                AbilityDef ability = defs.GetAbility(a.AbilityRef);
+                a.VisibleToTeams = ability != null && ability.HiddenFromEnemies
+                    ? TeamBit(a.Team) | TeamsNear(state, a.Position, -1, revealSq)
+                    : ~0u;
+            }
         }
 
         /// <summary>Bits of the teams with an alive fighter (other than <paramref name="slot"/>) strictly closer than the reveal distance.</summary>
-        private static uint NearbyTeams(MatchState state, int slot, float revealSq)
+        private static uint NearbyTeams(MatchState state, int slot, float revealSq) =>
+            TeamsNear(state, state.Fighters[slot].Position, slot, revealSq);
+
+        /// <summary>Bits of the teams with an alive fighter (other than <paramref name="except"/>) strictly closer than the reveal distance to <paramref name="p"/>.</summary>
+        private static uint TeamsNear(MatchState state, Vec2 p, int except, float revealSq)
         {
-            ref FighterState f = ref state.Fighters[slot];
             int count = state.Globals.FighterCount;
             uint mask = 0u;
             for (int j = 0; j < count; j++)
             {
-                if (j == slot) continue;
+                if (j == except) continue;
                 ref FighterState o = ref state.Fighters[j];
                 if (!o.Active || !o.Alive) continue;
-                if (Vec2.SqrDistance(o.Position, f.Position) < revealSq) mask |= TeamBit(o.Team);
+                if (Vec2.SqrDistance(o.Position, p) < revealSq) mask |= TeamBit(o.Team);
             }
             return mask;
         }

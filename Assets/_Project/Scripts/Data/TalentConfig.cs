@@ -17,7 +17,10 @@ namespace Arena.Data
         [Tooltip("Size of the modifier in percent (+10 = +10 %).")]
         public int ValuePercent;
 
-        [Tooltip("Condition parameter: health threshold in percent for HealthBelow.")]
+        [Tooltip("Condition parameter: health threshold in percent for HealthBelow; aura radius in cells for AllyAura.")]
         [Min(0)] public int Param;
+
+        [Tooltip("Seconds: the new regeneration delay for RegenDelay.")]
+        [Min(0f)] public float Seconds;
     }
 }

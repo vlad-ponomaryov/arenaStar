@@ -229,15 +229,13 @@ namespace Arena.Editor.Data
         private const float RadiusLarge = 0.55f;
         private const float RadiusMedium = 0.5f;
 
-        // PROTO (D-013): attack delivery. Pix and Bruno are final for S2.3; the others are placeholders until their
-        // own deliveries (lob, bounce, pierce falloff) arrive in S2.11–S2.12.
+        // PROTO (D-013): attack delivery. Pix, Bruno (S2.3), Chomp, Kora (S2.11) are final; Nova and Vex are placeholders
+        // until their own deliveries (pierce falloff, double strike) arrive in S2.12.
         private const float PixDropSpeed = 12f;
         private const float PixDropRadius = 0.2f;
         private const int PixBurstCount = 4;
         private const float PixBurstInterval = 0.1f;
         private const float BrunoConeAngle = 90f;
-        private const float ChompBombSpeed = 9f;
-        private const float ChompBombRadius = 0.3f;
         private const float KoraCupSpeed = 10f;
         private const float KoraCupRadius = 0.25f;
         private const float NovaConeSpeed = 18f;
@@ -273,6 +271,44 @@ namespace Arena.Editor.Data
         private const float BrunoHelmetSeconds = 2f;
         private const int BrunoTalentHealthPercent = 40;
         private const int BrunoTalentDamagePercent = 15;
+
+        // Chomp full set (GDD §6): attack — pine-cone bomb lobbed over walls up to 7 cells, blast r 1.2, 1100, the zone shows
+        // 0.5 s before (= the flight time); ult "Log Roll" — log along a line 9 cells, 1600, knockback 2 cells, passes through
+        // everyone, breaks walls; trick "Mine" — 900 when stepped on, lasts 10 s; talent "Big Boom" — area radius +20 %.
+        // PROTO: log speed/width/push time, mine radius, ult charge (D-060).
+        private const float ChompLobRange = 7f;
+        private const float ChompBlastRadius = 1.2f;
+        private const float ChompLobFlight = 0.5f;
+        private const int ChompBombDamage = 1100;
+        private const int ChompUltCharge = 6600;    // PROTO ≈ 6 bombs hitting (6 × 1100)
+        private const float ChompLogRange = 9f;
+        private const float ChompLogSpeed = 10f;    // PROTO: 9 cells in 0.9 s
+        private const float ChompLogRadius = 0.6f;  // PROTO: a log ~1.2 cells wide
+        private const int ChompLogDamage = 1600;
+        private const float ChompLogPush = 2f;
+        private const float ChompLogPushTime = 0.2f; // PROTO
+        private const float ChompMineRadius = 1f;   // PROTO: trigger and blast radius
+        private const float ChompMineSeconds = 10f;
+        private const int ChompMineDamage = 900;
+        private const int ChompTalentRadiusPercent = 20;
+
+        // Kora full set (GDD §6): attack — tea cup bouncing up to 3 targets, −600 enemies / +500 allies, 7 cells; ult "Dome" —
+        // r 2.5 for 3 s, blocks projectiles from outside, allies inside restore 1000 in all; trick "Brew" — instant +1200 to self
+        // and allies within 3; talent "Herbal Blend" — allies within 3 start regenerating after 2 s instead of 3.
+        // PROTO: bounce radius, dome pulse interval, ult charge (D-060).
+        private const int KoraBounces = 2;           // 3 targets in all
+        private const float KoraBounceRange = 3f;    // PROTO
+        private const int KoraCupDamage = 600;
+        private const int KoraCupHeal = 500;
+        private const int KoraUltCharge = 4800;      // PROTO ≈ 8 enemy hits (8 × 600); bounces hit several
+        private const float KoraDomeRadius = 2.5f;
+        private const float KoraDomeSeconds = 3f;
+        private const float KoraDomePulse = 0.5f;    // PROTO: 6 pulses of ~167
+        private const int KoraDomeHeal = 1000;
+        private const float KoraBrewRadius = 3f;
+        private const int KoraBrewHeal = 1200;
+        private const int KoraAuraRadius = 3;
+        private const float KoraAuraRegenDelay = 2f;
 
         // Camera (GDD §5.5: ~55°); the rest PROTO (D-013).
         private const float CameraPitch = 55f;
@@ -349,14 +385,16 @@ namespace Arena.Editor.Data
                 //                     id       HP    speed               radius         recharge  attack (range, damage — GDD §6)
                 SeedFighter("pix",   3400, SpeedClass.Normal, RadiusDefault, 1.4f, Projectile(8f, PixDropSpeed, PixDropRadius, 0, PixBurstCount, PixBurstInterval, 380)),
                 SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   1.1f, Cone(2.5f, BrunoConeAngle, 1, 0f, 1200)),
-                SeedFighter("chomp", 3000, SpeedClass.Normal, RadiusDefault, 1.6f, Projectile(7f, ChompBombSpeed, ChompBombRadius, 0, 1, 0f, 1100)),
-                SeedFighter("kora",  4200, SpeedClass.Slow,   RadiusMedium,  1.5f, Projectile(7f, KoraCupSpeed, KoraCupRadius, 0, 1, 0f, 600)),
+                SeedFighter("chomp", 3000, SpeedClass.Normal, RadiusDefault, 1.6f, ChompBomb()),
+                SeedFighter("kora",  4200, SpeedClass.Slow,   RadiusMedium,  1.5f, KoraCup()),
                 SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 2.0f, Projectile(10f, NovaConeSpeed, NovaConeRadius, NovaPierce, 1, 0f, 1500)),
                 SeedFighter("vex",   3600, SpeedClass.Fast,   RadiusDefault, 0.9f, Cone(1.8f, VexClawAngle, VexClawHits, VexClawInterval, 520))
             };
 
             SeedPixAbilities(fighters[0]);
             SeedBrunoAbilities(fighters[1]);
+            SeedChompAbilities(fighters[2]);
+            SeedKoraAbilities(fighters[3]);
 
             GameDatabase db = LoadOrCreate<GameDatabase>(GameDatabasePath);
             db.CombatRules = rules;
@@ -658,6 +696,74 @@ namespace Arena.Editor.Data
             EditorUtility.SetDirty(c);
         }
 
+        private static AbilityConfig ChompBomb() => new AbilityConfig
+        {
+            Delivery = DeliveryKind.Lob, Range = ChompLobRange, AreaRadius = ChompBlastRadius, AreaDelaySeconds = ChompLobFlight,
+            IgnoresWalls = true, // for bots: no clear line needed
+            Effects = EnemyDamage(ChompBombDamage)
+        };
+
+        private static AbilityConfig KoraCup() => new AbilityConfig
+        {
+            Delivery = DeliveryKind.Projectile, Range = 7f, ProjectileSpeed = KoraCupSpeed, ProjectileRadius = KoraCupRadius,
+            BounceCount = KoraBounces, BounceRange = KoraBounceRange,
+            Effects = new[]
+            {
+                Effect(EffectKind.Damage, TargetFilter.Enemy, KoraCupDamage),
+                Effect(EffectKind.Heal, TargetFilter.Ally, KoraCupHeal)
+            }
+        };
+
+        private static void SeedChompAbilities(FighterConfig c)
+        {
+            c.UltChargeRequired = ChompUltCharge;
+            c.Ult = new AbilityConfig
+            {
+                Delivery = DeliveryKind.Projectile, Range = ChompLogRange, ProjectileSpeed = ChompLogSpeed, ProjectileRadius = ChompLogRadius,
+                PierceAll = true, BreaksWalls = true, ProjectileView = ProjectileViewKind.Log,
+                Effects = new[]
+                {
+                    Effect(EffectKind.Damage, TargetFilter.Enemy, ChompLogDamage),
+                    Effect(EffectKind.Knockback, TargetFilter.Enemy, 0, ChompLogPushTime, ChompLogPush)
+                }
+            };
+            c.Trick = new AbilityConfig
+            {
+                Delivery = DeliveryKind.PlaceArea, PlacedArea = AreaKind.Mine, AreaRadius = ChompMineRadius,
+                AreaDurationSeconds = ChompMineSeconds, HiddenFromEnemies = true,
+                Effects = EnemyDamage(ChompMineDamage)
+            };
+            c.Talent = new TalentConfig
+            {
+                Condition = TalentCondition.Always, Modifier = TalentModifier.AreaRadiusMul, ValuePercent = ChompTalentRadiusPercent
+            };
+            c.BotTrickHint = BotTrickHint.PlaceAtObjective; // mine at the hollow (GDD §7)
+            EditorUtility.SetDirty(c);
+        }
+
+        private static void SeedKoraAbilities(FighterConfig c)
+        {
+            c.UltChargeRequired = KoraUltCharge;
+            c.Ult = new AbilityConfig
+            {
+                Delivery = DeliveryKind.PlaceArea, PlacedArea = AreaKind.Field, AreaRadius = KoraDomeRadius,
+                AreaDurationSeconds = KoraDomeSeconds, AreaPulseSeconds = KoraDomePulse, BlocksEnemyProjectiles = true,
+                Effects = new[] { Effect(EffectKind.Heal, TargetFilter.Ally | TargetFilter.Self, KoraDomeHeal) }
+            };
+            c.Trick = new AbilityConfig
+            {
+                Delivery = DeliveryKind.SelfArea, Range = KoraBrewRadius,
+                Effects = new[] { Effect(EffectKind.Heal, TargetFilter.Ally | TargetFilter.Self, KoraBrewHeal) }
+            };
+            c.Talent = new TalentConfig
+            {
+                Condition = TalentCondition.AllyAura, Param = KoraAuraRadius,
+                Modifier = TalentModifier.RegenDelay, Seconds = KoraAuraRegenDelay
+            };
+            c.BotTrickHint = BotTrickHint.HealAllies; // brew when someone near is hurt (GDD §7)
+            EditorUtility.SetDirty(c);
+        }
+
         private static EffectConfig Effect(EffectKind kind, TargetFilter filter, int value, float durationSeconds = 0f, float distance = 0f) =>
             new EffectConfig { Kind = kind, Filter = filter, Value = value, DurationSeconds = durationSeconds, Distance = distance };
 
@@ -696,7 +802,7 @@ namespace Arena.Editor.Data
             c.Radius = radius;
             c.AttackRechargeSeconds = attackRechargeSeconds;
             c.Attack = attack;
-            // Ult, trick and talent: set per fighter after this (Pix, Bruno); the others get theirs in S2.11–S2.12.
+            // Ult, trick and talent: set per fighter after this (Pix, Bruno, Chomp, Kora); Nova and Vex get theirs in S2.12.
             c.UltChargeRequired = 0;
             c.Ult = None();
             c.Trick = None();

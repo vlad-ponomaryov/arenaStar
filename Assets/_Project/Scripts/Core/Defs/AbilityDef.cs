@@ -30,6 +30,17 @@ namespace Arena.Core.Defs
         /// <summary>Extra targets a projectile passes through after the first hit (0 = stops at the first target).</summary>
         public int PierceCount;
 
+        /// <summary>The projectile passes through every target on its way (Chomp's log); <see cref="PierceCount"/> is ignored.</summary>
+        public bool PierceAll;
+
+        /// <summary>After a hit (without pierce left) the projectile jumps to the nearest not-yet-hit fighter some effect may
+        /// affect, visible to the shooter's team, within <see cref="BounceRange"/> of the hit point — up to this many times
+        /// (Kora's cup: 2 = three targets in all). Each target gets the effects of its filter (damage enemies, heal allies).</summary>
+        public int BounceCount;
+
+        /// <summary>Search radius of a bounce from the hit point (centre distance) and the flight distance after it, cells.</summary>
+        public float BounceRange;
+
         /// <summary>Full cone angle in degrees (<see cref="DeliveryKind.MeleeCone"/>), e.g. 90.</summary>
         public float ConeAngleDegrees;
 
@@ -48,11 +59,35 @@ namespace Arena.Core.Defs
         /// <summary>Breaks breakable walls on its way (Bruno's ram; walls arrive in S2.5).</summary>
         public bool BreaksWalls;
 
-        /// <summary>Passes over walls (lobbed bombs; walls arrive in S2.5).</summary>
+        /// <summary>Passes over walls (cones; for bots: no clear line needed — set on lobs).</summary>
         public bool IgnoresWalls;
 
         /// <summary>Direction = the movement input (else the facing) instead of the aim (rolls, dashes of tricks).</summary>
         public bool UsesMoveDirection;
+
+        /// <summary>Radius of the area of a <see cref="DeliveryKind.Lob"/> / <see cref="DeliveryKind.PlaceArea"/>, cells
+        /// (× the caster's <see cref="TalentModifier.AreaRadiusMul"/> talent at creation).</summary>
+        public float AreaRadius;
+
+        /// <summary>Ticks from the activation to the area becoming live: the flight of a lob (≥ the 0.5 s telegraph, GDD §5.3),
+        /// the arming time of a placed area.</summary>
+        public int AreaDelayTicks;
+
+        /// <summary>Lifetime of a placed <see cref="AreaKind.Mine"/> / <see cref="AreaKind.Field"/> after it becomes live, ticks.</summary>
+        public int AreaDurationTicks;
+
+        /// <summary>Ticks between the effect pulses of a <see cref="AreaKind.Field"/> (first pulse one interval after it is live).</summary>
+        public int AreaPulseTicks;
+
+        /// <summary>Kind of the area of a <see cref="DeliveryKind.PlaceArea"/> (a lob is always a <see cref="AreaKind.Burst"/>).</summary>
+        public AreaKind PlacedArea;
+
+        /// <summary>A <see cref="AreaKind.Field"/> that stops enemy projectiles coming from outside at its edge (Kora's dome).</summary>
+        public bool BlocksEnemyProjectiles;
+
+        /// <summary>The area is visible to the owner's team always and to enemies only from closer than the bush reveal
+        /// distance (Chomp's mine, D-030).</summary>
+        public bool HiddenFromEnemies;
 
         public EffectDef[] Effects;
 
@@ -81,11 +116,40 @@ namespace Arena.Core.Defs
                     break;
                 case DeliveryKind.SelfBuff:
                     break;
+                case DeliveryKind.Lob:
+                    RequireRange(owner);
+                    RequireAreaRadius(owner);
+                    break;
+                case DeliveryKind.PlaceArea:
+                    RequireAreaRadius(owner);
+                    switch (PlacedArea)
+                    {
+                        case AreaKind.Burst:
+                            break;
+                        case AreaKind.Mine:
+                            if (AreaDurationTicks <= 0) throw new ArgumentException(owner + ": a mine needs AreaDurationTicks > 0");
+                            break;
+                        case AreaKind.Field:
+                            if (AreaDurationTicks <= 0) throw new ArgumentException(owner + ": a field needs AreaDurationTicks > 0");
+                            if (AreaPulseTicks <= 0 || AreaPulseTicks > AreaDurationTicks)
+                                throw new ArgumentException(owner + ": a field needs AreaPulseTicks in [1, AreaDurationTicks]");
+                            break;
+                        default:
+                            throw new ArgumentException(owner + ": unsupported area kind " + PlacedArea);
+                    }
+                    break;
                 default:
                     throw new ArgumentException(owner + ": unsupported delivery " + Delivery);
             }
             if (Range < 0f) throw new ArgumentException(owner + ": Range must be ≥ 0");
             if (PierceCount < 0) throw new ArgumentException(owner + ": PierceCount must be ≥ 0");
+            if (BounceCount < 0) throw new ArgumentException(owner + ": BounceCount must be ≥ 0");
+            if (BounceCount > 0 && (Delivery != DeliveryKind.Projectile || BounceRange <= 0f))
+                throw new ArgumentException(owner + ": a bounce needs a projectile and BounceRange > 0");
+            if (AreaDelayTicks < 0 || AreaDurationTicks < 0 || AreaPulseTicks < 0)
+                throw new ArgumentException(owner + ": area ticks must be ≥ 0");
+            if (BlocksEnemyProjectiles && (Delivery != DeliveryKind.PlaceArea || PlacedArea != AreaKind.Field))
+                throw new ArgumentException(owner + ": only a placed field may block projectiles");
             if (BurstCount < 1) throw new ArgumentException(owner + ": BurstCount must be ≥ 1");
             if (BurstCount > 1 && BurstIntervalTicks < 1) throw new ArgumentException(owner + ": BurstIntervalTicks must be ≥ 1");
 
@@ -113,5 +177,13 @@ namespace Arena.Core.Defs
         {
             if (Range <= 0f) throw new ArgumentException(owner + ": Range must be > 0");
         }
+
+        private void RequireAreaRadius(string owner)
+        {
+            if (AreaRadius <= 0f) throw new ArgumentException(owner + ": AreaRadius must be > 0");
+        }
+
+        /// <summary>Kind of the area this ability creates (lob: burst; placed area: <see cref="PlacedArea"/>).</summary>
+        public AreaKind CreatedAreaKind => Delivery == DeliveryKind.PlaceArea ? PlacedArea : AreaKind.Burst;
     }
 }

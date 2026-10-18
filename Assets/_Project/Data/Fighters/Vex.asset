@@ -26,6 +26,10 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceAll: 0
+    BounceCount: 0
+    BounceRange: 0
+    ProjectileView: 0
     ConeAngleDegrees: 90
     BurstCount: 2
     BurstIntervalSeconds: 0.15
@@ -34,6 +38,13 @@ MonoBehaviour:
     BreaksWalls: 0
     IgnoresWalls: 0
     UsesMoveDirection: 0
+    AreaRadius: 0
+    AreaDelaySeconds: 0
+    AreaDurationSeconds: 0
+    AreaPulseSeconds: 0
+    PlacedArea: 0
+    BlocksEnemyProjectiles: 0
+    HiddenFromEnemies: 0
     Effects:
     - Kind: 1
       Filter: 1
@@ -49,6 +60,10 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceAll: 0
+    BounceCount: 0
+    BounceRange: 0
+    ProjectileView: 0
     ConeAngleDegrees: 0
     BurstCount: 1
     BurstIntervalSeconds: 0
@@ -57,6 +72,13 @@ MonoBehaviour:
     BreaksWalls: 0
     IgnoresWalls: 0
     UsesMoveDirection: 0
+    AreaRadius: 0
+    AreaDelaySeconds: 0
+    AreaDurationSeconds: 0
+    AreaPulseSeconds: 0
+    PlacedArea: 0
+    BlocksEnemyProjectiles: 0
+    HiddenFromEnemies: 0
     Effects: []
   Trick:
     Delivery: 0
@@ -66,6 +88,10 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceAll: 0
+    BounceCount: 0
+    BounceRange: 0
+    ProjectileView: 0
     ConeAngleDegrees: 0
     BurstCount: 1
     BurstIntervalSeconds: 0
@@ -74,10 +100,18 @@ MonoBehaviour:
     BreaksWalls: 0
     IgnoresWalls: 0
     UsesMoveDirection: 0
+    AreaRadius: 0
+    AreaDelaySeconds: 0
+    AreaDurationSeconds: 0
+    AreaPulseSeconds: 0
+    PlacedArea: 0
+    BlocksEnemyProjectiles: 0
+    HiddenFromEnemies: 0
     Effects: []
   Talent:
     Condition: 0
     Modifier: 0
     ValuePercent: 0
     Param: 0
+    Seconds: 0
   BotTrickHint: 0

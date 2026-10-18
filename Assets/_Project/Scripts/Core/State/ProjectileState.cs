@@ -38,6 +38,9 @@ namespace Arena.Core.State
         /// <summary>Further targets it may pass through.</summary>
         public int PierceLeft;
 
+        /// <summary>Further jumps to a new target after a hit (<c>AbilityDef.BounceCount</c>).</summary>
+        public int BounceLeft;
+
         /// <summary>Bit per fighter slot already hit (the owner's bit is set at spawn): no repeated hits.</summary>
         public uint HitMask;
 
@@ -45,7 +48,7 @@ namespace Arena.Core.State
         {
             return Active == o.Active && Owner == o.Owner && Team == o.Team && SpawnTick == o.SpawnTick
                 && Position == o.Position && Dir == o.Dir && Speed == o.Speed && Radius == o.Radius
-                && RemainingDistance == o.RemainingDistance && AbilityRef == o.AbilityRef && PierceLeft == o.PierceLeft
+                && RemainingDistance == o.RemainingDistance && AbilityRef == o.AbilityRef && PierceLeft == o.PierceLeft && BounceLeft == o.BounceLeft
                 && HitMask == o.HitMask;
         }
 

@@ -22,6 +22,11 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(catalog.HealthBarPrefab);
             Assert.IsNotNull(catalog.BreakableWallPrefab);
             Assert.IsNotNull(catalog.BushPrefab);
+            Assert.IsNotNull(catalog.LogPrefab);
+            Assert.IsNotNull(catalog.LobBombPrefab);
+            Assert.IsNotNull(catalog.MinePrefab);
+            Assert.IsNotNull(catalog.DomePrefab);
+            Assert.Greater(catalog.LogThickness, 0f);
             Assert.Greater(catalog.ProjectilePoolPrewarm, 0);
             Assert.Greater(catalog.WallHeight, 0f);
             Assert.Greater(catalog.BushSeeThroughRadius, 0f);
@@ -60,7 +65,8 @@ namespace Arena.Tests.EditMode.Setup
             GameObject[] prefabs =
             {
                 catalog.FighterViewPrefab.gameObject, catalog.AimIndicatorPrefab.gameObject, catalog.FloorPrefab,
-                catalog.ProjectilePrefab, catalog.HealthBarPrefab.gameObject, catalog.BreakableWallPrefab, catalog.BushPrefab
+                catalog.ProjectilePrefab, catalog.HealthBarPrefab.gameObject, catalog.BreakableWallPrefab, catalog.BushPrefab,
+                catalog.LogPrefab, catalog.LobBombPrefab, catalog.MinePrefab, catalog.DomePrefab
             };
             foreach (GameObject p in prefabs)
                 Assert.AreEqual(0, p.GetComponentsInChildren<Collider>(true).Length, p.name + " has colliders");

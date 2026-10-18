@@ -21,8 +21,8 @@ namespace Arena.Core.Sim
     ///   4. abilities per fighter: attack (burst / press), ult, trick — aim resolution, then delivery: projectiles
     ///      spawned, cones / self areas / self buffs applied at once, dashes started;
     ///   5. dashes (move, hit touched fighters);
-    ///   6. projectiles (move, hit, apply effects);
-    ///   7. areas (delayed zones);
+    ///   6. projectiles (move, hit, pierce / bounce, apply effects; blocked by walls and enemy domes);
+    ///   7. areas (lobbed bursts, mines, pulsing fields);
     ///      effects, damage, healing, ult charge and defeat happen inside 4–7 (DamageSystem is the single health point);
     ///   8. respawn;
     ///   8a. mode rules (Acorns: acorns from the hollow, pickup, hold countdown, time limit — AcornsRules);

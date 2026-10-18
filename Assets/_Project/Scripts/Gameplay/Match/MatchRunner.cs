@@ -48,6 +48,8 @@ namespace Arena.Gameplay.Match
         private BotController _bots;
         private AimIndicatorView _aimIndicator;
         private ProjectileViewPool _projectileViews;
+        private ProjectileViewPool _logViews;
+        private AreaViewPool _areaViews;
         private MapView _mapView;
         private int _maxTicksPerFrame;
         private float _accumulator;
@@ -146,14 +148,20 @@ namespace Arena.Gameplay.Match
             _aimIndicator = Instantiate(_viewCatalog.AimIndicatorPrefab, transform);
             _aimIndicator.name = "AimIndicator";
             _aimIndicator.Hide();
+            bool[] logs = ProjectileViewMask(defs, ProjectileViewKind.Log, true);
             _projectileViews = new ProjectileViewPool(_viewCatalog.ProjectilePrefab, transform, _viewCatalog.ProjectilePoolPrewarm,
-                _viewCatalog.ProjectileHeight);
+                _viewCatalog.ProjectileHeight, ProjectileViewMask(defs, ProjectileViewKind.Log, false));
+            _logViews = _viewCatalog.LogPrefab != null
+                ? new ProjectileViewPool(_viewCatalog.LogPrefab, transform, 0, _viewCatalog.LogThickness * 0.5f, logs, _viewCatalog.LogThickness)
+                : null;
+            _areaViews = new AreaViewPool(_viewCatalog, transform);
             _telegraphs = new TelegraphViewPool(_viewCatalog.TelegraphPrefab, transform);
             _telegraphTicks = SimTime.SecondsToTicks(_feel.TelegraphSeconds);
             CreateFeel(defs);
 
             _viewState.Reset(_simulation.State);
             _projectileViews.Capture(_simulation.State);
+            if (_logViews != null) _logViews.Capture(_simulation.State);
             if (_cameraController != null)
                 _cameraController.Init(_database.Camera, new Vector2(defs.Map.Width, defs.Map.Height), _inputCollector.ViewRotated,
                     LocalWorldPosition(0f));
@@ -198,6 +206,8 @@ namespace Arena.Gameplay.Match
                 RenderHealthBars(alpha);
                 _telegraphs.Render(_simulation.State, _telegraphTicks, alpha, LocalTeam, _viewCatalog.TelegraphAllyZone,
                     _viewCatalog.TelegraphAllyFill, EnemyTelegraphZone, EnemyTelegraphFill);
+                _areaViews.Render(_simulation.State, alpha, LocalTeam, _viewCatalog.ProjectileHeight, _viewCatalog.TelegraphAllyZone,
+                    EnemyTelegraphZone);
             }
             _hitStop.Update(dt);
             _shake.Update(dt);
@@ -224,6 +234,24 @@ namespace Arena.Gameplay.Match
                 if (events[i].Type == SimEventType.TileBroken) _mapView.OnTileBroken(events[i].Value);
             _viewState.Capture(_simulation.State);
             _projectileViews.Capture(_simulation.State);
+            if (_logViews != null) _logViews.Capture(_simulation.State);
+        }
+
+        /// <summary>
+        /// Per ability reference (<see cref="MatchDefs.MakeAbilityRef"/>): true if its <see cref="AbilityConfig.ProjectileView"/>
+        /// is (<paramref name="equals"/>) or is not <paramref name="kind"/>. Fighter configs and defs share the order (ConfigConverter).
+        /// </summary>
+        private bool[] ProjectileViewMask(MatchDefs defs, ProjectileViewKind kind, bool equals)
+        {
+            var mask = new bool[defs.Fighters.Length * MatchDefs.AbilitySlotsPerFighter];
+            for (int i = 0; i < defs.Fighters.Length && i < _database.Fighters.Count; i++)
+            {
+                FighterConfig c = _database.Fighters[i];
+                mask[MatchDefs.MakeAbilityRef(i, AbilitySlot.Attack)] = (c.Attack != null && c.Attack.ProjectileView == kind) == equals;
+                mask[MatchDefs.MakeAbilityRef(i, AbilitySlot.Ult)] = (c.Ult != null && c.Ult.ProjectileView == kind) == equals;
+                mask[MatchDefs.MakeAbilityRef(i, AbilitySlot.Trick)] = (c.Trick != null && c.Trick.ProjectileView == kind) == equals;
+            }
+            return mask;
         }
 
         private void RenderViews(float alpha)
@@ -249,6 +277,7 @@ namespace Arena.Gameplay.Match
             _mapView.UpdateSeeThrough(_viewState.Position(LocalSlot, alpha), localFighter.Alive && localFighter.InBush);
 
             _projectileViews.Render(alpha);
+            if (_logViews != null) _logViews.Render(alpha);
 
             Vec2 aim = _inputCollector.Aim;
             if (aim.IsZero || !_viewState.Alive(LocalSlot))
@@ -257,7 +286,10 @@ namespace Arena.Gameplay.Match
                 return;
             }
             FighterDef localDef = _simulation.Defs.Fighters[_simulation.State.Fighters[LocalSlot].DefIndex];
+            AbilityDef aimed = _inputCollector.AimIsUlt && localDef.Ult != null ? localDef.Ult : localDef.Attack;
             float range = _inputCollector.AimIsUlt ? UltRange(localDef) : localDef.AttackRange;
+            // A lob lands at aim length × range (D-006): the line ends at the landing point.
+            if (aimed != null && aimed.Delivery == DeliveryKind.Lob) range *= Mathf.Min(1f, aim.Length);
             _aimIndicator.Show(LocalWorldPosition(alpha), WorldCoords.DirectionToWorld(aim.Normalized), range);
         }
 
