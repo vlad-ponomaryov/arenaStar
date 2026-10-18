@@ -15,6 +15,9 @@ namespace Arena.Net
         /// <summary>Largest reliable message — there is no fragmentation (D-082).</summary>
         public const int MaxReliableMessageBytes = 1000;
 
+        /// <summary>OS send/receive buffer requested for UDP sockets (bursts of a whole server tick).</summary>
+        public const int SocketBufferBytes = 1 << 18;
+
         /// <summary>Byte ring per connection for unacknowledged reliable messages.</summary>
         public const int ReliableBufferBytes = 8192;
 
@@ -26,6 +29,15 @@ namespace Arena.Net
 
         /// <summary>Per-slot input ring on the server, in ticks.</summary>
         public const int InputBufferTicks = 64;
+
+        /// <summary>Sent packets remembered for acknowledgements (sequence, send time); must exceed 33 (ack + 32 bits).</summary>
+        public const int SentPacketHistory = 256;
+
+        /// <summary>Addresses tracked by the per-IP handshake/ping limiter; the least recently used entry is replaced.</summary>
+        public const int HandshakeIpTableSize = 1024;
+
+        /// <summary>Endpoints cached by the portable server socket to send without allocating an <c>IPEndPoint</c> per packet.</summary>
+        public const int EndPointCacheSize = 256;
 
         /// <summary>Late button presses carried over to the next tick where they make an edge (§2.4).</summary>
         public const int MaxPendingPresses = 3;

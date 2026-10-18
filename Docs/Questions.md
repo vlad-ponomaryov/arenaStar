@@ -50,6 +50,8 @@ GameCI нужен `UNITY_LICENSE` — содержимое `UnityEntitlementLice
 Рецензия (D-084): bootstrap перепроверен (UDP, JSON, SHA-256, HTTP-метрики работают), команда — в ТЗ §5.2; с `rollForward: Major`
 та же сборка запускается и на VPS с любым .NET ≥ 6. **Этап не блокирует.** SDK даёт быстрый сокет .NET 8+ без выделений памяти,
 Docker-образ и `dotnet publish`.
+S3.4 (D-093): быстрый сокет `Server/Arena.Server/Host/UdpServerSocket.cs` (`#if NET8_0_OR_GREATER`) написан, но без SDK
+не компилировался и не проверен — после установки SDK прогнать `Tools/server-test.ps1 -Mode Sdk` (self-test требует 0 Б аллокаций).
 
 **Q-013 [открыт] (S3 ТЗ) — Транспорт: свой UDP или LiteNetLib (MIT)?** ТЗ выбирает свой транспорт (D-065, `Server-Spec.md` §3).
 LiteNetLib зрелый и сэкономил бы около одного шага, но его нужно скачать с GitHub/NuGet — вне реестра Unity. По D-040

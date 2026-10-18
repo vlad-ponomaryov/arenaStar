@@ -7,6 +7,7 @@
         "Arena.Core",
         "Arena.Bots",
         "Arena.Net",
+        "Arena.Net.Server",
         "Arena.Data",
         "Arena.Gameplay",
         "Arena.Modes",

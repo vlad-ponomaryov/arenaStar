@@ -22,6 +22,29 @@ namespace Arena.Net.Protocol
         /// <summary>Unit of the header's ackDelay byte, microseconds (×0.25 ms).</summary>
         public const int AckDelayUnitMicros = 250;
 
+        // ---- Transport packet sizes (§3.2) ----
+
+        /// <summary>
+        /// <c>ConnectRequest</c> and <c>ConnectResponse</c> are padded to exactly this size: answers to an unverified address are
+        /// never larger than the request (no amplification) and the path is proven to carry full-size packets.
+        /// </summary>
+        public const int HandshakePacketBytes = NetLimits.MaxPacketBytes;
+
+        /// <summary><c>Ping</c> and <c>Pong</c> are the same size (header + protocol id + nonce, padded).</summary>
+        public const int PingPacketBytes = 32;
+
+        /// <summary><c>Discover</c> is padded to the size of <c>DiscoverReply</c> (§3.2).</summary>
+        public const int DiscoverPacketBytes = 48;
+
+        /// <summary>
+        /// <c>PathChallenge</c> / <c>PathResponse</c> are a bare header: the 64-bit challenge rides in the sequence, ack and ackBits
+        /// fields, so a challenge is never larger than any packet that can trigger it (§3.2).
+        /// </summary>
+        public const int PathPacketBytes = HeaderBytes;
+
+        /// <summary>Header + reason byte of <c>Disconnect</c>.</summary>
+        public const int DisconnectPacketBytes = HeaderBytes + 1;
+
         // ---- Quantization (§4.3) ----
 
         /// <summary>Quantized positions cover [0, <see cref="PositionRangeCells"/>) cells on each axis.</summary>

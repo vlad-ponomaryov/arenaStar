@@ -50,6 +50,7 @@ namespace Arena.Server
             Check("content pack re-encodes to the same bytes", ContentPackRoundTrip);
             Check("headless Acorns match of bots, two runs give one state hash", HeadlessAcornsMatch);
             Check("headless Last Beast match of 10 bots, one winner, two runs give one state hash", HeadlessLastBeastMatch);
+            Check("transport: 10 000 packets over loopback UDP, reliable in order", () => LoopbackTransportTest.Run(_out, _content.Hash));
             _out.WriteLine("SELFTEST: " + (_failed == 0 ? "OK" : "FAILED") + ", passed " + _passed + ", failed " + _failed);
             return _failed == 0;
         }
