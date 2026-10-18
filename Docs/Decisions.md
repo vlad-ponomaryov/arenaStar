@@ -991,3 +991,40 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   1–5 клиентов — матч с ботами на 15,0 с (+ ≤ 1 кадр); отмена и обрыв не оставляют билетов; «Жёлуди» и «Последний зверь» собираются
   параллельно; пинг по виртуальной сети 40 мс (+ кадры опроса), по loopback UDP — все 5 ответов; очередь в установившемся режиме — 0 Б
   (`ServerNode.Update` и лобби-клиенты). Причина: Server-Spec §4.2, §6, §11.1 «Лобби», S3.8.
+- D-099 (S3.9) — **.NET-хост сервера: устройство и уточнения ТЗ.** (1) `Server/Arena.Server/Host/`: `ServerHost` (сокет, `ServerNode`,
+  один игровой поток, метрики, сводка, флаг техработ, остановка), `ServerConfig` = `HostSettings` (раздел `"Host"`: адреса и порты,
+  `WorkerThreads` = 1, `DrainSeconds` 180, `StopFlushSeconds` 2, уровень лога, сводка раз в 10 с, публикация метрик раз в 1 с,
+  `MatchLogPath`, флаг `maintenance.flag`, `MaxIdleWaitMicros` 5000, `SpinWaitMicros` 1000 — PROTO) + `ServerSettings` (`"Server"`,
+  с `"Snapshots"`) + `TransportSettings` (`"Transport"`). `ServerSettingsLoader` — System.Text.Json: ключ JSON = публичное поле
+  (без учёта регистра), вложенные объекты — вложенные настройки, пропущенные ключи — значения по умолчанию, **неизвестный ключ
+  или неверный тип — ошибка с именем ключа** (опечатка не должна молча откатываться к умолчанию), комментарии `//` и висячие
+  запятые разрешены; `--print-config` печатает действующий конфиг. Коды выхода: 4 — плохой конфиг или занятый порт, 5 — падение
+  цикла. Без аргументов `Arena.Server` запускает сервер (раньше печатал справку). (2) **Ожидание тика.** `Socket.Poll` с таймаутом
+  и `Thread.Sleep(1)` в процессе без видимого окна на Windows 11 спят шагами 15,6 мс даже после `timeBeginPeriod(1)` (self-test:
+  опоздание тика p50 3,7 мс, p99 14,3 мс): Windows 11 игнорирует запрос разрешения таймера у «невидимых» процессов. Поэтому
+  `TimerResolution` сначала отключает это троттлинг (`SetProcessInformation(ProcessPowerThrottling,
+  PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION)`), затем `timeBeginPeriod(1)`; цикл ждёт `Sleep(1)` с проверкой сокета
+  `Poll(0)` между снами (пакет прерывает ожидание ≤ 1–2 мс), последние `SpinWaitMicros` до срока — `SpinWait`. После этого
+  `Sleep(1)` ≈ 1,9 мс, опоздание тика p50 0,01 мс, p99 ≈ 1,1 мс, максимум ≈ 1,5 мс. Сокеты получили `IWaitableServerSocket.WaitReadable`
+  (`Arena.Net.Server.Transport`, реализуют `PortableUdpServerSocket` и `UdpServerSocket`). (3) **Остановка:**
+  `ServerNode.BeginShutdown(drainSeconds)` — отказы как в техработах (новые лобби-соединения — `Maintenance`, билеты очереди
+  снимаются), `ServerNotice(Shutdown, seconds)` всем (раньше объявлен, но не отправлялся), выключить нельзя; возврат по билету
+  разрешён. Хост выходит, когда `MatchHost.PlayingMatches` = 0 (комнаты в `Ended` для возврата не ждём) или истёк `DrainSeconds`,
+  после `StopFlushSeconds` досылки итогов; второй Ctrl+C/SIGTERM — сразу. `/healthz` во время остановки — 503 `draining`.
+  (4) **Итоги:** `IMatchResultSink` (`Arena.Net.Server.Match`, `MatchHost.ResultSink`) получает комнату один раз при входе в `Ended`;
+  `MatchResultLog` пишет строку JSON (`time`, `matchId`, режим, карта, `endTick`, длительность, победитель, MVP; по слотам — команда,
+  боец, человек/бот, бот в конце, AFK, статистика, корзина RTT `<50/<100/<150/<250/>=250` мс) — без IP и идентификаторов игроков.
+  (5) **Метрики:** `MetricsSnapshot` заполняется игровым потоком (без аллокаций) и копируется под `lock`; HTTP-поток
+  (`MetricsEndpoint`, `TcpListener`, 127.0.0.1:7778) форматирует только копию. Квантили времени и опоздания тика — за последнее окно
+  сводки (`LatencyHistogram`: корзины 10 мкс до 200 мс). Числа — `0.#########` в InvariantCulture. Статистика поправок клиентов
+  в `/metrics` (§11.2) — нет сообщения клиент → сервер; добавить вместе с S3.12/S3.13. (6) **Self-test** (`HostSelfTest`): сервер
+  на 127.0.0.1 со случайными портами, 6 бот-клиентов через лобби по настоящему UDP, «Жёлуди» укорочены `--match-seconds`
+  (по умолчанию 20 с; меняется `DurationTicks` общего пакета в памяти у сервера и клиентов, хэш тот же); посреди матча — `/metrics`,
+  `/healthz`, 404, затем `RequestStop`: новый поиск отклонён `Maintenance`, матч доигрывается, итоги клиентов = строка
+  `matches.jsonl`, поток выходит сам («drained»), ошибок в логе нет, пропусков тиков нет, p99 опоздания < 2 мс. Плюс
+  `ConfigSelfTest` (круг записи-чтения, культура с запятой, отказ неизвестных ключей и типов, загрузка `config/server.json`).
+  (7) Docker и systemd: `Server/Dockerfile` (+ `Server/Dockerfile.dockerignore` вместо корневого `.dockerignore` — BuildKit берёт
+  файл рядом с Dockerfile), `Server/docker-compose.yml` (метрики только на 127.0.0.1 хоста, `stop_grace_period` 190 с),
+  `Server/deploy/arena-server.service`; в образе `LanDiscovery` выключается `sed`. Образ и SDK-сборка не проверены (нет Docker
+  и SDK, Q-012). `Tools/server-run.ps1` (сборка + запуск в консоли), `Tools/server-publish.ps1` (`Builds/Server/`: dll,
+  runtimeconfig, пакет, `config/`, `deploy/`, `run.cmd`/`run.sh`). Причина: Server-Spec §5.3, §5.5, §5.6, §10, §11.2, S3.9.

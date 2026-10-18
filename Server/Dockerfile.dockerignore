@@ -1,0 +1,9 @@
+**
+!Server/**
+!Assets/_Project/Scripts/Core/**
+!Assets/_Project/Scripts/Bots/**
+!Assets/_Project/Scripts/Net/**
+!Assets/_Project/Data/Net/ArenaContent.bytes
+Server/**/bin/
+Server/**/obj/
+**/*.meta

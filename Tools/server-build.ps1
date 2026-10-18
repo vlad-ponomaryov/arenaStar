@@ -2,7 +2,8 @@
 #   Sdk       - dotnet build Server/Arena.Server (needs the .NET SDK, Q-012).
 #   Bootstrap - Roslyn (csc.dll) and .NET 6 bundled with the Unity editor: no SDK, no downloads.
 #   Auto      - Sdk if a .NET SDK is installed, otherwise Bootstrap.
-# Copies the content pack Assets/_Project/Data/Net/ArenaContent.bytes next to the dll (Server-Spec 5.4).
+# Copies the content pack Assets/_Project/Data/Net/ArenaContent.bytes next to the dll (Server-Spec 5.4) and
+# Server/config/server.json to config/ (Server-Spec 5.5).
 # Writes Tools/out/server/host.txt (the dotnet.exe that runs the dll). Last line: SERVER BUILD: OK|FAILED ...
 # Exit: 0 ok, 2 build failed. Windows PowerShell 5.1 compatible, ASCII only.
 param(
@@ -134,6 +135,10 @@ if ($Mode -eq 'Sdk') {
         exit 2
     }
     Copy-Item -Path $contentPack -Destination (Join-Path $serverOut 'ArenaContent.bytes') -Force
+    # Default settings (Server-Spec 5.5): config/server.json next to the dll. The SDK build copies it via Arena.Server.csproj.
+    $configDir = Join-Path $serverOut 'config'
+    if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Force -Path $configDir | Out-Null }
+    Copy-Item -Path (Join-Path $ProjectPath 'Server\config\server.json') -Destination (Join-Path $configDir 'server.json') -Force
     Write-Host ("bootstrap: {0} sources, {1} references, .NET {2}" -f $sources.Count, $refs.Count, $fwVersion)
 }
 

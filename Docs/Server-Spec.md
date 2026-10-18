@@ -651,7 +651,9 @@ Server/
 - **Тик-луп:** срок тика матча `n` = старт + n × 33,333 мс (считается от номера — ошибка не копится). На Windows при старте —
   `timeBeginPeriod(1)` (winmm, действует только на процесс; без него `Thread.Sleep` и таймауты спят до 15,6 мс), при выходе —
   `timeEndPeriod(1)`. Если отставание больше `MaxCatchUpTicks`, тики пропускаются, а пропуск попадает в метрику — защита от «спирали».
-  Self-test меряет джиттер тика (p99 < 2 мс).
+  Self-test меряет джиттер тика (p99 < 2 мс). **Windows 11** игнорирует `timeBeginPeriod` у процесса без видимого окна (служба,
+  скрытая консоль) — сначала `SetProcessInformation(ProcessPowerThrottling, …IGNORE_TIMER_RESOLUTION)`; `Socket.Poll` с таймаутом
+  спит шагами системного таймера, поэтому ожидание — `Sleep(1)` с `Poll(0)` между снами и короткий спин перед сроком (D-099).
 - `MatchHost.Tick(now)` — логика из `Arena.Net.Server`, одинаковая в тестах и на сервере: входящие пакеты → вводы слотов (§2.4) →
   ввод ботов (`BotController` для слотов ботов и подменённых) → `MatchSimulation.Tick` → события в журналы клиентов (с фильтром) →
   снапшоты по расписанию → проверки времени (таймауты, AFK, конец).
@@ -905,6 +907,9 @@ Server/
   и пакет данных лежат в `Assets/`), `.dockerignore` отсекает `Library/`, `Temp/`, `Builds/`.
 - `docker-compose.yml`: порт `7777:7777/udp`, том для `logs/`, `stop_grace_period: 180s`, по желанию Prometheus и Grafana.
 - Образы скачивает человек (или агент с его разрешения).
+- Запуск (человек, из корня репозитория): `docker compose -f Server/docker-compose.yml up -d --build`; логи —
+  `docker compose -f Server/docker-compose.yml logs -f arena`; остановка с доигрыванием — `… stop`. Свой конфиг — том
+  `./config/server.json:/app/config/server.json:ro` (строка в compose). Агент образ не собирал (Docker и базовых образов нет, S3.9).
 
 ## 11. Тестирование без людей
 

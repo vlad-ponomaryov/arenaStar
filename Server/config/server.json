@@ -1,0 +1,63 @@
+// Arena server settings (Server-Spec §5.5, §13). All values are PROTO. Keys left out keep the defaults in code
+// (HostSettings / ServerSettings / SnapshotSettings / TransportSettings.CreateDefault); an unknown key is an error.
+// Numbers always use a dot. Print the effective config: Arena.Server --print-config
+{
+  "Host": {
+    "BindAddress": "0.0.0.0",          // "::" — dual stack (IPv4 + IPv6)
+    "UdpPort": 7777,                   // open it in the firewall: UDP 7777 (Server-Spec §10)
+    "MetricsEnabled": true,
+    "MetricsBindAddress": "127.0.0.1", // keep metrics local; on a VPS: ssh -L 7778:127.0.0.1:7778
+    "MetricsPort": 7778,
+    "WorkerThreads": 1,                // stage 3: one game thread (§5.3)
+    "DrainSeconds": 180,               // Ctrl+C / SIGTERM: running matches play on this long at most
+    "StopFlushSeconds": 2,
+    "LogLevel": "Info",                // Debug | Info | Warn | Error
+    "SummaryIntervalSeconds": 10,
+    "MetricsPublishSeconds": 1,
+    "MatchLogPath": "logs/matches.jsonl",
+    "Maintenance": false,
+    "MaintenanceFlagFile": "maintenance.flag", // next to this file: maintenance while it exists
+    "MaintenanceCheckSeconds": 2,
+    "MaxIdleWaitMicros": 5000,
+    "SpinWaitMicros": 1000
+  },
+  "Server": {
+    "MaxMatches": 200,
+    "MaxCatchUpTicks": 5,
+    "MaxInputAheadTicks": 15,
+    "MissingInputRepeatTicks": 6,
+    "MarginWindowTicks": 30,
+    "InputRedundancy": 4,
+    "BotTakeoverSeconds": 1.5,
+    "AfkSeconds": 30,
+    "FillBotDifficulty": "Novice",
+    "ShowBots": false,
+    "JoinTimeoutSeconds": 10,
+    "LoadTimeoutSeconds": 15,
+    "CountdownSeconds": 3,
+    "ResultLingerSeconds": 30,
+    "RecordInputLog": false,
+    "BotFillSeconds": 15,
+    "BotFillSecondsNewPlayers": 8,
+    "QueueStatusIntervalSeconds": 1,
+    "Snapshots": {
+      "AoiRadiusCellsAcorns": 0,
+      "AoiRadiusCellsLastBeast": 16,
+      "MaxEventsPerSnapshot": 48,
+      "EventRedundancyTicks": 3,
+      "SnapshotRateDivisor": 1,
+      "MaxSnapshotBytes": 1100,
+      "ProjectileEndLingerTicks": 15
+    }
+  },
+  "Transport": {
+    "MaxConnections": 2000,
+    "LanDiscovery": true,              // false on a VPS (§6.4)
+    "HandshakesPerIpPerMinute": 120,
+    "PacketsPerSecond": 120,
+    "BytesPerSecond": 16384,
+    "KeepaliveMs": 1000,
+    "DisconnectTimeoutMs": 5000,
+    "MinRtoMs": 100
+  }
+}

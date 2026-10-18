@@ -14,5 +14,7 @@
   <ItemGroup>
     <!-- Content pack exported by the editor (Server-Spec 5.4); the server loads it next to its dll and re-checks the hash. -->
     <None Include="$(MSBuildThisFileDirectory)..\..\Assets\_Project\Data\Net\ArenaContent.bytes" Link="ArenaContent.bytes" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Settings (Server-Spec 5.5): config/server.json next to the dll is the default config. -->
+    <None Include="$(MSBuildThisFileDirectory)..\config\server.json" Link="config\server.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

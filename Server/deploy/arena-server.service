@@ -1,0 +1,32 @@
+# systemd unit of the Arena server on a Linux VPS (Server-Spec §10.3). A person installs it:
+#   sudo useradd --system --home /opt/arena --shell /usr/sbin/nologin arena
+#   sudo mkdir -p /opt/arena && sudo cp -r Builds/Server/* /opt/arena/ && sudo chown -R arena:arena /opt/arena
+#   (in /opt/arena/config/server.json on a VPS: "LanDiscovery": false)
+#   sudo cp Server/deploy/arena-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now arena-server
+#   journalctl -u arena-server -f
+# Needs a .NET runtime >= 6 (dotnet on PATH); the bootstrap build runs on any of them (rollForward Major).
+[Unit]
+Description=Arena game server (UDP 7777)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=arena
+Group=arena
+WorkingDirectory=/opt/arena
+ExecStart=/usr/bin/env dotnet /opt/arena/Arena.Server.dll --config /opt/arena/config/server.json
+# SIGTERM drains: running matches play on up to DrainSeconds (180 s) before the process exits.
+KillSignal=SIGTERM
+TimeoutStopSec=200
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/arena/logs
+
+[Install]
+WantedBy=multi-user.target

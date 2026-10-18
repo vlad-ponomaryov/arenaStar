@@ -12,7 +12,7 @@ namespace Arena.Net.Server.Transport
     /// cached <see cref="IPEndPoint"/>s. Non-blocking; Windows SIO_UDP_CONNRESET is off; <c>ConnectionReset</c> and
     /// <c>MessageSize</c> are counted and skipped, the receive loop never throws in normal operation.
     /// </summary>
-    public sealed class PortableUdpServerSocket : IServerDatagramSocket
+    public sealed class PortableUdpServerSocket : IWaitableServerSocket
     {
         private readonly Socket _socket;
         private readonly AddressFamily _family;
@@ -85,6 +85,23 @@ namespace Arena.Net.Server.Transport
                 length = n;
                 from = NetAddress.FromEndPoint((IPEndPoint)_any);
                 return true;
+            }
+        }
+
+        public bool WaitReadable(int timeoutMicros)
+        {
+            if (_closed) return false;
+            try
+            {
+                return _socket.Poll(timeoutMicros < 0 ? 0 : timeoutMicros, SelectMode.SelectRead);
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
+            catch (ObjectDisposedException)
+            {
+                return false;
             }
         }
 

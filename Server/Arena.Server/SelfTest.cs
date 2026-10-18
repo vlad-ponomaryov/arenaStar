@@ -21,7 +21,8 @@ namespace Arena.Server
     /// zero allocations of the coder (<c>GC.GetAllocatedBytesForCurrentThread</c> is exact on CoreCLR); S3.2: the content
     /// pack re-encodes to the same bytes, headless Acorns match of bots by the pack (ms/tick, two runs give one
     /// <c>StateHash</c>); S3.3: the same for a Last Beast match of 10 bots (one winner); S3.4: loopback UDP transport; S3.5: snapshots of
-    /// whole bot matches (views match, budget, 0 B steady state). Real UDP server arrives in S3.9.
+    /// whole bot matches (views match, budget, 0 B steady state); S3.9: <c>server.json</c> handling and the real
+    /// server process (<see cref="HostSelfTest"/>).
     /// </summary>
     public static class SelfTest
     {
@@ -36,7 +37,7 @@ namespace Arena.Server
         private static TextWriter _out;
         private static ServerContent _content;
 
-        public static bool Run(TextWriter output, ServerContent content)
+        public static bool Run(TextWriter output, ServerContent content, float matchSeconds)
         {
             _out = output;
             _content = content;
@@ -56,6 +57,10 @@ namespace Arena.Server
             Check("transport: 10 000 packets over loopback UDP, reliable in order", () => LoopbackTransportTest.Run(_out, _content.Hash));
             Check("match host: Acorns, 2 scripted clients + 4 bots, CI network, MatchEnded for all, replay, 0 B steady state",
                 () => MatchHostSelfTest.Run(_out, _content.Bundle, _content.Hash, HeadlessSeed));
+            Check("server.json: defaults round trip, invariant numbers, unknown keys refused, committed config loads", () => ConfigSelfTest.Run(_out));
+            Check("host: real UDP on 127.0.0.1, " + HostSelfTest.Clients + " bot clients via the lobby, " + matchSeconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)
+                + " s match, /metrics, stop request drains and exits, results match, tick lateness p99 < 2 ms",
+                () => HostSelfTest.Run(_out, _content, matchSeconds));
             _out.WriteLine("SELFTEST: " + (_failed == 0 ? "OK" : "FAILED") + ", passed " + _passed + ", failed " + _failed);
             return _failed == 0;
         }

@@ -82,6 +82,9 @@ S3.1 — предложение правки CLAUDE.md (агент сам не �
 --selftest`, итог `SERVER TEST: OK, passed N, failed M`, коды 0 ок · 1 self-test упал · 2 сборка упала. В §3 рабочего цикла — после
 `test.ps1` запускать `server-test.ps1`. В §2 и §4 убрать «Photon Fusion 2 SDK … D-001» (заменено D-063). Папка `Server/` (вне Assets)
 — исключение из правила «пустые будущие папки … `Server` не создавать».
+S3.9 — в ту же таблицу Tools: `Tools/server-run.ps1 [-Config <json>] [-NoBuild]` — сборка и запуск сервера в консоли (Ctrl+C —
+доигрывание матчей); `Tools/server-publish.ps1 [-Mode Auto|Sdk|Bootstrap]` — пакет `Builds/Server/` для другого ПК или VPS, итог
+`SERVER PUBLISH: OK|FAILED`, коды 0 · 2.
 
 ## Закрытые
 

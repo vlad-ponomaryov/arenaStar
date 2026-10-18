@@ -9,7 +9,7 @@ namespace Arena.Server.Host
     /// </summary>
     public static class ServerSocketFactory
     {
-        public static IServerDatagramSocket Create(IPEndPoint local, out IPEndPoint bound)
+        public static Arena.Net.Server.Transport.IWaitableServerSocket Create(IPEndPoint local, out IPEndPoint bound)
         {
 #if NET8_0_OR_GREATER
             var socket = new UdpServerSocket(local);

@@ -13,7 +13,7 @@ namespace Arena.Server.Host
     /// Dual-stack when bound to <c>[::]</c>. Windows SIO_UDP_CONNRESET is off; <c>ConnectionReset</c> and <c>MessageSize</c> are
     /// counted and skipped. Only in the SDK build; the bootstrap build uses <c>PortableUdpServerSocket</c>.
     /// </summary>
-    public sealed class UdpServerSocket : IServerDatagramSocket
+    public sealed class UdpServerSocket : Arena.Net.Server.Transport.IWaitableServerSocket
     {
         // sockaddr_in / sockaddr_in6 layout: [0..1] family (platform-specific), [2..3] port (big-endian),
         // IPv4: [4..7] address; IPv6: [4..7] flow info, [8..23] address, [24..27] scope id.
@@ -92,6 +92,23 @@ namespace Arena.Server.Host
                 length = n;
                 from = Parse(_receiveAddress);
                 return true;
+            }
+        }
+
+        public bool WaitReadable(int timeoutMicros)
+        {
+            if (_closed) return false;
+            try
+            {
+                return _socket.Poll(timeoutMicros < 0 ? 0 : timeoutMicros, SelectMode.SelectRead);
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
+            catch (ObjectDisposedException)
+            {
+                return false;
             }
         }
 

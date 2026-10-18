@@ -1,0 +1,24 @@
+# Arena server in Docker (Server-Spec §10.4). From the repository root:
+#   docker compose -f Server/docker-compose.yml up -d --build
+#   docker compose -f Server/docker-compose.yml logs -f arena
+#   docker compose -f Server/docker-compose.yml stop     # SIGTERM: running matches play on up to DrainSeconds (180 s)
+# Metrics stay on the host: curl http://127.0.0.1:7778/metrics
+# Prometheus and Grafana are optional (free) and not included.
+services:
+  arena:
+    build:
+      context: ..
+      dockerfile: Server/Dockerfile
+    image: arena-server
+    restart: unless-stopped
+    ports:
+      - "7777:7777/udp"
+      - "127.0.0.1:7778:7778/tcp"
+    volumes:
+      - arena-logs:/app/logs
+      # Own settings without a rebuild:
+      # - ./config/server.json:/app/config/server.json:ro
+    stop_signal: SIGTERM
+    stop_grace_period: 190s
+volumes:
+  arena-logs:

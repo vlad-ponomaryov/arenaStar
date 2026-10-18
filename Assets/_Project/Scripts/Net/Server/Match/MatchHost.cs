@@ -71,6 +71,35 @@ namespace Arena.Net.Server.Match
 
         public ContentBundle Bundle => _bundle;
 
+        /// <summary>Gets every room that enters <see cref="MatchPhase.Ended"/> once (the host process logs the result, S3.9; null — nobody).</summary>
+        public IMatchResultSink ResultSink { get; set; }
+
+        /// <summary>Open rooms that have not ended yet (Joining … Running): a stopping server waits for them (§5.3).</summary>
+        public int PlayingMatches
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < _rooms.Length; i++)
+                    if (_rooms[i] != null && _rooms[i].Phase < MatchPhase.Ended) n++;
+                return n;
+            }
+        }
+
+        /// <summary>Earliest clock time a room step is due (<see cref="MatchRoom.NextStepMicros"/>), <see cref="long.MaxValue"/> — no rooms.</summary>
+        public long NextStepDueMicros()
+        {
+            long due = long.MaxValue;
+            for (int i = 0; i < _rooms.Length; i++)
+            {
+                MatchRoom room = _rooms[i];
+                if (room == null) continue;
+                long next = room.NextStepMicros;
+                if (next < due) due = next;
+            }
+            return due;
+        }
+
         /// <summary>A room can be created now (fewer than <c>MaxMatches</c> are open).</summary>
         public bool HasFreeRoom
         {
@@ -140,7 +169,9 @@ namespace Arena.Net.Server.Match
                     Metrics.SkippedTicks += due - _settings.MaxCatchUpTicks;
                     due = _settings.MaxCatchUpTicks;
                 }
+                bool wasEnded = room.Phase >= MatchPhase.Ended;
                 for (int k = 0; k < due && room.Phase != MatchPhase.Closed; k++) room.Step(nowMicros);
+                if (!wasEnded && room.Phase >= MatchPhase.Ended) ResultSink?.OnMatchEnded(room);
                 if (room.Phase == MatchPhase.Closed) RemoveRoom(i);
             }
         }

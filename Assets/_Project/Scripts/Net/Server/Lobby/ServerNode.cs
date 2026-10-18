@@ -45,15 +45,40 @@ namespace Arena.Net.Server.Lobby
 
         public bool Maintenance { get; private set; }
 
+        /// <summary>The process is stopping (<see cref="BeginShutdown"/>): like maintenance, and it cannot be turned off.</summary>
+        public bool ShuttingDown { get; private set; }
+
         /// <summary>Turns maintenance on or off (the host process watches <c>maintenance.flag</c> or its config, S3.9).</summary>
         public void SetMaintenance(bool on)
         {
-            if (on == Maintenance) return;
+            if (on == Maintenance || ShuttingDown) return;
+            ApplyRefusals(on);
+            if (on) Broadcast(ServerNoticeKind.Maintenance, 0);
+        }
+
+        /// <summary>
+        /// The server stops (SIGTERM / Ctrl+C, Server-Spec §5.3): new lobby connections and joins are refused like in maintenance,
+        /// queued tickets are dropped, everybody gets <c>ServerNotice(Shutdown, drainSeconds)</c>; running matches play on (rejoin
+        /// by ticket stays allowed) — the host process exits when <see cref="MatchHost.PlayingMatches"/> is 0 or the drain time is up.
+        /// </summary>
+        public void BeginShutdown(int drainSeconds)
+        {
+            if (ShuttingDown) return;
+            ShuttingDown = true;
+            if (!Maintenance) ApplyRefusals(true);
+            Broadcast(ServerNoticeKind.Shutdown, drainSeconds < 0 ? 0 : drainSeconds);
+        }
+
+        private void ApplyRefusals(bool on)
+        {
             Maintenance = on;
             Transport.Maintenance = on;
             Matchmaker.SetMaintenance(on);
-            if (!on) return;
-            var notice = new ServerNoticeMessage { Kind = ServerNoticeKind.Maintenance, Seconds = 0 };
+        }
+
+        private void Broadcast(ServerNoticeKind kind, int seconds)
+        {
+            var notice = new ServerNoticeMessage { Kind = kind, Seconds = seconds };
             _writer.Reset(_packet, 0, _packet.Length);
             notice.Write(_writer);
             ConnectionTable table = Transport.Connections;

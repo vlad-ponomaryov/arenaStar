@@ -126,6 +126,12 @@ namespace Arena.Net.Server.Match
             return due <= 0 ? 0 : (due > int.MaxValue ? int.MaxValue : (int)due);
         }
 
+        /// <summary>
+        /// Clock time the next step is due (start + (n + 1) × 1/30 s, rounded up to a microsecond): the host process waits until
+        /// the earliest of these (S3.9). Steps already due report a time in the past.
+        /// </summary>
+        public long NextStepMicros => _startMicros + ((_steps + 1) * MicrosPerSecond + SimLimits.TickRate - 1) / SimLimits.TickRate;
+
         /// <summary>Drops <paramref name="steps"/> due steps without running them (catch-up limit, §5.3).</summary>
         public void SkipSteps(int steps)
         {
