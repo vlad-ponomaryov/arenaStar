@@ -1,8 +1,5 @@
 using System;
 using Arena.Core.Defs;
-using Arena.Core.Map;
-using Arena.Core.Math;
-using Arena.Core.Random;
 
 namespace Arena.Data.Conversion
 {
@@ -13,6 +10,7 @@ namespace Arena.Data.Conversion
     /// had it (so the line-up keeps every fighter once), or replaces the local one if it was not in the line-up.
     /// With <c>randomOthers</c> every other slot (the bots) gets a random fighter from <c>MatchDefs.Fighters</c> drawn by the
     /// match seed, without repeats within a team while there are enough fighters (S2.8).
+    /// Layout and the random fighters are the pure <see cref="MatchSetupBuilder"/> (shared with the server, S3.6).
     /// Called once per match start.
     /// </summary>
     public static class MatchSetupFactory
@@ -39,59 +37,22 @@ namespace Arena.Data.Conversion
 
             string[] ids = config.SlotFighterIds.ToArray();
             if (!string.IsNullOrEmpty(localFighterId)) PutLocalFighter(ids, config.LocalSlot, localFighterId);
-            if (randomOthers) RandomizeOthers(ids, config, defs, seed);
 
-            var setup = new MatchSetup
-            {
-                Seed = seed, Slots = new PlayerSlotSetup[count], UnlockAllAbilities = config.UnlockAllAbilities
-            };
+            var fighters = new int[count];
             for (int i = 0; i < count; i++)
             {
-                string id = ids[i];
-                int fighterIndex = defs.IndexOfFighter(id);
-                if (fighterIndex < 0) throw new ArgumentException("MatchRunnerConfig: unknown fighter id '" + id + "' in slot " + i);
-                int team = i < config.TeamSize ? 0 : 1;
-                int indexInTeam = team == 0 ? i : i - config.TeamSize;
-                if (!defs.Map.TryGetSpawn(team, indexInTeam, out GridCell spawn))
-                    throw new ArgumentException("Map '" + defs.Map.Id + "' has no spawn " + indexInTeam + " for team " + team + " (slot " + i + ")");
-                setup.Slots[i] = new PlayerSlotSetup(fighterIndex, team, config.FighterLevel, spawn.Center);
+                fighters[i] = defs.IndexOfFighter(ids[i]);
+                bool replaced = randomOthers && i != config.LocalSlot;
+                if (fighters[i] < 0 && !replaced)
+                    throw new ArgumentException("MatchRunnerConfig: unknown fighter id '" + ids[i] + "' in slot " + i);
             }
-            setup.Validate(defs);
-            return setup;
-        }
-
-        private static void RandomizeOthers(string[] ids, MatchRunnerConfig config, MatchDefs defs, int seed)
-        {
-            var rng = DeterministicRng.FromSeed(seed);
-            int fighterCount = defs.Fighters.Length;
-            var candidates = new int[fighterCount];
-            for (int team = 0; team < 2; team++)
+            if (randomOthers)
             {
-                int from = team == 0 ? 0 : config.TeamSize;
-                int to = team == 0 ? MathUtil.Min(config.TeamSize, ids.Length) : ids.Length;
-                var used = new bool[fighterCount];
-                if (config.LocalSlot >= from && config.LocalSlot < to)
-                {
-                    int local = defs.IndexOfFighter(ids[config.LocalSlot]);
-                    if (local >= 0) used[local] = true;
-                }
-                for (int i = from; i < to; i++)
-                {
-                    if (i == config.LocalSlot) continue;
-                    int n = 0;
-                    for (int k = 0; k < fighterCount; k++)
-                        if (!used[k]) candidates[n++] = k;
-                    if (n == 0)
-                    {
-                        // More slots than fighters: repeats are unavoidable.
-                        for (int k = 0; k < fighterCount; k++) candidates[k] = k;
-                        n = fighterCount;
-                    }
-                    int pick = candidates[rng.Range(0, n)];
-                    used[pick] = true;
-                    ids[i] = defs.Fighters[pick].Id;
-                }
+                var isFixed = new bool[count];
+                isFixed[config.LocalSlot] = true;
+                MatchSetupBuilder.PickRandomFighters(defs, fighters, isFixed, config.TeamSize, seed);
             }
+            return MatchSetupBuilder.CreateTeams(defs, fighters, config.TeamSize, config.FighterLevel, config.UnlockAllAbilities, seed);
         }
 
         private static void PutLocalFighter(string[] ids, int localSlot, string fighterId)

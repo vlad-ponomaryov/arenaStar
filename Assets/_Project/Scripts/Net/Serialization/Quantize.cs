@@ -1,3 +1,4 @@
+using Arena.Core.Input;
 using Arena.Core.Math;
 using Arena.Net.Protocol;
 
@@ -82,6 +83,17 @@ namespace Arena.Net.Serialization
         }
 
         public static Vec2 FromMove(sbyte x, sbyte y) => FromUnitVector(x, y, NetProtocol.MoveScale);
+
+        /// <summary>
+        /// The input as the server will see it (§2.4): move and aim through their wire quantization, unknown button bits dropped.
+        /// The client feeds this same value to its prediction and to the network.
+        /// </summary>
+        public static PlayerInput Input(in PlayerInput input)
+        {
+            ToMove(input.Move, out sbyte mx, out sbyte my);
+            ToAim(input.Aim, out short ax, out short ay);
+            return new PlayerInput(FromMove(mx, my), FromAim(ax, ay), input.Buttons & InputButtons.All);
+        }
 
         // ---- Positions on the map ----
 

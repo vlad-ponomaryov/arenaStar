@@ -105,9 +105,19 @@ namespace Arena.Net.Server.Snapshots
         public int Build(MatchState state, ClientView view, SnapshotHeader header, byte[] buffer, int offset)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
+            return Build(state, view, header, state.Globals.Tick, buffer, offset);
+        }
+
+        /// <summary>
+        /// Same as <see cref="Build(MatchState, ClientView, SnapshotHeader, byte[], int)"/> with an explicit snapshot tick: in the
+        /// countdown (§2.3) the captured state is that of tick 0 and <paramref name="serverTick"/> is the negative countdown tick.
+        /// </summary>
+        public int Build(MatchState state, ClientView view, SnapshotHeader header, int serverTick, byte[] buffer, int offset)
+        {
+            if (state == null) throw new ArgumentNullException(nameof(state));
             if (view == null) throw new ArgumentNullException(nameof(view));
             if (!_captured || state.Globals.Tick != _capturedTick) throw new InvalidOperationException("SnapshotBuilder: Capture the tick first");
-            int tick = state.Globals.Tick;
+            int tick = serverTick;
             header.ServerTick = tick;
             header.OwnSlot = view.Slot;
             BuildTarget(state, view.Slot, in header);

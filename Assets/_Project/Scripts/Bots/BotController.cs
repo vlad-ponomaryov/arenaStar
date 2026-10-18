@@ -64,20 +64,39 @@ namespace Arena.Bots
         public int BotCount { get; private set; }
 
         /// <summary>Hands <paramref name="slot"/> to a bot of <paramref name="difficulty"/>; its RNG is derived from the match seed and the slot.</summary>
-        public void AddBot(int slot, BotDifficultyDef difficulty, int matchSeed)
+        public void AddBot(int slot, BotDifficultyDef difficulty, int matchSeed) => SetBotActive(slot, true, difficulty, matchSeed, 0);
+
+        /// <summary>
+        /// Takes over a slot or hands it back (online: disconnect, AFK, leave — Server-Spec §7). On: a brain from scratch
+        /// (no memory, nothing seen), its RNG from the match seed, the slot and <paramref name="takeoverIndex"/> (0 — the same
+        /// bot as <see cref="AddBot"/>; the n-th takeover of a slot — another stream). Off: the slot's input is no longer
+        /// written and its memory is dropped. No allocations.
+        /// </summary>
+        public void SetBotActive(int slot, bool active, BotDifficultyDef difficulty, int matchSeed, int takeoverIndex)
         {
             if ((uint)slot >= SimLimits.MaxFighters) throw new ArgumentOutOfRangeException(nameof(slot));
+            if (!active)
+            {
+                if (!_brains[slot].Active) return;
+                BotCount--;
+                _brains[slot] = default;
+                ClearSeen(slot);
+                _memory.Clear(slot);
+                return;
+            }
             if (difficulty == null) throw new ArgumentNullException(nameof(difficulty));
+            if (takeoverIndex < 0) throw new ArgumentOutOfRangeException(nameof(takeoverIndex));
             difficulty.Validate();
             if (!_brains[slot].Active) BotCount++;
             _difficulty[slot] = difficulty;
+            uint stream = (uint)(slot + 1 + takeoverIndex * SimLimits.MaxFighters);
             _brains[slot] = new BotBrain
             {
                 Active = true,
                 Action = BotAction.None,
                 TargetSlot = -1,
                 MemoryEnemy = -1,
-                Rng = new DeterministicRng(((ulong)(uint)matchSeed << 32) | (uint)(slot + 1)),
+                Rng = new DeterministicRng(((ulong)(uint)matchSeed << 32) | stream),
                 NextDecisionTick = slot % _behaviour.DecisionIntervalTicks, // spread the decisions of the bots over ticks
                 StrafeSign = 1
             };

@@ -109,9 +109,9 @@ namespace Arena.Tests.EditMode.Data
             var fighters = new int[SimLimits.MaxFighters];
             for (int i = 0; i < fighters.Length; i++) fighters[i] = i % defs.Fighters.Length;
 
-            MatchSetup a = MatchSetupBuilder.CreateFreeForAll(defs, policy, fighters, 11);
-            MatchSetup b = MatchSetupBuilder.CreateFreeForAll(defs, policy, fighters, 11);
-            MatchSetup c = MatchSetupBuilder.CreateFreeForAll(defs, policy, fighters, 12);
+            MatchSetup a = MatchSetupBuilder.CreateFreeForAll(defs, fighters, policy.FighterLevel, policy.UnlockAllAbilities, 11);
+            MatchSetup b = MatchSetupBuilder.CreateFreeForAll(defs, fighters, policy.FighterLevel, policy.UnlockAllAbilities, 11);
+            MatchSetup c = MatchSetupBuilder.CreateFreeForAll(defs, fighters, policy.FighterLevel, policy.UnlockAllAbilities, 12);
             var used = new HashSet<string>();
             bool differs = false;
             for (int i = 0; i < a.SlotCount; i++)
@@ -122,7 +122,7 @@ namespace Arena.Tests.EditMode.Data
                 if (a.Slots[i].SpawnPosition != c.Slots[i].SpawnPosition) differs = true;
             }
             Assert.IsTrue(differs, "another seed, another order");
-            Assert.Throws<System.ArgumentException>(() => MatchSetupBuilder.CreateFreeForAll(defs, policy, new int[11], 1));
+            Assert.Throws<System.ArgumentException>(() => MatchSetupBuilder.CreateFreeForAll(defs, new int[11], policy.FighterLevel, policy.UnlockAllAbilities, 1));
         }
 
         [Test]

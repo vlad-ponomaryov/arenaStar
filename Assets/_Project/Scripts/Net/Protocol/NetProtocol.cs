@@ -10,8 +10,8 @@ namespace Arena.Net.Protocol
         /// <summary>Protocol "magic": ASCII "ARN1" little-endian. Packets with another id are dropped.</summary>
         public const uint Id = 0x314E5241u;
 
-        /// <summary>Wire format version (u16). Bump on any format change.</summary>
-        public const ushort Version = 1;
+        /// <summary>Wire format version (u16). Bump on any format change. 2 — match messages (<see cref="MessageKind"/>, S3.6).</summary>
+        public const ushort Version = 2;
 
         /// <summary>Transport header size in bytes: kind|flags, connectionId, sequence, ack, ackBits, ackDelay (§3.2).</summary>
         public const int HeaderBytes = 18;
@@ -68,6 +68,9 @@ namespace Arena.Net.Protocol
         public const int UnitLengthMarginDivisor = 100000;
 
         public const int InputButtonBits = 4;
+
+        /// <summary>Inputs in one <c>Input</c> message minus one (1…8, <see cref="NetLimits.MaxInputsPerPacket"/>).</summary>
+        public const int InputCountBits = 3;
 
         /// <summary>Facing direction of a foreign fighter: u8 angle (≈ 1.4°).</summary>
         public const int FacingAngleBits = 8;

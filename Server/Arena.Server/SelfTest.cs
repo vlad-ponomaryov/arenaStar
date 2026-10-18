@@ -54,6 +54,8 @@ namespace Arena.Server
             Check("snapshots: Acorns 3x3 bot match, views match, budget, 0 B steady state", () => SnapshotSelfTest.Run(_out, _content.Bundle, ModeKind.Acorns, HeadlessSeed));
             Check("snapshots: Last Beast 10 bots, views match, budget, 0 B steady state", () => SnapshotSelfTest.Run(_out, _content.Bundle, ModeKind.LastBeast, HeadlessSeed));
             Check("transport: 10 000 packets over loopback UDP, reliable in order", () => LoopbackTransportTest.Run(_out, _content.Hash));
+            Check("match host: Acorns, 2 scripted clients + 4 bots, CI network, MatchEnded for all, replay, 0 B steady state",
+                () => MatchHostSelfTest.Run(_out, _content.Bundle, _content.Hash, HeadlessSeed));
             _out.WriteLine("SELFTEST: " + (_failed == 0 ? "OK" : "FAILED") + ", passed " + _passed + ", failed " + _failed);
             return _failed == 0;
         }

@@ -27,7 +27,7 @@ namespace Arena.Net
         /// <summary>Snapshot "views" kept per client for delta baselines (≈ 1 s at 30 Hz).</summary>
         public const int SnapshotHistory = 32;
 
-        /// <summary>Per-slot input ring on the server, in ticks.</summary>
+        /// <summary>Per-slot input ring on the server, in ticks (a power of two).</summary>
         public const int InputBufferTicks = 64;
 
         /// <summary>Sent packets remembered for acknowledgements (sequence, send time); must exceed 33 (ack + 32 bits).</summary>
@@ -41,6 +41,15 @@ namespace Arena.Net
 
         /// <summary>Late button presses carried over to the next tick where they make an edge (§2.4).</summary>
         public const int MaxPendingPresses = 3;
+
+        /// <summary>Ticks the input log holds beyond the longest duration of the mode (overtime of a hold countdown, slack).</summary>
+        public const int InputLogExtraTicks = 600;
+
+        /// <summary>Inputs one <c>Input</c> message can carry (the newest and the redundant older ones, §2.4).</summary>
+        public const int MaxInputsPerPacket = 1 << Protocol.NetProtocol.InputCountBits;
+
+        /// <summary>Margins of received input packets remembered per slot, in ticks (≥ <c>MarginWindowTicks</c>, a power of two).</summary>
+        public const int MarginHistoryTicks = 64;
 
         // ---- Snapshot "views" (§4.4, S3.5): capacities of the compact lists of a SnapshotFrame ----
 

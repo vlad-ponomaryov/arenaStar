@@ -32,14 +32,14 @@ namespace Arena.Net.Diagnostics
                 int n = shared < SimLimits.MaxFighters ? shared : SimLimits.MaxFighters;
                 var ffa = new int[n];
                 for (int i = 0; i < n; i++) ffa[i] = i % defs.Fighters.Length;
-                return MatchSetupBuilder.CreateFreeForAll(defs, policy, ffa, seed);
+                return MatchSetupBuilder.CreateFreeForAll(defs, ffa, policy.FighterLevel, policy.UnlockAllAbilities, seed);
             }
             int teamSize = defs.Map.SpawnCount(0);
             int slots = teamSize + defs.Map.SpawnCount(1);
             if (teamSize == 0 || slots > SimLimits.MaxFighters) throw new ArgumentException("HeadlessMatch: map '" + defs.Map.Id + "' spawns do not fit");
             var fighters = new int[slots];
             for (int i = 0; i < slots; i++) fighters[i] = i % defs.Fighters.Length;
-            return MatchSetupBuilder.Create(defs, policy, fighters, teamSize, seed);
+            return MatchSetupBuilder.CreateTeams(defs, fighters, teamSize, policy.FighterLevel, policy.UnlockAllAbilities, seed);
         }
 
         /// <summary>Runs until the mode ends or <paramref name="maxTicks"/>; every slot is a bot of <paramref name="difficulty"/>.</summary>

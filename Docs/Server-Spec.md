@@ -1234,6 +1234,8 @@ keepalive. Смена адреса. Лимиты. Повтор пакета. Sip
 
 **Готово, когда:** скриптовые клиенты проходят полный матч «Жёлудей» по виртуальной сети в условиях CI; все тесты выше зелёные.
 
+**Сделано (S3.6, D-095):** `Arena.Net.Server.Match` (`MatchHost`, `MatchRoom`, `SlotInputBuffer`, `BotTakeover`, `InputLog`, `ReplayVerifier`, `ServerMetrics`), `MatchSetupBuilder` — в `Arena.Core.Defs`, сообщения с байтом `MessageKind` (`NetProtocol.Version` = 2). Признак отсчёта для клиента — `serverTick < 0` в заголовке снапшота (фазы «отсчёт» в `ModeState` нет). Тестовый клиент — `ScriptedMatchClient` (грубые часы; настоящие — S3.7a).
+
 ### S3.7a — Клиент: время и предсказание
 
 **Цель.** Свой боец клиента предсказывается против сервера по виртуальной сети без заметных поправок.
