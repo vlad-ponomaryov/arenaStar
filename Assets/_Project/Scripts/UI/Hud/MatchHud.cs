@@ -63,20 +63,21 @@ namespace Arena.UI.Hud
         {
             if (_controls == null) return;
             _fps?.Tick(Time.unscaledDeltaTime);
-            if (_runner.Simulation != null) _scoreBar.Apply(_runner.Simulation, _runner.LocalTeam);
+            IMatchDriver driver = _runner.Driver;
+            if (driver != null) _scoreBar.Apply(driver.Defs, driver.State, _runner.LocalTeam);
             if (_runner.IsMatchEnded)
             {
                 if (!_results.IsShown)
                 {
                     SetControlsVisible(false);
-                    _results.Show(_runner.Simulation, _runner.LocalTeam);
+                    _results.Show(driver.Defs, driver.State, _runner.LocalTeam);
                 }
                 _results.Tick();
                 return;
             }
             LocalInputCollector input = _runner.InputCollector;
-            AbilityHudInfo abilities = AbilityHudInfo.From(_runner.Simulation, _runner.LocalSlot);
-            if (_runner.Simulation != null) _abilityView.Apply(in abilities);
+            AbilityHudInfo abilities = driver != null ? AbilityHudInfo.From(driver.Defs, driver.State, _runner.LocalSlot) : default;
+            if (driver != null) _abilityView.Apply(in abilities);
             bool ultActive = abilities.UltCharged;
             if (_feel != null) _abilityView.AnimateUltGlow(ultActive, Time.unscaledTime, _feel.UltGlowFrequency, _feel.UltGlowScale);
 

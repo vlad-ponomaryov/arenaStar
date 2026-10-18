@@ -1,5 +1,4 @@
 using Arena.Core.Defs;
-using Arena.Core.Sim;
 using Arena.Core.Sim.Systems;
 using Arena.Core.State;
 
@@ -25,13 +24,12 @@ namespace Arena.UI.Hud
         public int TrickUsesLeft;
         public int TrickMaxUses;
 
-        public static AbilityHudInfo From(MatchSimulation sim, int slot)
+        public static AbilityHudInfo From(MatchDefs defs, MatchState state, int slot)
         {
             var info = new AbilityHudInfo();
-            if (sim == null || slot < 0 || slot >= sim.FighterCount) return info;
+            if (defs == null || state == null || slot < 0 || slot >= state.Globals.FighterCount) return info;
 
-            MatchDefs defs = sim.Defs;
-            ref FighterState f = ref sim.State.Fighters[slot];
+            ref FighterState f = ref state.Fighters[slot];
             FighterDef def = defs.Fighters[f.DefIndex];
 
             info.HasUlt = def.Ult != null;
@@ -41,7 +39,7 @@ namespace Arena.UI.Hud
             info.HasTrick = def.Trick != null && f.TrickUnlocked;
             info.TrickMaxUses = info.HasTrick ? defs.Rules.TrickUses : 0;
             info.TrickUsesLeft = info.HasTrick ? f.TrickUsesLeft : 0;
-            info.TrickReady = f.Alive && TrickSystem.IsReady(defs, in f, sim.State.Tick);
+            info.TrickReady = f.Alive && TrickSystem.IsReady(defs, in f, state.Tick);
             return info;
         }
     }

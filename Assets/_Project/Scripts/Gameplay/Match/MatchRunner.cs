@@ -19,11 +19,12 @@ using UnityEngine;
 namespace Arena.Gameplay.Match
 {
     /// <summary>
-    /// Local (offline) implementation of the match loop (D-038): accumulates frame time, runs <see cref="MatchSimulation.Tick"/>
-    /// with a fixed 1/30 s step (at most <see cref="MatchRunnerConfig.MaxTicksPerFrame"/> per frame), feeds the local player's
-    /// <see cref="PlayerInput"/> from <see cref="InputCollector"/>; every other slot is a bot (<see cref="BotController"/>, difficulty
-    /// from the menu or <see cref="MatchRunnerConfig.DefaultBots"/>, random fighters by the match seed),
-    /// then interpolates the views (D-015): map (walls break on <c>TileBroken</c>), fighters (enemies the local team does not
+    /// Host of the match views (S3.10a, Server-Spec §12.2): the ticks come from an <see cref="IMatchDriver"/> — the one given by
+    /// <see cref="SetDriver"/> before <c>Start</c> (online bootstrap, S3.10b), else an <see cref="OfflineMatchDriver"/> (simulation
+    /// + bots, the former loop of this class). Per frame: <see cref="IMatchDriver.BeginFrame"/>, then that many
+    /// <see cref="IMatchDriver.Step"/> with the local player's input from <see cref="InputCollector"/>; after every step the tick
+    /// events and the state go to the views. Views read only <see cref="Driver"/> (<c>Defs</c>, <c>State</c>, <c>Events</c>).
+    /// It interpolates the views (D-015): map (walls break on <c>TileBroken</c>), fighters (enemies the local team does not
     /// see are hidden, own fighters in bushes are translucent — D-024), projectiles (pooled), health bars; drives the
     /// camera within the map. Thin layer: no game logic here.
     /// Feel (S2.10, GDD §5.3, D-059): <see cref="HitFeedback"/> turns tick events into flashes, damage numbers, sounds,
@@ -41,19 +42,16 @@ namespace Arena.Gameplay.Match
         private readonly LocalInputCollector _inputCollector = new LocalInputCollector();
         private readonly KeyboardMouseInput _keyboardMouse = new KeyboardMouseInput();
         private readonly MatchViewState _viewState = new MatchViewState();
-        private readonly PlayerInput[] _inputs = new PlayerInput[SimLimits.MaxFighters];
         private readonly FighterView[] _fighterViews = new FighterView[SimLimits.MaxFighters];
         private readonly HealthBarView[] _healthBars = new HealthBarView[SimLimits.MaxFighters];
 
-        private MatchSimulation _simulation;
-        private BotController _bots;
+        private IMatchDriver _driver;
+        private IMatchDriver _pendingDriver;
         private AimIndicatorView _aimIndicator;
         private ProjectileViewPool _projectileViews;
         private ProjectileViewPool _logViews;
         private AreaViewPool _areaViews;
         private MapView _mapView;
-        private int _maxTicksPerFrame;
-        private float _accumulator;
 
         private FeelConfig _feel;
         private GameSettings _settings;
@@ -75,7 +73,11 @@ namespace Arena.Gameplay.Match
         /// <summary>Local input sink for the HUD (virtual sticks). Exists from construction.</summary>
         public LocalInputCollector InputCollector => _inputCollector;
 
-        public MatchSimulation Simulation => _simulation;
+        /// <summary>Source of the ticks (null before the match starts).</summary>
+        public IMatchDriver Driver => _driver;
+
+        /// <summary>Simulation of the offline driver; null online.</summary>
+        public MatchSimulation Simulation => (_driver as OfflineMatchDriver)?.Simulation;
 
         /// <summary>Feedback of the tick events (counters for tests).</summary>
         public HitFeedback Feedback => _feedback;
@@ -88,16 +90,24 @@ namespace Arena.Gameplay.Match
         public GameSettings Settings => _settings;
 
         /// <summary>Bots of all non-local slots.</summary>
-        public BotController Bots => _bots;
+        public BotController Bots => (_driver as OfflineMatchDriver)?.Bots;
         public MapView MapView => _mapView;
-        public int LocalSlot { get; private set; }
-        public int LocalTeam { get; private set; }
+        public int LocalSlot => _driver != null ? _driver.LocalSlot : 0;
+        public int LocalTeam => _driver != null ? _driver.LocalTeam : 0;
 
         /// <summary>Menu choice this match was started with, or null (scene opened directly: config line-up and seed).</summary>
         public MatchLaunchParams LaunchParams { get; private set; }
 
         /// <summary>The mode has ended: the simulation stands still, the HUD shows the results.</summary>
-        public bool IsMatchEnded => _simulation != null && _simulation.IsEnded;
+        public bool IsMatchEnded => _driver != null && _driver.IsEnded;
+
+        /// <summary>Uses <paramref name="driver"/> instead of the offline one; call before <c>Start</c> (a scene bootstrap that runs
+        /// earlier than the runner).</summary>
+        public void SetDriver(IMatchDriver driver)
+        {
+            if (_driver != null) throw new InvalidOperationException("MatchRunner: the match has already started");
+            _pendingDriver = driver;
+        }
 
         private void Start()
         {
@@ -112,40 +122,32 @@ namespace Arena.Gameplay.Match
             }
         }
 
-        /// <summary>Builds defs and the setup (menu choice from <see cref="SceneFlow.Current"/>, else the config's) from data,
-        /// creates the simulation and the views.</summary>
+        /// <summary>Takes the driver (the given one, else an offline driver for the menu choice from <see cref="SceneFlow.Current"/>,
+        /// else for the config's line-up) and creates the views.</summary>
         public void StartMatch()
         {
             if (_database == null) throw new InvalidOperationException("MatchRunner: GameDatabase is not set");
             if (_viewCatalog == null) throw new InvalidOperationException("MatchRunner: ViewCatalog is not set");
             if (_viewCatalog.ProjectilePrefab == null) throw new InvalidOperationException("MatchRunner: ViewCatalog.ProjectilePrefab is not set");
-            if (_database.MatchRunner == null) throw new InvalidOperationException("MatchRunner: GameDatabase.MatchRunner is not set");
             if (_database.Camera == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Camera is not set");
 
-            if (_database.BotBehaviour == null) throw new InvalidOperationException("MatchRunner: GameDatabase.BotBehaviour is not set");
             if (_database.Feel == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Feel is not set");
             _feel = _database.Feel;
             _settings = PlayerSettingsStore.SharedFor(_feel).Current.Clone();
             FrameRateApplier.Apply(_settings, _feel);
 
-            MatchDefs defs = ConfigConverter.ToMatchDefs(_database);
             LaunchParams = SceneFlow.Current;
-            MatchRunnerConfig config = _database.MatchRunner;
-            MatchSetup setup = LaunchParams != null
-                ? MatchSetupFactory.Create(config, defs, LaunchParams.FighterId, LaunchParams.Seed, config.RandomBotFighters)
-                : MatchSetupFactory.Create(config, defs, null, config.Seed, config.RandomBotFighters);
-            _simulation = new MatchSimulation(defs, setup);
-            _maxTicksPerFrame = config.MaxTicksPerFrame;
-            LocalSlot = config.LocalSlot;
-            LocalTeam = setup.Slots[LocalSlot].Team;
-            _bots = CreateBots(setup, LaunchParams != null ? LaunchParams.Bots : config.DefaultBots);
+            _driver = _pendingDriver ?? new OfflineMatchDriver(_database, LaunchParams, _settings);
+            _pendingDriver = null;
+            MatchDefs defs = _driver.Defs;
+            MatchSetup setup = _driver.Setup;
+            MatchState state = _driver.State;
 
             _inputCollector.Clear();
             _inputCollector.ViewRotated = LocalTeam != 0;
             _keyboardMouse.Reset();
-            _accumulator = 0f;
 
-            _mapView = MapView.Create(transform, _viewCatalog, _simulation.State.Grid);
+            _mapView = MapView.Create(transform, _viewCatalog, state.Grid);
             CreateFighterViews(setup);
             _aimIndicator = Instantiate(_viewCatalog.AimIndicatorPrefab, transform);
             _aimIndicator.name = "AimIndicator";
@@ -161,9 +163,9 @@ namespace Arena.Gameplay.Match
             _telegraphTicks = SimTime.SecondsToTicks(_feel.TelegraphSeconds);
             CreateFeel(defs);
 
-            _viewState.Reset(_simulation.State);
-            _projectileViews.Capture(_simulation.State);
-            if (_logViews != null) _logViews.Capture(_simulation.State);
+            _viewState.Reset(state);
+            _projectileViews.Capture(state);
+            if (_logViews != null) _logViews.Capture(state);
             if (_cameraController != null)
                 _cameraController.Init(_database.Camera, new Vector2(defs.Map.Width, defs.Map.Height), _inputCollector.ViewRotated,
                     LocalWorldPosition(0f));
@@ -172,43 +174,28 @@ namespace Arena.Gameplay.Match
 
         private void Update()
         {
-            if (_simulation == null) return;
+            if (_driver == null) return;
 
-            ref FighterState local = ref _simulation.State.Fighters[LocalSlot];
-            FighterDef localDef = _simulation.Defs.Fighters[local.DefIndex];
+            ref FighterState local = ref _driver.State.Fighters[LocalSlot];
+            FighterDef localDef = _driver.Defs.Fighters[local.DefIndex];
             UnityEngine.Camera cam = _cameraController != null ? _cameraController.Camera : null;
             _keyboardMouse.Poll(_inputCollector, cam, local.Position, localDef.AttackRange, UltRange(localDef));
 
-            if (_simulation.IsEnded)
-            {
-                // Results: the state stands still; keep the last pose, drop pending presses.
-                _inputCollector.Clear();
-                _accumulator = 0f;
-            }
-            else
-            {
-                _accumulator += Time.deltaTime;
-            }
-            int ticks = 0;
-            while (_accumulator >= SimTime.Dt && ticks < _maxTicksPerFrame)
-            {
-                _accumulator -= SimTime.Dt;
-                RunTick();
-                ticks++;
-            }
-            // Too far behind (hitch, breakpoint): drop the backlog instead of spiralling.
-            if (_accumulator >= SimTime.Dt) _accumulator %= SimTime.Dt;
+            // Results: the state stands still; keep the last pose, drop pending presses.
+            if (_driver.IsEnded) _inputCollector.Clear();
+            int ticks = _driver.BeginFrame(Time.deltaTime);
+            for (int i = 0; i < ticks; i++) RunTick();
 
-            float alpha = _accumulator / SimTime.Dt;
+            float alpha = _driver.Alpha;
             float dt = Time.unscaledDeltaTime;
             // Hit stop (D-015): the views keep the pose of the moment of the hit; the simulation above keeps ticking.
             if (!_hitStop.IsActive)
             {
                 RenderViews(alpha);
                 RenderHealthBars(alpha);
-                _telegraphs.Render(_simulation.State, _telegraphTicks, alpha, LocalTeam, _viewCatalog.TelegraphAllyZone,
+                _telegraphs.Render(_driver.State, _telegraphTicks, alpha, LocalTeam, _viewCatalog.TelegraphAllyZone,
                     _viewCatalog.TelegraphAllyFill, EnemyTelegraphZone, EnemyTelegraphFill);
-                _areaViews.Render(_simulation.State, alpha, LocalTeam, _viewCatalog.ProjectileHeight, _viewCatalog.TelegraphAllyZone,
+                _areaViews.Render(_driver.State, alpha, LocalTeam, _viewCatalog.ProjectileHeight, _viewCatalog.TelegraphAllyZone,
                     EnemyTelegraphZone);
             }
             _hitStop.Update(dt);
@@ -219,24 +206,21 @@ namespace Arena.Gameplay.Match
                 _cameraController.Follow(LocalWorldPosition(alpha), Time.deltaTime);
             }
             _damageNumbers.Update(cam, dt);
-            ref FighterState me = ref _simulation.State.Fighters[LocalSlot];
+            ref FighterState me = ref _driver.State.Fighters[LocalSlot];
             _ownHealth.Update(cam, LocalWorldPosition(alpha), me.Health, _viewState.Alive(LocalSlot));
         }
 
         private void RunTick()
         {
-            int count = _simulation.FighterCount;
-            for (int i = 0; i < count; i++) _inputs[i] = default;
-            _bots.Update(_simulation.State, _simulation.Defs, _simulation.Events, _inputs);
-            _inputs[LocalSlot] = ApplyAimMagnet(_inputCollector.ConsumeForTick());
-            _simulation.Tick(_inputs);
-            SimEventBuffer events = _simulation.Events;
-            _feedback.Process(events, _simulation.State, Time.unscaledTime);
+            _driver.Step(_inputCollector);
+            SimEventBuffer events = _driver.Events;
+            MatchState state = _driver.State;
+            _feedback.Process(events, state, Time.unscaledTime);
             for (int i = 0; i < events.Count; i++)
                 if (events[i].Type == SimEventType.TileBroken) _mapView.OnTileBroken(events[i].Value);
-            _viewState.Capture(_simulation.State);
-            _projectileViews.Capture(_simulation.State);
-            if (_logViews != null) _logViews.Capture(_simulation.State);
+            _viewState.Capture(state);
+            _projectileViews.Capture(state);
+            if (_logViews != null) _logViews.Capture(state);
         }
 
         /// <summary>
@@ -266,7 +250,7 @@ namespace Arena.Gameplay.Match
                 bool shown = IsShown(i);
                 view.SetVisible(shown);
                 if (!shown) continue;
-                ref FighterState f = ref _simulation.State.Fighters[i];
+                ref FighterState f = ref _driver.State.Fighters[i];
                 // Own team hidden in a bush: translucent body; a revealed enemy in a bush looks normal.
                 bool hiddenAlly = f.Team == LocalTeam && (f.InBush || f.Invisible) && !IsSeenByAnotherTeam(in f);
                 Material body = hiddenAlly ? _viewCatalog.FighterHidden : _viewCatalog.FighterBody;
@@ -275,7 +259,7 @@ namespace Arena.Gameplay.Match
                 view.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), WorldCoords.DirectionToWorld(_viewState.Facing(i)));
             }
 
-            ref FighterState localFighter = ref _simulation.State.Fighters[LocalSlot];
+            ref FighterState localFighter = ref _driver.State.Fighters[LocalSlot];
             _mapView.UpdateSeeThrough(_viewState.Position(LocalSlot, alpha), localFighter.Alive && localFighter.InBush);
 
             _projectileViews.Render(alpha);
@@ -287,7 +271,7 @@ namespace Arena.Gameplay.Match
                 _aimIndicator.Hide();
                 return;
             }
-            FighterDef localDef = _simulation.Defs.Fighters[_simulation.State.Fighters[LocalSlot].DefIndex];
+            FighterDef localDef = _driver.Defs.Fighters[_driver.State.Fighters[LocalSlot].DefIndex];
             AbilityDef aimed = _inputCollector.AimIsUlt && localDef.Ult != null ? localDef.Ult : localDef.Attack;
             float range = _inputCollector.AimIsUlt ? UltRange(localDef) : localDef.AttackRange;
             // A lob lands at aim length × range (D-006): the line ends at the landing point.
@@ -299,7 +283,7 @@ namespace Arena.Gameplay.Match
         {
             UnityEngine.Camera cam = _cameraController != null ? _cameraController.Camera : null;
             Quaternion facing = cam != null ? cam.transform.rotation : Quaternion.identity;
-            int maxCharges = _simulation.Defs.Rules.MaxCharges;
+            int maxCharges = _driver.Defs.Rules.MaxCharges;
             int count = _viewState.Count;
             for (int i = 0; i < count; i++)
             {
@@ -308,7 +292,7 @@ namespace Arena.Gameplay.Match
                 bool shown = IsShown(i);
                 bar.SetVisible(shown);
                 if (!shown) continue;
-                ref FighterState f = ref _simulation.State.Fighters[i];
+                ref FighterState f = ref _driver.State.Fighters[i];
                 bar.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), facing);
                 bar.SetValues(f.MaxHealth > 0 ? (float)f.Health / f.MaxHealth : 0f, f.Charges, maxCharges);
             }
@@ -337,38 +321,15 @@ namespace Arena.Gameplay.Match
             NumberStringCache.Prewarm(maxHealth);
         }
 
-        /// <summary>Manual attack/ult aim of the local player turns to a visible enemy within a few degrees (setting, GDD §5.1).</summary>
-        private PlayerInput ApplyAimMagnet(PlayerInput input)
-        {
-            if (!_settings.AimMagnet || input.Has(InputButtons.AutoAim) || input.Aim.IsZero) return input;
-            bool attack = input.Has(InputButtons.Attack);
-            if (!attack && !input.Has(InputButtons.Ult)) return input;
-            FighterDef def = _simulation.Defs.Fighters[_simulation.State.Fighters[LocalSlot].DefIndex];
-            float range = attack ? def.AttackRange : UltRange(def);
-            input.Aim = AimMagnet.Apply(_simulation.State, LocalSlot, input.Aim, range, _feel.AimMagnetDegrees);
-            return input;
-        }
-
-        private static float UltRange(FighterDef def) => def.Ult != null && def.Ult.Range > 0f ? def.Ult.Range : def.AttackRange;
+        internal static float UltRange(FighterDef def) => def.Ult != null && def.Ult.Range > 0f ? def.Ult.Range : def.AttackRange;
 
         private Material EnemyTelegraphZone => _settings.ColorblindPalette ? _viewCatalog.TelegraphEnemyAltZone : _viewCatalog.TelegraphEnemyZone;
         private Material EnemyTelegraphFill => _settings.ColorblindPalette ? _viewCatalog.TelegraphEnemyAltFill : _viewCatalog.TelegraphEnemyFill;
 
-        private BotController CreateBots(MatchSetup setup, BotDifficulty difficulty)
-        {
-            BotDifficultyConfig difficultyConfig = _database.FindBotDifficulty(difficulty);
-            if (difficultyConfig == null) throw new InvalidOperationException("MatchRunner: no BotDifficultyConfig for " + difficulty);
-            var bots = new BotController(ConfigConverter.ToBotBehaviourDef(_database.BotBehaviour));
-            var difficultyDef = ConfigConverter.ToBotDifficultyDef(difficultyConfig);
-            for (int i = 0; i < setup.SlotCount; i++)
-                if (i != LocalSlot) bots.AddBot(i, difficultyDef, setup.Seed);
-            return bots;
-        }
-
         private Vector3 LocalWorldPosition(float alpha) => WorldCoords.ToWorld(_viewState.Position(LocalSlot, alpha));
 
         /// <summary>Alive and seen by the local team (allies always, enemies by the visibility rules, D-024).</summary>
-        private bool IsShown(int slot) => _viewState.Alive(slot) && _simulation.State.Fighters[slot].IsVisibleTo(LocalTeam);
+        private bool IsShown(int slot) => _viewState.Alive(slot) && _driver.State.Fighters[slot].IsVisibleTo(LocalTeam);
 
         /// <summary>True if some team other than the fighter's own sees it (it is not actually hidden).</summary>
         private static bool IsSeenByAnotherTeam(in FighterState f) => (f.VisibleToTeams & ~(1u << f.Team)) != 0;
@@ -378,7 +339,7 @@ namespace Arena.Gameplay.Match
             for (int i = 0; i < setup.SlotCount; i++)
             {
                 FighterView view = Instantiate(_viewCatalog.FighterViewPrefab, transform);
-                view.name = "Fighter" + i + "_" + _simulation.Defs.Fighters[setup.Slots[i].FighterIndex].Id;
+                view.name = "Fighter" + i + "_" + _driver.Defs.Fighters[setup.Slots[i].FighterIndex].Id;
                 bool ally = setup.Slots[i].Team == LocalTeam;
                 bool alt = _settings.ColorblindPalette;
                 view.SetTeamMaterial(ally ? _viewCatalog.TeamAlly : alt ? _viewCatalog.TeamEnemyAlt : _viewCatalog.TeamEnemy);

@@ -1028,3 +1028,15 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   `Server/deploy/arena-server.service`; в образе `LanDiscovery` выключается `sed`. Образ и SDK-сборка не проверены (нет Docker
   и SDK, Q-012). `Tools/server-run.ps1` (сборка + запуск в консоли), `Tools/server-publish.ps1` (`Builds/Server/`: dll,
   runtimeconfig, пакет, `config/`, `deploy/`, `run.cmd`/`run.sh`). Причина: Server-Spec §5.3, §5.5, §5.6, §10, §11.2, S3.9.
+- D-100 (S3.10a) — **Драйвер матча: устройство.** (1) `Arena.Gameplay.Match.IMatchDriver` — по §12.2: `Defs`, `Setup`, `State`,
+  `Events`, `LocalSlot`, `LocalTeam`, `IsEnded`, `Alpha`, `int BeginFrame(float dt)`, `void Step(LocalInputCollector)`. `BeginFrame`
+  сам вычитает тики из аккумулятора (тот же порядок вычитаний с плавающей точкой, что в прежнем цикле) и сбрасывает отставание;
+  очистку ввода на итогах делает раннер (ввод — его), до `BeginFrame`. (2) `OfflineMatchDriver` — обычный C#-класс (без сцены,
+  тестируется в EditMode): Defs и состав из данных, боты, примагничивание прицела; `State`/`Events` — те же объекты, что у
+  `MatchSimulation` (PlayMode-тесты меняют `runner.Simulation.State` напрямую). (3) `MatchRunner.SetDriver(driver)` — до `Start`
+  (для `OnlineMatchBootstrap`, S3.10b), иначе офлайн-драйвер; `Simulation`/`Bots` — у офлайн-драйвера, онлайн `null`; `LocalSlot`/
+  `LocalTeam` — из драйвера. (4) `ScoreBarView.Apply`, `ResultsScreen.Show`, `AbilityHudInfo.From` — `(MatchDefs, MatchState, …)`,
+  `AcornsModeView` читает `runner.Driver`; счёт желудей на панели — `ModeState.Team0Acorns/Team1Acorns` (офлайн обновляется
+  каждым тиком режима, совпадает с прежней суммой по бойцам с точностью до кадра после ручной правки состояния). Проверка:
+  `OfflineMatchDriverTests` — полный матч с переменным шагом кадра (в том числе рывки больше 4 тиков) и скриптовым вводом:
+  тиков за кадр, `Alpha` и `StateHash` совпадают с дословной копией прежнего цикла на каждом кадре. Причина: Server-Spec §12.2, S3.10a.

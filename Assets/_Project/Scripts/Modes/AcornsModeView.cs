@@ -1,3 +1,4 @@
+using Arena.Core.Defs;
 using Arena.Core.Modes;
 using Arena.Core.Sim;
 using Arena.Core.State;
@@ -39,21 +40,21 @@ namespace Arena.Modes
         private void LateUpdate()
         {
             if (_runner == null) return;
-            MatchSimulation sim = _runner.Simulation;
-            if (sim == null) return;
+            IMatchDriver driver = _runner.Driver;
+            if (driver == null) return;
             if (!_built)
             {
-                if (sim.Defs.Mode != ModeKind.Acorns)
+                if (driver.Defs.Mode != ModeKind.Acorns)
                 {
                     enabled = false;
                     return;
                 }
-                Build(sim);
+                Build(driver.Defs);
             }
-            Render(sim.State);
+            Render(driver.State);
         }
 
-        private void Build(MatchSimulation sim)
+        private void Build(MatchDefs defs)
         {
             _catalog = _runner.ViewCatalog;
             _normalPool = CreatePool(_catalog.AcornPrefab, "Acorn");
@@ -62,7 +63,7 @@ namespace Arena.Modes
             {
                 GameObject hollow = Instantiate(_catalog.HollowPrefab, transform);
                 hollow.name = "Hollow";
-                hollow.transform.position = WorldCoords.ToWorld(sim.Defs.Map.Hollow.Center);
+                hollow.transform.position = WorldCoords.ToWorld(defs.Map.Hollow.Center);
                 _hollow = hollow.transform;
             }
             _built = true;

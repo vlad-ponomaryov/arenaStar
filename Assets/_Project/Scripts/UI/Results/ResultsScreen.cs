@@ -65,11 +65,11 @@ namespace Arena.UI.Results
             return new ResultsScreen(style, canvas, content, onAgain, onMenu);
         }
 
-        public void Show(MatchSimulation sim, int localTeam)
+        public void Show(MatchDefs defs, MatchState state, int localTeam)
         {
-            if (sim == null) throw new ArgumentNullException(nameof(sim));
+            if (defs == null) throw new ArgumentNullException(nameof(defs));
+            if (state == null) throw new ArgumentNullException(nameof(state));
             UiFactory.DestroyChildren(_content);
-            MatchState state = sim.State;
             UiStyle s = _style;
 
             int winner = state.Mode.WinnerTeam;
@@ -79,9 +79,9 @@ namespace Arena.UI.Results
             TitleText = UiFactory.CreateLayoutText("Title", _content, s, s.TitleFontSize, new Vector2(wide, s.TitleFontSize * 1.5f),
                 Loc.Get(titleKey));
 
-            MvpSlot = sim.Defs.Acorns != null ? MvpCalculator.Compute(state, sim.Defs.Acorns) : -1;
-            BuildMvp(sim, localTeam);
-            BuildTable(sim, localTeam);
+            MvpSlot = defs.Acorns != null ? MvpCalculator.Compute(state, defs.Acorns) : -1;
+            BuildMvp(defs, state, localTeam);
+            BuildTable(defs, state, localTeam);
 
             RectTransform buttons = UiFactory.CreateRow("Buttons", _content, s.ResultsSpacing, s.ResultsButtonSize.y);
             AgainButton = UiFactory.CreateButton("AgainButton", buttons, s, s.ResultsButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
@@ -102,14 +102,14 @@ namespace Arena.UI.Results
             _capsule.anchoredPosition = new Vector2(0f, jump);
         }
 
-        private void BuildMvp(MatchSimulation sim, int localTeam)
+        private void BuildMvp(MatchDefs defs, MatchState state, int localTeam)
         {
             UiStyle s = _style;
             float height = s.MvpCapsuleSize.y + s.MvpBounceHeight;
             RectTransform row = UiFactory.CreateRow("Mvp", _content, s.ResultsSpacing, height);
             if (MvpSlot < 0) return;
 
-            ref FighterState f = ref sim.State.Fighters[MvpSlot];
+            ref FighterState f = ref state.Fighters[MvpSlot];
             RectTransform holder = UiFactory.CreateRect("CapsuleHolder", row);
             UiFactory.SetPreferredSize(holder.gameObject, new Vector2(s.MvpCapsuleSize.x, height));
             Image capsule = UiFactory.CreateImage("Capsule", holder, f.Team == localTeam ? s.AllyColor : EnemyColor(s), s.CircleSprite);
@@ -123,18 +123,17 @@ namespace Arena.UI.Results
             RectTransform names = UiFactory.CreateColumn("MvpText", row, 0f);
             Vector2 lineSize = new Vector2(s.ResultsNameColumnWidth, s.MvpCapsuleSize.y * 0.5f);
             UiFactory.CreateLayoutText("MvpLabel", names, s, s.MediumFontSize, lineSize, Loc.Get(LocKeys.ResultsMvp), TextAnchor.LowerLeft);
-            FighterDef def = sim.Defs.Fighters[f.DefIndex];
+            FighterDef def = defs.Fighters[f.DefIndex];
             MvpNameText = UiFactory.CreateLayoutText("MvpName", names, s, s.TitleFontSize, lineSize, Loc.Get(def.NameKey), TextAnchor.UpperLeft);
         }
 
-        private void BuildTable(MatchSimulation sim, int localTeam)
+        private void BuildTable(MatchDefs defs, MatchState state, int localTeam)
         {
             UiStyle s = _style;
             RectTransform table = UiFactory.CreateColumn("Stats", _content, 0f);
             AddRow(table, "Header", Loc.Get(LocKeys.MenuFighter), Loc.Get(LocKeys.ResultsKills), Loc.Get(LocKeys.ResultsDeaths),
                 Loc.Get(LocKeys.ResultsDamage), Loc.Get(LocKeys.ResultsAcorns), s.TextColor, s.SmallFontSize);
 
-            MatchState state = sim.State;
             int count = state.Globals.FighterCount;
             // Own team first, then the enemies.
             for (int pass = 0; pass < 2; pass++)
@@ -145,7 +144,7 @@ namespace Arena.UI.Results
                     if (!f.Active || (f.Team == localTeam) != (pass == 0)) continue;
                     ref FighterStats st = ref state.Stats[i];
                     Color color = f.Team == localTeam ? s.AllyColor : EnemyColor(s);
-                    AddRow(table, "Row" + i, Loc.Get(sim.Defs.Fighters[f.DefIndex].NameKey), NumberStringCache.Get(st.Kills),
+                    AddRow(table, "Row" + i, Loc.Get(defs.Fighters[f.DefIndex].NameKey), NumberStringCache.Get(st.Kills),
                         NumberStringCache.Get(st.Deaths), st.DamageDealt.ToString(), NumberStringCache.Get(st.AcornsCollected), color,
                         s.MediumFontSize);
                 }

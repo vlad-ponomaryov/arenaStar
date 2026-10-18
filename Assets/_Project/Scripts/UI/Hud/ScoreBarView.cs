@@ -1,3 +1,4 @@
+using Arena.Core.Defs;
 using Arena.Core.Modes;
 using Arena.Core.Sim;
 using Arena.Core.State;
@@ -89,19 +90,19 @@ namespace Arena.UI.Hud
         }
 
         /// <summary>Updates the texts from the state (call every frame).</summary>
-        public void Apply(MatchSimulation sim, int localTeam)
+        public void Apply(MatchDefs defs, MatchState state, int localTeam)
         {
-            if (sim == null) return;
-            bool acorns = sim.Defs.Mode == ModeKind.Acorns;
+            if (defs == null || state == null) return;
+            bool acorns = defs.Mode == ModeKind.Acorns;
             if (_root.activeSelf != acorns) _root.SetActive(acorns);
             if (!acorns) return;
 
-            MatchState state = sim.State;
-            int enemyTeam = localTeam == 0 ? 1 : 0;
-            SetNumber(_ally, ref _shownAlly, AcornsRules.TeamAcorns(state, localTeam));
-            SetNumber(_enemy, ref _shownEnemy, AcornsRules.TeamAcorns(state, enemyTeam));
+            // Team score from the mode state (S3.5): a hidden carrier is not in an online presentation state.
+            ref ModeState mode = ref state.Mode;
+            SetNumber(_ally, ref _shownAlly, localTeam == 0 ? mode.Team0Acorns : mode.Team1Acorns);
+            SetNumber(_enemy, ref _shownEnemy, localTeam == 0 ? mode.Team1Acorns : mode.Team0Acorns);
 
-            int seconds = CeilSeconds(AcornsRules.TimeLeftTicks(state, sim.Defs));
+            int seconds = CeilSeconds(AcornsRules.TimeLeftTicks(state, defs));
             if (seconds != _shownSeconds)
             {
                 _shownSeconds = seconds;
