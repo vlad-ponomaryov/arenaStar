@@ -11,7 +11,8 @@
         "Arena.UI",
         "Arena.Net",
         "Arena.Net.Server",
-        "Arena.Online"
+        "Arena.Online",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

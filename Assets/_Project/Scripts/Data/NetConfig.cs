@@ -55,6 +55,13 @@ namespace Arena.Data
         [Tooltip("A saved rejoin ticket is valid this long (GDD §8.3).")]
         [Min(0f)] public float ReconnectWindowSeconds;
 
+        [Header("Match HUD (S3.11, §12.4)")]
+        [Tooltip("Seconds without a packet from the server before the HUD shows 'connection lost'.")]
+        [Min(0.1f)] public float ConnectionLostSeconds;
+
+        [Tooltip("The ping badge of the match HUD refreshes this often, seconds.")]
+        [Min(0.05f)] public float HudPingRefreshSeconds;
+
         [Header("Dev tools — Development builds only (§12.3)")]
         [Tooltip("Network overlay in the match HUD: RTT, jitter, loss, input margin, interpolation delay, corrections.")]
         public bool DevOverlay;

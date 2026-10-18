@@ -56,6 +56,32 @@ namespace Arena.Data.Localization
         public const string DevNetMs = "dev.net_ms";
         public const string DevNetSimulator = "dev.net_simulator";
 
+        // S3.11 (Server-Spec §12.4): the online menu, matchmaking, connection overlay, ping badge, online results.
+        public const string MenuLastBeast = "menu.last_beast";
+        public const string MenuTraining = "menu.training";
+        public const string MenuRegion = "menu.region";
+        public const string ModeLastBeast = "mode.last_beast";
+
+        /// <summary>Format: {0} found of {1} needed.</summary>
+        public const string QueueFound = "queue.found";
+
+        public const string NetReconnecting = "net.reconnecting";
+        public const string NetBotPlaying = "net.bot_playing";
+
+        /// <summary>"Back to the match" (the button comes with S3.12).</summary>
+        public const string NetRejoin = "net.rejoin";
+
+        public const string ErrorUdpBlocked = "error.udp_blocked";
+
+        /// <summary>"The match is already over" (rejoin, S3.12).</summary>
+        public const string ErrorMatchOver = "error.match_over";
+
+        /// <summary>The unit after a ping number.</summary>
+        public const string HudPingMs = "hud.ping_ms";
+
+        /// <summary>Format: {0} — the place (Last Beast).</summary>
+        public const string ResultsPlace = "results.place";
+
         public static readonly string[] All =
         {
             MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, LanguageEn, LanguageRu, ModeAcorns,
@@ -64,7 +90,8 @@ namespace Arena.Data.Localization
             SettingsAimMagnet, SettingsColorblind, SettingsBatterySaver, SettingsOn, SettingsOff, SettingsClose, HudFps,
             MenuPlayOnline, RegionLan, QueueSearching, QueueCancel, NetConnecting, ErrorServerUnreachable, ErrorUpdateRequired,
             ErrorMaintenance, DevNetRtt, DevNetJitter, DevNetLoss, DevNetMargin, DevNetInterp, DevNetCorrections, DevNetMs,
-            DevNetSimulator
+            DevNetSimulator, MenuLastBeast, MenuTraining, MenuRegion, ModeLastBeast, QueueFound, NetReconnecting, NetBotPlaying,
+            NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace
         };
     }
 }

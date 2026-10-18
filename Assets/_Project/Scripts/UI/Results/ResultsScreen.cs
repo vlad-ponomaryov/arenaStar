@@ -18,6 +18,8 @@ namespace Arena.UI.Results
     /// capsule in the team colour), statistics of every fighter (takedowns, knockouts, damage, acorns) and the buttons
     /// "Play again" (same launch parameters) and "Menu", both visible at once. Built hidden at match start on its own
     /// canvas above the HUD; <see cref="Show"/> fills it once when the match ends.
+    /// S3.11: in a mode with places (Last Beast) the title is the own place ("3rd place") — from the state at the end, or the
+    /// personal result of <c>Eliminated</c> shown before the end (<paramref name="place"/> of <see cref="Show"/>).
     /// </summary>
     public sealed class ResultsScreen
     {
@@ -65,7 +67,12 @@ namespace Arena.UI.Results
             return new ResultsScreen(style, canvas, content, onAgain, onMenu);
         }
 
-        public void Show(MatchDefs defs, MatchState state, int localTeam)
+        /// <summary>Place shown in the title (0 — a team result).</summary>
+        public int ShownPlace { get; private set; }
+
+        /// <param name="localSlot">Own slot (the place of a mode with places), −1 — unknown.</param>
+        /// <param name="place">The own place when known before the end (<c>Eliminated</c>); 0 — take it from the state.</param>
+        public void Show(MatchDefs defs, MatchState state, int localTeam, int localSlot = -1, int place = 0)
         {
             if (defs == null) throw new ArgumentNullException(nameof(defs));
             if (state == null) throw new ArgumentNullException(nameof(state));
@@ -75,9 +82,14 @@ namespace Arena.UI.Results
             int winner = state.Mode.WinnerTeam;
             string titleKey = winner == AcornsRules.NoTeam ? LocKeys.ResultsDraw
                 : winner == localTeam ? LocKeys.ResultsVictory : LocKeys.ResultsDefeat;
+            if (place <= 0 && defs.Mode == ModeKind.LastBeast && localSlot >= 0 && localSlot < state.Globals.FighterCount)
+                place = state.Stats[localSlot].Place;
+            ShownPlace = place > 0 ? place : 0;
+            // Once per match: the formatted place string is not a per-frame allocation.
+            string title = ShownPlace > 0 ? string.Format(Loc.Get(LocKeys.ResultsPlace), NumberStringCache.Get(ShownPlace)) : Loc.Get(titleKey);
             float wide = s.ResultsNameColumnWidth + s.ResultsStatColumnWidth * 4f;
             TitleText = UiFactory.CreateLayoutText("Title", _content, s, s.TitleFontSize, new Vector2(wide, s.TitleFontSize * 1.5f),
-                Loc.Get(titleKey));
+                title);
 
             MvpSlot = defs.Acorns != null ? MvpCalculator.Compute(state, defs.Acorns) : -1;
             BuildMvp(defs, state, localTeam);

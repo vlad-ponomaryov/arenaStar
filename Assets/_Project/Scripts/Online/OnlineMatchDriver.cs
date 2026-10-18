@@ -60,6 +60,35 @@ namespace Arena.Online
         /// <summary>Display ticks built so far (tests, the dev overlay).</summary>
         public long BuiltTicks { get; private set; }
 
+        /// <summary>The connection to the match server is up (the HUD's connection overlay, S3.11).</summary>
+        public bool IsConnected => _session.Client.IsConnected;
+
+        /// <summary>The newest snapshot says the server's bot plays the own fighter (§7: "your fighter is played by a bot").</summary>
+        public bool IsBotControlled => _session.Latest != null && _session.Latest.Header.BotControlled;
+
+        /// <summary>Smoothed round trip of the connection, ms (the HUD ping badge); 0 — no sample yet, at least 1 after one.</summary>
+        public int RttMs
+        {
+            get
+            {
+                long rtt = _session.Client.RttMicros;
+                if (rtt <= 0L) return 0;
+                int ms = (int)((rtt + MicrosPerMs / 2) / MicrosPerMs);
+                return ms < 1 ? 1 : ms;
+            }
+        }
+
+        /// <summary>Microseconds since the last packet from the server at <paramref name="nowMicros"/>.</summary>
+        public long SilenceMicros(long nowMicros) => nowMicros - _session.Client.Transport.Connection.LastReceiveMicros;
+
+        /// <summary>Last Beast: the own fighter is out (<c>Eliminated</c> came) — the personal result can be shown before the end.</summary>
+        public bool IsEliminated => _session.HasEliminated && _session.Eliminated.Slot == LocalSlot;
+
+        /// <summary>Place of the own fighter from <c>Eliminated</c> (0 — not eliminated).</summary>
+        public int EliminatedPlace => IsEliminated ? _session.Eliminated.Result.Place : 0;
+
+        private const long MicrosPerMs = 1000L;
+
         public int BeginFrame(float deltaTime)
         {
             _frameMicros = _clock();

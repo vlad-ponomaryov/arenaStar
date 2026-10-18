@@ -3,6 +3,8 @@ using Arena.Bots;
 using Arena.Core.Modes;
 using Arena.Data;
 using Arena.Data.Localization;
+using Arena.Gameplay.Feel;
+using Arena.Net.Client;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Settings;
 using Arena.Online;
@@ -20,9 +22,11 @@ namespace Arena.UI.Menu
     /// <see cref="Loc"/>), "Play" → <see cref="SceneFlow.PlayMatch"/>. The choice survives the trip to the match and back
     /// (taken from <see cref="SceneFlow.Current"/>). Switching the language rebuilds the screen. All texts go through keys.
     /// "Settings" opens the <see cref="SettingsPanel"/> (S2.10).
-    /// "Play online" (S3.10b, the minimal entry before the S3.11 screens): an Acorns 3x3 search with the chosen fighter through
-    /// <see cref="OnlineSession"/> (default region - LAN); while searching the button cancels, a status line shows the phase or
-    /// the error; <c>MatchStart</c> loads the match.
+    /// S3.11 (Server-Spec §12.4): "Play 3 vs 3" (Acorns online), "Last Beast" (online) and "Training" (offline with bots — the
+    /// bot difficulty applies to it) with the chosen fighter; the region button (cycles the regions of <c>NetConfig</c>) with its
+    /// ping coloured like the badge (the session pings the regions when the menu opens and picks the best one); a status line
+    /// shows the error of a failed search. While searching, the <see cref="MatchmakingScreen"/> covers the menu; "Cancel" stops
+    /// the search; <c>MatchStart</c> loads the match. After "Play again" of an online match the menu opens with the search running.
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
     {
@@ -37,20 +41,33 @@ namespace Arena.UI.Menu
         private Button[] _fighterButtons = new Button[0];
         private Button[] _botButtons = new Button[0];
         private Button[] _languageButtons = new Button[0];
+        private GameObject _matchmakingCanvas;
 
         public GameDatabase Database => _database;
         public UiStyle Style => _style;
         public string SelectedFighterId => _fighterId;
         public BotDifficulty SelectedBots => _bots;
-        public Button PlayButton { get; private set; }
+        /// <summary>"Training": an offline match with bots.</summary>
+        public Button TrainingButton { get; private set; }
         public Button SettingsButton { get; private set; }
-        public Button PlayOnlineButton { get; private set; }
-        public Text OnlineStatus { get; private set; }
 
-        private Text _onlineLabel;
+        /// <summary>"Play 3 vs 3": an online Acorns search.</summary>
+        public Button PlayOnlineButton { get; private set; }
+
+        /// <summary>"Last Beast": an online free-for-all search.</summary>
+        public Button LastBeastButton { get; private set; }
+
+        public Button RegionButton { get; private set; }
+        public Text RegionPing { get; private set; }
+        public Text OnlineStatus { get; private set; }
+        public MatchmakingScreen Matchmaking { get; private set; }
+
+        private Text _regionLabel;
         private OnlinePhase _shownPhase;
         private OnlineFailure _shownFailure;
         private bool _shownAvailable;
+        private int _shownRegion = -1;
+        private int _shownPingMs = int.MinValue;
         private bool _onlineDirty = true;
         public SettingsPanel Settings { get; private set; }
 
@@ -69,6 +86,8 @@ namespace Arena.UI.Menu
             _bots = last != null ? last.Bots : BotChoices[0];
             Loc.LanguageChanged += Rebuild;
             Rebuild();
+            OnlineSession online = OnlineSession.Instance;
+            if (online != null && online.IsAvailable && !online.IsBusy) online.RefreshPings();
         }
 
         private void OnDestroy()
@@ -88,7 +107,7 @@ namespace Arena.UI.Menu
             RefreshSelection();
         }
 
-        /// <summary>Starts a match with the current choice and a new seed.</summary>
+        /// <summary>"Training": an offline match with the current choice and a new seed.</summary>
         public void Play()
         {
             OnlineSession online = OnlineSession.Instance;
@@ -96,21 +115,38 @@ namespace Arena.UI.Menu
             SceneFlow.PlayMatch(new MatchLaunchParams(_fighterId, _bots, Environment.TickCount));
         }
 
-        /// <summary>Starts an online search with the current fighter, or cancels the running one.</summary>
-        public void PlayOnline()
+        /// <summary>Starts an online search of <paramref name="mode"/> with the current fighter in the selected region.</summary>
+        public void PlayOnline(ModeKind mode)
         {
             OnlineSession online = OnlineSession.Instance;
             _onlineDirty = true;
-            if (online == null || !online.IsAvailable) return;
-            if (online.IsBusy) online.Cancel();
-            else online.Search(ModeKind.Acorns, _fighterId, _bots);
+            if (online == null || !online.IsAvailable || online.IsBusy) return;
+            online.Search(mode, _fighterId, _bots);
+        }
+
+        /// <summary>Stops the running search (the matchmaking screen's "Cancel").</summary>
+        public void CancelSearch()
+        {
+            OnlineSession online = OnlineSession.Instance;
+            _onlineDirty = true;
+            if (online != null && online.IsBusy) online.Cancel();
+        }
+
+        /// <summary>Picks the next region of the config (the region button).</summary>
+        public void NextRegion()
+        {
+            OnlineSession online = OnlineSession.Instance;
+            if (online == null || online.RegionCount == 0) return;
+            online.SelectRegion((online.RegionIndex + 1) % online.RegionCount);
         }
 
         private void Update()
         {
             if (OnlineStatus == null) return;
             OnlineSession online = OnlineSession.Instance;
+            Matchmaking.Tick(online);
             bool available = online != null && online.IsAvailable;
+            RefreshRegion(online, available);
             OnlinePhase phase = online != null ? online.Phase : OnlinePhase.Idle;
             OnlineFailure failure = online != null ? online.Failure : OnlineFailure.None;
             if (!_onlineDirty && available == _shownAvailable && phase == _shownPhase && failure == _shownFailure) return;
@@ -118,30 +154,36 @@ namespace Arena.UI.Menu
             _shownAvailable = available;
             _shownPhase = phase;
             _shownFailure = failure;
-            bool busy = online != null && online.IsBusy;
-            _onlineLabel.text = Loc.Get(busy ? LocKeys.QueueCancel : LocKeys.MenuPlayOnline);
-            OnlineStatus.text = available ? Loc.Get(StatusKey(phase, failure)) : Loc.Get(LocKeys.ErrorServerUnreachable);
+            PlayOnlineButton.interactable = available;
+            LastBeastButton.interactable = available;
+            RegionButton.interactable = available;
+            string key = !available ? LocKeys.ErrorServerUnreachable : phase == OnlinePhase.Failed ? FailureKey(failure) : null;
+            OnlineStatus.text = key != null ? Loc.Get(key) : string.Empty;
         }
 
-        private static string StatusKey(OnlinePhase phase, OnlineFailure failure)
+        private void RefreshRegion(OnlineSession online, bool available)
         {
-            switch (phase)
+            int region = available ? online.RegionIndex : -1;
+            int ping = available ? online.SelectedPingMs : -1;
+            if (region == _shownRegion && ping == _shownPingMs) return;
+            _shownRegion = region;
+            _shownPingMs = ping;
+            NetRegionConfig r = available ? online.SelectedRegion : null;
+            _regionLabel.text = r != null ? Loc.Get(r.NameKey) : "-";
+            // On a change only (a few times per menu visit), not a per-frame allocation.
+            RegionPing.text = ping >= 0 ? NumberStringCache.Get(ping) + " " + Loc.Get(LocKeys.HudPingMs) : "-";
+            RegionPing.color = _style.Ping(available ? online.SelectedPingQuality : PingQuality.Unknown);
+        }
+
+        /// <summary>Error text of a failed search (§12.4).</summary>
+        public static string FailureKey(OnlineFailure failure)
+        {
+            switch (failure)
             {
-                case OnlinePhase.Locating:
-                case OnlinePhase.Connecting:
-                    return LocKeys.NetConnecting;
-                case OnlinePhase.Searching:
-                case OnlinePhase.Starting:
-                    return LocKeys.QueueSearching;
-                case OnlinePhase.Failed:
-                    switch (failure)
-                    {
-                        case OnlineFailure.UpdateRequired: return LocKeys.ErrorUpdateRequired;
-                        case OnlineFailure.Maintenance: return LocKeys.ErrorMaintenance;
-                        default: return LocKeys.ErrorServerUnreachable;
-                    }
-                default:
-                    return LocKeys.RegionLan;
+                case OnlineFailure.UpdateRequired: return LocKeys.ErrorUpdateRequired;
+                case OnlineFailure.Maintenance: return LocKeys.ErrorMaintenance;
+                case OnlineFailure.UdpBlocked: return LocKeys.ErrorUdpBlocked;
+                default: return LocKeys.ErrorServerUnreachable;
             }
         }
 
@@ -162,13 +204,11 @@ namespace Arena.UI.Menu
         {
             if (_canvas != null) Destroy(_canvas.gameObject);
             if (Settings != null) Destroy(Settings.gameObject);
+            if (_matchmakingCanvas != null) Destroy(_matchmakingCanvas);
             UiStyle s = _style;
             _canvas = UiFactory.CreateCanvas("MenuCanvas", transform, s, 0);
             RectTransform column = UiFactory.CreateColumn("Column", _canvas.transform, s.MenuRowSpacing);
             UiFactory.Stretch(column);
-
-            UiFactory.CreateLayoutText("Mode", column, s, s.TitleFontSize, new Vector2(s.MenuButtonSize.x * 4f, s.MenuButtonSize.y),
-                Loc.Get(LocKeys.ModeAcorns));
 
             int fighters = _database.Fighters.Count;
             _fighterButtons = new Button[fighters];
@@ -200,15 +240,27 @@ namespace Arena.UI.Menu
             };
 
             RectTransform playRow = UiFactory.CreateRow("PlayRow", column, s.MenuItemSpacing, s.PlayButtonSize.y);
-            PlayButton = UiFactory.CreateButton("PlayButton", playRow, s, s.PlayButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
-                Loc.Get(LocKeys.MenuPlay), Play, out _);
-            PlayOnlineButton = UiFactory.CreateButton("PlayOnlineButton", playRow, s, s.PlayButtonSize, s.ButtonColor, s.MediumFontSize,
-                Loc.Get(LocKeys.MenuPlayOnline), PlayOnline, out _onlineLabel);
-            OnlineStatus = UiFactory.CreateLayoutText("OnlineStatus", playRow, s, s.SmallFontSize, s.PlayButtonSize, "", TextAnchor.MiddleLeft);
+            PlayOnlineButton = UiFactory.CreateButton("PlayOnlineButton", playRow, s, s.PlayButtonSize, s.PrimaryButtonColor,
+                s.LargeFontSize, Loc.Get(LocKeys.MenuPlayOnline), () => PlayOnline(ModeKind.Acorns), out _);
+            LastBeastButton = UiFactory.CreateButton("LastBeastButton", playRow, s, s.PlayButtonSize, s.ButtonColor, s.LargeFontSize,
+                Loc.Get(LocKeys.MenuLastBeast), () => PlayOnline(ModeKind.LastBeast), out _);
+            TrainingButton = UiFactory.CreateButton("TrainingButton", playRow, s, s.PlayButtonSize, s.ButtonColor, s.LargeFontSize,
+                Loc.Get(LocKeys.MenuTraining), Play, out _);
+
+            RectTransform regionRow = CreateLabeledRow(column, LocKeys.MenuRegion);
+            RegionButton = UiFactory.CreateButton("RegionButton", regionRow, s, new Vector2(s.MenuButtonSize.x * 2f, s.MenuButtonSize.y),
+                s.ButtonColor, s.MediumFontSize, string.Empty, NextRegion, out _regionLabel);
+            RegionPing = UiFactory.CreateLayoutText("RegionPing", regionRow, s, s.MediumFontSize, s.MenuButtonSize, "-");
+            OnlineStatus = UiFactory.CreateLayoutText("OnlineStatus", column, s, s.SmallFontSize,
+                new Vector2(s.PlayButtonSize.x * 3f, s.MenuButtonSize.y * 0.5f), string.Empty);
+            _shownRegion = -1;
+            _shownPingMs = int.MinValue;
             _onlineDirty = true;
             SettingsButton = UiFactory.CreateButton("SettingsButton", column, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
                 Loc.Get(LocKeys.MenuSettings), OpenSettings, out _);
             Settings = SettingsPanel.Create(transform, s, _database.Feel, PlayerSettingsStore.SharedFor(_database.Feel), null);
+            Matchmaking = MatchmakingScreen.Build(transform, s, CancelSearch);
+            _matchmakingCanvas = Matchmaking.Canvas.gameObject;
 
             Text version = UiFactory.CreateText("Version", _canvas.transform, s, s.SmallFontSize, TextAnchor.LowerLeft,
                 Loc.Get(LocKeys.MenuVersion) + " " + Application.version);

@@ -352,6 +352,19 @@ namespace Arena.Editor.Art
             s.ResultsStatColumnWidth = 210f;
             s.ResultsSpacing = 24f;
             s.ResultsButtonSize = new Vector2(400f, 120f);
+
+            // Online (S3.11, PROTO sizes at 1920×1080 — check on the phone): ping badge under the FPS counter,
+            // connection overlay below the score bar, matchmaking backdrop over the menu.
+            s.PingGoodColor = new Color(0.35f, 0.9f, 0.4f, 1f);
+            s.PingFairColor = new Color(1f, 0.85f, 0.25f, 1f);
+            s.PingPoorColor = new Color(1f, 0.35f, 0.3f, 1f);
+            s.PingUnknownColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+            s.PingMargin = new Vector2(24f, 8f);
+            s.PingBoxSize = new Vector2(220f, 44f);
+            s.OverlayPanelColor = new Color(0f, 0f, 0f, 0.6f);
+            s.OverlayBoxSize = new Vector2(1100f, 90f);
+            s.OverlayTopMargin = 200f;
+            s.MatchmakingBackdropColor = new Color(0.05f, 0.06f, 0.09f, 0.94f);
             EditorUtility.SetDirty(s);
         }
 

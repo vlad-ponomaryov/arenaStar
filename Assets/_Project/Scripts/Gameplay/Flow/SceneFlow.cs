@@ -18,7 +18,7 @@ namespace Arena.Gameplay.Flow
         }
 
         /// <summary>"Play again": the same parameters (fighter, bots, seed). An online match cannot be replayed by reloading the
-        /// scene — it goes back to the menu (S3.10b; S3.11 queues again instead).</summary>
+        /// scene — it goes back to the menu (the match HUD queues again through the online session first, S3.11).</summary>
         public static void Restart()
         {
             if (Current != null && Current.Online)

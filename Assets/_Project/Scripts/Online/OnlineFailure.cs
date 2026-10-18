@@ -16,5 +16,8 @@ namespace Arena.Online
 
         /// <summary>The server refused the queue (bad mode or fighter) or the session (full, rate limit, broken content).</summary>
         Rejected = 4,
+
+        /// <summary>A remote region never answered the handshake: the network likely drops UDP (S3.11, §12.4).</summary>
+        UdpBlocked = 5,
     }
 }

@@ -1,5 +1,6 @@
 using Arena.Core.Math;
 using Arena.Data;
+using Arena.Data.Conversion;
 using Arena.Data.Localization;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Settings;
@@ -23,6 +24,9 @@ namespace Arena.UI.Hud
     /// S2.10: the layout follows the "mirrored" setting, the charged ult stick pulses (<see cref="FeelConfig"/>), an FPS counter
     /// sits in the top-left corner; the aim line knows whether the ult stick is held (its range).
     /// S3.10b: online in a Development build — the dev network overlay (<see cref="NetOverlayView"/>, <c>NetConfig.DevOverlay</c>).
+    /// S3.11: online — the ping badge (<see cref="PingIndicator"/>) and the connection banner (<see cref="ConnectionOverlay"/>);
+    /// the results show the own place in Last Beast, also early, when the own fighter is out (<c>Eliminated</c>); "Play again"
+    /// queues again (<see cref="OnlineSession.SearchAgain"/>) and goes to the menu, which shows the matchmaking screen.
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class MatchHud : MonoBehaviour
@@ -38,6 +42,9 @@ namespace Arena.UI.Hud
         private FeelConfig _feel;
         private NetOverlayView _netOverlay;
         private bool _netOverlayChecked;
+        private OnlineMatchDriver _online;
+        private PingIndicator _ping;
+        private ConnectionOverlay _connection;
 
         public MatchRunner Runner => _runner;
         public UiStyle Style => _style;
@@ -48,6 +55,12 @@ namespace Arena.UI.Hud
 
         /// <summary>Dev network overlay of an online match in a Development build, or null.</summary>
         public NetOverlayView NetOverlay => _netOverlay;
+
+        /// <summary>Ping badge of an online match, or null.</summary>
+        public PingIndicator Ping => _ping;
+
+        /// <summary>Connection banner of an online match, or null.</summary>
+        public ConnectionOverlay Connection => _connection;
 
         private void Start()
         {
@@ -62,7 +75,7 @@ namespace Arena.UI.Hud
             _controls = MatchHudBuilder.Build(transform, _style, PlayerSettingsStore.SharedFor(_feel).Current.MirroredLayout);
             _abilityView = new AbilityHudView(_controls, _style);
             _scoreBar = ScoreBarView.Build(_controls.Canvas.transform, _style);
-            _results = ResultsScreen.Build(transform, _style, SceneFlow.Restart, SceneFlow.ToMenu);
+            _results = ResultsScreen.Build(transform, _style, PlayAgain, SceneFlow.ToMenu);
             if (_feel != null) _fps = new FpsCounter(_controls.Canvas.transform, _style, _feel.FpsUpdateSeconds);
         }
 
@@ -71,15 +84,19 @@ namespace Arena.UI.Hud
             if (_controls == null) return;
             _fps?.Tick(Time.unscaledDeltaTime);
             IMatchDriver driver = _runner.Driver;
-            if (driver != null && !_netOverlayChecked) CreateNetOverlay(driver);
+            if (driver != null && !_netOverlayChecked) CreateOnlineWidgets(driver);
             _netOverlay?.Tick(Time.unscaledDeltaTime);
+            _ping?.Tick(Time.unscaledDeltaTime);
+            _connection?.Tick();
             if (driver != null) _scoreBar.Apply(driver.Defs, driver.State, _runner.LocalTeam);
-            if (_runner.IsMatchEnded)
+            bool eliminated = _online != null && _online.IsEliminated;
+            if (_runner.IsMatchEnded || eliminated)
             {
                 if (!_results.IsShown)
                 {
                     SetControlsVisible(false);
-                    _results.Show(driver.Defs, driver.State, _runner.LocalTeam);
+                    _results.Show(driver.Defs, driver.State, _runner.LocalTeam, _runner.LocalSlot,
+                        eliminated ? _online.EliminatedPlace : 0);
                 }
                 _results.Tick();
                 return;
@@ -110,14 +127,30 @@ namespace Arena.UI.Hud
             if (_controls.TrickButton.ConsumePress()) input.PressTrick();
         }
 
-        /// <summary>The runner gets its driver after this Start: the overlay is made on the first frame with a driver.</summary>
-        private void CreateNetOverlay(IMatchDriver driver)
+        /// <summary>The runner gets its driver after this Start: the online widgets are made on the first frame with a driver.</summary>
+        private void CreateOnlineWidgets(IMatchDriver driver)
         {
             _netOverlayChecked = true;
-            var online = driver as OnlineMatchDriver;
+            _online = driver as OnlineMatchDriver;
             var net = _runner.Database != null ? _runner.Database.Net : null;
-            if (online == null || net == null || !net.DevOverlay || !Debug.isDebugBuild) return;
-            _netOverlay = NetOverlayView.Build(_controls.Canvas.transform, _style, online, net.DevOverlayRefreshSeconds);
+            if (_online == null || net == null) return;
+            Transform canvas = _controls.Canvas.transform;
+            _ping = PingIndicator.Build(canvas, _style, _online, NetConfigConverter.ToLobbySettings(net), net.HudPingRefreshSeconds);
+            _connection = ConnectionOverlay.Build(canvas, _style, _online, net.ConnectionLostSeconds, net.ReconnectWindowSeconds);
+            if (net.DevOverlay && Debug.isDebugBuild)
+                _netOverlay = NetOverlayView.Build(canvas, _style, _online, net.DevOverlayRefreshSeconds);
+        }
+
+        /// <summary>"Play again": offline — the same match again; online — back into the queue (the menu shows the search).</summary>
+        private void PlayAgain()
+        {
+            OnlineSession session = OnlineSession.Instance;
+            if (_online != null && session != null && session.SearchAgain())
+            {
+                SceneFlow.ToMenu();
+                return;
+            }
+            SceneFlow.Restart();
         }
 
         private void SetControlsVisible(bool visible)

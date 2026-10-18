@@ -92,3 +92,13 @@ MonoBehaviour:
   ResultsStatColumnWidth: 210
   ResultsSpacing: 24
   ResultsButtonSize: {x: 400, y: 120}
+  PingGoodColor: {r: 0.35, g: 0.9, b: 0.4, a: 1}
+  PingFairColor: {r: 1, g: 0.85, b: 0.25, a: 1}
+  PingPoorColor: {r: 1, g: 0.35, b: 0.3, a: 1}
+  PingUnknownColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}
+  PingMargin: {x: 24, y: 8}
+  PingBoxSize: {x: 220, y: 44}
+  OverlayPanelColor: {r: 0, g: 0, b: 0, a: 0.6}
+  OverlayBoxSize: {x: 1100, y: 90}
+  OverlayTopMargin: 200
+  MatchmakingBackdropColor: {r: 0.05, g: 0.06, b: 0.09, a: 0.94}

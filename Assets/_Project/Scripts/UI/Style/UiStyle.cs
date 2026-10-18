@@ -1,3 +1,4 @@
+using Arena.Net.Client;
 using Arena.UI.Controls;
 using UnityEngine;
 
@@ -135,6 +136,36 @@ namespace Arena.UI.Style
         public Vector2 ResultsButtonSize;
 
         /// <summary>Enemy colour of the chosen palette (D-029).</summary>
+        [Header("Online (S3.11): ping badge, connection overlay, matchmaking screen")]
+        [Tooltip("Ping badge colours (GDD §8.2): green below PingGoodMs, yellow below PingFairMs, red from it; grey — unknown.")]
+        public Color PingGoodColor;
+        public Color PingFairColor;
+        public Color PingPoorColor;
+        public Color PingUnknownColor;
+
+        [Tooltip("Ping badge of the match HUD: offset below the FPS counter (top-left) and size.")]
+        public Vector2 PingMargin;
+        public Vector2 PingBoxSize;
+
+        [Tooltip("Connection overlay of the match HUD (\"connection lost\", \"a bot is playing\"): panel colour and size, from the top.")]
+        public Color OverlayPanelColor;
+        public Vector2 OverlayBoxSize;
+        public float OverlayTopMargin;
+
+        [Tooltip("Matchmaking screen over the menu.")]
+        public Color MatchmakingBackdropColor;
+
         public Color Enemy(bool colorblind) => colorblind ? EnemyColorAlt : EnemyColor;
+
+        public Color Ping(PingQuality quality)
+        {
+            switch (quality)
+            {
+                case PingQuality.Good: return PingGoodColor;
+                case PingQuality.Fair: return PingFairColor;
+                case PingQuality.Poor: return PingPoorColor;
+                default: return PingUnknownColor;
+            }
+        }
     }
 }

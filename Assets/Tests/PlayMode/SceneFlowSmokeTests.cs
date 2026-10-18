@@ -32,14 +32,14 @@ namespace Arena.Tests.PlayMode
 
             MenuScreen menu = Object.FindFirstObjectByType<MenuScreen>();
             Assert.IsNotNull(menu, "MenuScreen in the Menu scene");
-            Assert.IsNotNull(menu.PlayButton, "menu built");
+            Assert.IsNotNull(menu.TrainingButton, "menu built");
             Assert.IsNotNull(menu.SettingsButton, "settings button (S2.10)");
             menu.SettingsButton.onClick.Invoke();
             Assert.IsTrue(menu.Settings.IsShown, "settings panel opens");
             menu.Settings.CloseButton.onClick.Invoke();
             Assert.IsFalse(menu.Settings.IsShown, "settings panel closes");
             menu.SelectFighter("bruno");
-            menu.PlayButton.onClick.Invoke();
+            menu.TrainingButton.onClick.Invoke();
 
             MatchRunner runner = null;
             yield return WaitFor(() => (runner = FindStartedRunner()) != null, "match started from the menu");
@@ -67,7 +67,7 @@ namespace Arena.Tests.PlayMode
             yield return EndMatchWithLocalVictory(runner, hud);
             hud.Results.MenuButton.onClick.Invoke();
             yield return WaitFor(() => SceneManager.GetActiveScene().name == SceneNames.Menu
-                && (menu = Object.FindFirstObjectByType<MenuScreen>()) != null && menu.PlayButton != null, "back in the menu");
+                && (menu = Object.FindFirstObjectByType<MenuScreen>()) != null && menu.TrainingButton != null, "back in the menu");
             Assert.AreEqual("bruno", menu.SelectedFighterId, "choice kept");
         }
 

@@ -28,6 +28,9 @@ namespace Arena.Online
     /// and closes the connection (the next search connects again). Polls the network first in every frame
     /// (<c>DefaultExecutionOrder</c> before the HUD and the runner: snapshots of this frame count for this frame's ticks).
     /// Dev tools of Development builds: the delay/loss simulator on the socket (<see cref="LagSimulatorSocket"/>).
+    /// S3.11: the region choice of the menu (pinged by <see cref="RegionPingService"/>; the best one is chosen until the player
+    /// picks one), the search clock of the matchmaking screen and "Play again" after an online match (<see cref="SearchAgain"/>:
+    /// leaves the ended match, closes its connection and queues again with the same mode and fighter on a new connection).
     /// </summary>
     [DefaultExecutionOrder(-1000)]
     public sealed class OnlineSession : MonoBehaviour
@@ -60,6 +63,14 @@ namespace Arena.Online
         private string _fighterId;
         private BotDifficulty _bots;
         private bool _rejoinSaved;
+        private bool _hasLastSearch;
+        private bool _regionRemote;
+        private long _searchStartedMicros;
+
+        private RegionPingService _pings;
+        private int _regionIndex;
+        private bool _regionChosen;
+        private int _pingRunsSeen;
 
         /// <summary>The session of the running game, or null (no Boot scene: the Match scene opened directly, offline).</summary>
         public static OnlineSession Instance { get; private set; }
@@ -86,6 +97,41 @@ namespace Arena.Online
         /// <summary>Searching, connecting or locating (the menu shows "Searching…" and offers "Cancel").</summary>
         public bool IsBusy => Phase == OnlinePhase.Locating || Phase == OnlinePhase.Connecting || Phase == OnlinePhase.Searching
             || Phase == OnlinePhase.Starting;
+
+        /// <summary>Region pings of the menu, or null (online play is off).</summary>
+        public RegionPingService Pings => _pings;
+
+        /// <summary>Number of regions in the config.</summary>
+        public int RegionCount => _config != null && _config.Regions != null ? _config.Regions.Count : 0;
+
+        /// <summary>The region the next search goes to (the best by ping until the player picks one).</summary>
+        public int RegionIndex => _regionIndex;
+
+        /// <summary>The region of <see cref="RegionIndex"/>, or null.</summary>
+        public NetRegionConfig SelectedRegion => _regionIndex < RegionCount ? _config.Regions[_regionIndex] : null;
+
+        /// <summary>Median ping of the selected region from the last menu ping, ms (-1 - unknown).</summary>
+        public int SelectedPingMs => _pings != null && _regionIndex < _pings.Count ? _pings.PingMs(_regionIndex) : -1;
+
+        public PingQuality SelectedPingQuality => _pings != null && _regionIndex < _pings.Count ? _pings.Quality(_regionIndex)
+            : PingQuality.Unknown;
+
+        /// <summary>Mode of the current or last search.</summary>
+        public ModeKind SearchMode => _mode;
+
+        /// <summary>A search was made in this run of the game (<see cref="SearchAgain"/> can repeat it).</summary>
+        public bool HasLastSearch => _hasLastSearch;
+
+        /// <summary>Seconds since the current search started (the matchmaking clock before the server sends a status).</summary>
+        public int SearchSeconds => IsBusy ? (int)((NetClock.NowMicros() - _searchStartedMicros) / MicrosPerSecond) : 0;
+
+        /// <summary>
+        /// Every search goes to this server instead of the region (PlayMode tests: a server in the process on 127.0.0.1). Never
+        /// set by the game: the addresses are fixed in the build (§6.3).
+        /// </summary>
+        public IPEndPoint ServerOverride { get; set; }
+
+        private const long MicrosPerSecond = 1000000L;
 
         /// <summary>Sets the database before <c>Awake</c> runs the init (a session created from code — tests).</summary>
         public void SetDatabase(GameDatabase database) => _database = database;
@@ -138,6 +184,11 @@ namespace Arena.Online
             }
             _transport = TransportSettings.CreateDefault();
             _rejoin = new RejoinStore(new PlayerPrefsKeyValueStore(), _config.ReconnectWindowSeconds);
+            _pings = _config.Regions != null && _config.Regions.Count > 0
+                ? new RegionPingService(_config.Regions, _lobbySettings, _contentHash, _random, () => new UdpProbeSocket())
+                : null;
+            _regionIndex = 0;
+            _regionChosen = false;
             IsAvailable = true;
             UnityNetLog.Info("content " + ContentPackHeader.FormatHash(_contentHash) + ", protocol " + NetProtocol.Version);
         }
@@ -151,17 +202,38 @@ namespace Arena.Online
             return -1;
         }
 
-        /// <summary>Starts a search of <paramref name="mode"/> in the default (first) region of the config.</summary>
+        /// <summary>Pings the regions again (the menu calls it when shown; ignored while a ping runs or online is off).</summary>
+        public void RefreshPings()
+        {
+            if (_pings != null) _pings.Start(NetClock.NowMicros());
+        }
+
+        /// <summary>The player picks the region of the next search (the menu's region button).</summary>
+        public void SelectRegion(int index)
+        {
+            if (index < 0 || index >= RegionCount) return;
+            _regionIndex = index;
+            _regionChosen = true;
+        }
+
+        /// <summary>Starts a search of <paramref name="mode"/> in the selected region (<see cref="RegionIndex"/>).</summary>
         public void Search(ModeKind mode, string fighterId, BotDifficulty menuBots)
         {
             if (!BeginSearch(mode, fighterId, menuBots)) return;
-            if (_config.Regions == null || _config.Regions.Count == 0 || _config.Regions[0] == null)
+            if (ServerOverride != null)
+            {
+                _regionRemote = false;
+                ConnectTo(ServerOverride);
+                return;
+            }
+            NetRegionConfig region = SelectedRegion;
+            if (region == null)
             {
                 Fail(OnlineFailure.ServerUnreachable, "no regions in NetConfig");
                 return;
             }
-            NetRegionConfig region = _config.Regions[0];
             _regionPort = region.Port;
+            _regionRemote = !region.IsLan;
             Phase = OnlinePhase.Locating;
             if (region.IsLan)
             {
@@ -192,7 +264,20 @@ namespace Arena.Online
         {
             if (server == null) throw new ArgumentNullException(nameof(server));
             if (!BeginSearch(mode, fighterId, menuBots)) return;
+            _regionRemote = false;
             ConnectTo(server);
+        }
+
+        /// <summary>
+        /// "Play again" after an online match (§12.3): leaves the match (its connection closes; the server room keeps the result
+        /// for its linger time) and queues again with the mode, fighter and region of the last search. False - no search was made.
+        /// </summary>
+        public bool SearchAgain()
+        {
+            if (!_hasLastSearch || !IsAvailable) return false;
+            LeaveMatch();
+            Search(_mode, _fighterId, _bots);
+            return true;
         }
 
         /// <summary>Stops the search and closes the connection.</summary>
@@ -232,6 +317,8 @@ namespace Arena.Online
             _fighterId = fighterId;
             _fighterIndex = index;
             _bots = menuBots;
+            _hasLastSearch = true;
+            _searchStartedMicros = NetClock.NowMicros();
             Failure = OnlineFailure.None;
             return true;
         }
@@ -265,6 +352,7 @@ namespace Arena.Online
         private void Update()
         {
             long now = NetClock.NowMicros();
+            if (_pings != null && _pings.IsRunning) UpdatePings(now);
             if (Phase == OnlinePhase.Locating) UpdateLocating(now);
             if (_net == null) return;
 
@@ -281,6 +369,15 @@ namespace Arena.Online
                     UpdateMatch();
                     break;
             }
+        }
+
+        private void UpdatePings(long now)
+        {
+            _pings.Update(now);
+            if (_pings.Runs == _pingRunsSeen) return;
+            _pingRunsSeen = _pings.Runs;
+            int best = _pings.BestRegion();
+            if (!_regionChosen && best >= 0) _regionIndex = best;
         }
 
         private void UpdateLocating(long now)
@@ -325,7 +422,7 @@ namespace Arena.Online
                         "queue rejected: " + _lobby.QueueRejectReason);
                     return;
                 case LobbyState.Failed:
-                    Fail(FailureOf(_lobby.ConnectRejectReason), "connection failed: " + _lobby.ConnectRejectReason + " / " +
+                    Fail(FailureOf(_lobby.ConnectRejectReason, _lobby.DisconnectReason, _regionRemote), "connection failed: " + _lobby.ConnectRejectReason + " / " +
                         _lobby.DisconnectReason);
                     return;
                 case LobbyState.Assigned:
@@ -336,7 +433,7 @@ namespace Arena.Online
             SaveRejoin();
             Phase = OnlinePhase.Starting;
             UnityNetLog.Info("match start: slot " + _match.OwnSlot + ", map " + _match.Start.MapIndex + ", " + _match.Start.Mode);
-            SceneFlow.PlayMatch(new MatchLaunchParams(_fighterId, _bots, 0, true));
+            SceneFlow.PlayMatch(new MatchLaunchParams(_fighterId, _bots, 0, true, _mode));
         }
 
         private void UpdateMatch()
@@ -363,8 +460,14 @@ namespace Arena.Online
 
         private void OnActiveSceneChanged(Scene from, Scene to)
         {
-            if (Phase != OnlinePhase.InMatch && Phase != OnlinePhase.Starting) return;
             if (to.name == SceneNames.Match) return;
+            LeaveMatch();
+        }
+
+        /// <summary>Leaves the current match (if any): <c>Leave</c>, close the connection, forget the rejoin ticket.</summary>
+        private void LeaveMatch()
+        {
+            if (Phase != OnlinePhase.InMatch && Phase != OnlinePhase.Starting) return;
             if (_match != null && !_match.HasEnded) _match.Leave();
             if (_net != null) _net.Update(NetClock.NowMicros()); // flush the Leave
             if (_rejoin != null) _rejoin.Clear();
@@ -374,8 +477,11 @@ namespace Arena.Online
             UnityNetLog.Info("left the match");
         }
 
-        private static OnlineFailure FailureOf(RejectReason reason)
+        private static OnlineFailure FailureOf(RejectReason reason, DisconnectReason disconnect, bool remote)
         {
+            // A remote server that never answered the handshake: most likely the network drops UDP (§12.4 "udp_blocked");
+            // in the LAN the server was just found, so it is simply gone.
+            if (reason == RejectReason.None && disconnect == DisconnectReason.ConnectTimeout && remote) return OnlineFailure.UdpBlocked;
             switch (reason)
             {
                 case RejectReason.VersionMismatch:

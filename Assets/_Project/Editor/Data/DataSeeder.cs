@@ -55,6 +55,10 @@ namespace Arena.Editor.Data
         private const int DevSimLatencyMs = 75;
         private const int DevSimJitterMs = 25;
         private const float DevSimLossPercent = 1f;
+        // PROTO (S3.11, D-102): the match HUD says "connection lost" after 1 s without packets (snapshots come 20-30 times
+        // a second; the transport drops the connection after 5 s), the ping badge refreshes twice a second.
+        private const float ConnectionLostSeconds = 1f;
+        private const float HudPingRefreshSeconds = 0.5f;
 
         // Bots (GDD §7): Novice ±25° / 600 ms, Easy ±15° / 450 ms, decisions every 0.2 s, retreat below 35 % health.
         private const float NoviceSpread = 25f;
@@ -214,7 +218,7 @@ namespace Arena.Editor.Data
             new[] { LocKeys.SettingsOff, "Off", "Выкл" },
             new[] { LocKeys.SettingsClose, "Close", "Закрыть" },
             new[] { LocKeys.HudFps, "FPS", "FPS" },
-            new[] { LocKeys.MenuPlayOnline, "Play online", "Играть онлайн" },
+            new[] { LocKeys.MenuPlayOnline, "Play 3 vs 3", "Играть 3 на 3" },
             new[] { LocKeys.RegionLan, "Local network", "Локальная сеть" },
             new[] { LocKeys.QueueSearching, "Searching for players…", "Ищем игроков…" },
             new[] { LocKeys.QueueCancel, "Cancel", "Отмена" },
@@ -230,6 +234,19 @@ namespace Arena.Editor.Data
             new[] { LocKeys.DevNetCorrections, "corrections", "поправки" },
             new[] { LocKeys.DevNetMs, "ms", "мс" },
             new[] { LocKeys.DevNetSimulator, "simulator", "симулятор" },
+            new[] { LocKeys.MenuLastBeast, "Last Beast", "Последний зверь" },
+            new[] { LocKeys.MenuTraining, "Training", "Тренировка" },
+            new[] { LocKeys.MenuRegion, "Region:", "Регион:" },
+            new[] { LocKeys.ModeLastBeast, "Last Beast", "Последний зверь" },
+            new[] { LocKeys.QueueFound, "Found {0} of {1}", "Найдено {0} из {1}" },
+            new[] { LocKeys.NetReconnecting, "Connection lost — reconnecting…", "Связь потеряна — переподключаемся…" },
+            new[] { LocKeys.NetBotPlaying, "A bot is playing your fighter", "Вашим бойцом управляет бот" },
+            new[] { LocKeys.NetRejoin, "Back to the match", "Вернуться в бой" },
+            new[] { LocKeys.ErrorUdpBlocked, "The network blocks the game — try another Wi-Fi or mobile data",
+                "Сеть не пропускает игру — попробуйте другую Wi-Fi или мобильный интернет" },
+            new[] { LocKeys.ErrorMatchOver, "The match is already over", "Матч уже закончился" },
+            new[] { LocKeys.HudPingMs, "ms", "мс" },
+            new[] { LocKeys.ResultsPlace, "Place {0}", "{0}-е место" },
             new[] { "fighter.pix.name", "Pix", "Пикс" },
             new[] { "fighter.bruno.name", "Bruno", "Бруно" },
             new[] { "fighter.chomp.name", "Chomp", "Чомп" },
@@ -668,6 +685,8 @@ namespace Arena.Editor.Data
             c.DiscoverTimeoutMs = l.DiscoverTimeoutMs;
 
             c.ReconnectWindowSeconds = ReconnectWindowSeconds;
+            c.ConnectionLostSeconds = ConnectionLostSeconds;
+            c.HudPingRefreshSeconds = HudPingRefreshSeconds;
             c.DevOverlay = DevOverlayOn;
             c.DevOverlayRefreshSeconds = DevOverlayRefreshSeconds;
             c.DevSimEnabled = DevSimOn;
