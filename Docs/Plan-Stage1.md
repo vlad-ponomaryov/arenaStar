@@ -147,7 +147,12 @@ IL2CPP, архитектура — ARM64; `activeInputHandler == 1`; сборк�
 
 | Критерий | Статус | Как проверено |
 | --- | --- | --- |
-| Проект Unity + git + структура папок §12.1 | — | |
-| Система конфигов (SO + сидер) | — | каркас `GameDatabase`; наполнение — S2.1 |
-| APK собирается одной командой | — | `Tools/build-android.ps1` |
-| APK запускается на телефоне | **утром, человеком** | `Tools/build-android.ps1 -Install` при подключённом телефоне |
+| Проект Unity + git + структура папок §12.1 | ok | Unity 6000.3.26f1, asmdef Core/Bots/Data/Gameplay/Modes/UI/Editor/Tests; `Tools/compile.ps1` → 0 CS; `ProjectSetupTests` |
+| Система конфигов (SO + сидер) | частично (по плану) | каркас `GameDatabase`; наполнение — S2.1 |
+| APK собирается одной командой | ok | `Tools/build-android.ps1` → `BUILD: OK Builds/Android/Arena.apk (31.7 MB, 634 s)`, IL2CPP ARM64, отладочный keystore |
+| Тесты EditMode | ok | `Tools/test.ps1` → passed 12, failed 0 (`ProjectSetupTests`, `BuildScriptTests`) |
+| CI (GameCI) | только конфигурация | `.github/workflows/android-build.yml`; не запускался — нет remote и секретов (Q-007) |
+| APK запускается на телефоне | **утром, человеком** | `Tools/build-android.ps1 -Install` при подключённом телефоне (или `adb install -r Builds/Android/Arena.apk`) |
+
+Не проверено ночью: запуск APK на устройстве (Boot → Menu → Play → Match), ориентация landscape, Vulkan/GLES3 на конкретном
+телефоне, Development-сборка (`-Development`) — собирается тем же методом, но отдельно не прогонялась.

@@ -1,4 +1,4 @@
-# Архитектурные решения
+﻿# Архитектурные решения
 
 Формат: `D-NNN — решение. Причина.` Новые решения дописывать в конец (следующий свободный номер), с шагом и датой.
 Числа, которых нет в GDD и которые выбрал агент, — с пометкой `PROTO` (раздел в конце).
@@ -184,3 +184,9 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   ставятся через `SerializedObject` по именам полей (`m_SupportsHDR` и т.д.; часть свойств URP 17 без публичного сеттера),
   отсутствие поля — исключение. Временные размеры/цвета меню — `[SerializeField]` в `MenuScreen` до `UiStyle` (S2.7).
   `Arena.Editor` и тестовая сборка ссылаются на `Unity.RenderPipelines.Universal.Runtime`. Причина: проверяемо и без YAML.
+- D-045 (S1.3, 10:05) — `BuildScript`: параметры в отдельном `BuildArgs` (один тип — один файл), `ParseArgs` — чистый метод;
+  путь вывода относительно корня проекта приводится к абсолютному, `useCustomKeystore = false` (D-034). Метод сам вызывает
+  `EditorApplication.Exit(0|1)`, исключение → `ARENA_BUILD_RESULT result=Failed`. GameCI (`.github/workflows/android-build.yml`):
+  стандартные `game-ci/unity-test-runner@v4` и `game-ci/unity-builder@v4` (D-040), тот же `buildMethod` с `-arenaOutput
+  build/Android/Arena.apk`, кэш `Library`, артефакты — результаты тестов и APK. Триггеры push/PR в `main` + ручной; без
+  remote не запускается. Причина: одна точка сборки локально и в CI.

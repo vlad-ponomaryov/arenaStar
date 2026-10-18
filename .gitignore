@@ -42,3 +42,6 @@ crashlytics-build.properties
 # Local tool output (test results, batchmode logs)
 /TestResults/
 /Tools/out/
+
+# IL2CPP/Burst temp output
+/.utmp/

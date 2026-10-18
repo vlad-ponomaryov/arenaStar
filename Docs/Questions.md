@@ -24,6 +24,8 @@
 
 **Q-007 [открыт] (план, 2026-10-18) — CI.** Workflow GameCI лежит в `.github/workflows/` (S1.3), но не запушен; нужны секреты
 `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` и удалённый репозиторий.
+S1.3: workflow создан (`.github/workflows/android-build.yml`, D-045), локально не проверялся (нужен GitHub). Для Personal-лицензии
+GameCI нужен `UNITY_LICENSE` — содержимое `UnityEntitlementLicense.xml`/.ulf (см. документацию GameCI «Activation»). Где будет репозиторий?
 
 **Q-008 [открыт] (план, 2026-10-18) — Числа PROTO.** Агенты выбирают числа, которых нет в GDD (скорости снарядов, заряд ульты и т. д.),
 и пишут их в Decisions.md → раздел PROTO. Просьба просмотреть таблицу после игры.
