@@ -148,6 +148,16 @@ namespace Arena.Editor.Art
             s.TrickButtonPosition = new Vector2(290f, 600f);
             s.TrickButtonSize = 150f;
             s.TrickButtonColor = new Color(0.35f, 0.9f, 0.55f, 0.75f);
+            s.UltNotReadyBaseColor = new Color(0.6f, 0.6f, 0.6f, 0.18f);
+            s.UltNotReadyKnobColor = new Color(0.6f, 0.6f, 0.6f, 0.4f);
+            s.UltChargeFillColor = new Color(1f, 0.85f, 0.25f, 0.55f);
+            s.UltChargeRingSize = 230f;
+            s.TrickButtonDisabledColor = new Color(0.45f, 0.5f, 0.47f, 0.35f);
+            s.TrickDotSize = 26f;
+            s.TrickDotSpacing = 36f;
+            s.TrickDotOffset = 105f;
+            s.TrickDotOnColor = new Color(0.35f, 0.95f, 0.55f, 0.95f);
+            s.TrickDotOffColor = new Color(1f, 1f, 1f, 0.15f);
             s.Gesture = new StickGestureSettings(0.2f, 0.25f, 0.25f);
             s.AllyColor = AllyColor;
             s.EnemyColor = EnemyColor;

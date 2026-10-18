@@ -43,7 +43,12 @@ namespace Arena.Data.Conversion
                 RegenDelayTicks = SimTime.SecondsToTicks(c.RegenDelaySeconds),
                 RegenFractionPerSecond = c.RegenFractionPerSecond,
                 RespawnTicks = SimTime.SecondsToTicks(c.RespawnSeconds),
-                LevelBonusPerLevel = c.LevelBonusPerLevel
+                LevelBonusPerLevel = c.LevelBonusPerLevel,
+                UltLossOnDeath = c.UltLossOnDeath,
+                TrickUses = c.TrickUses,
+                TrickCooldownTicks = SimTime.SecondsToTicks(c.TrickCooldownSeconds),
+                TrickUnlockLevel = c.TrickUnlockLevel,
+                TalentUnlockLevel = c.TalentUnlockLevel
             };
         }
 
@@ -59,10 +64,25 @@ namespace Arena.Data.Conversion
                 MoveSpeed = rules.SpeedFor(c.Speed),
                 Radius = c.Radius,
                 AttackRechargeTicks = MathUtil.Max(1, SimTime.SecondsToTicks(c.AttackRechargeSeconds)),
-                Attack = ToAbilityDef(c.Attack, c.Id + ".Attack")
+                Attack = ToAbilityDef(c.Attack, c.Id + ".Attack"),
+                Ult = ToOptionalAbilityDef(c.Ult, c.Id + ".Ult"),
+                UltChargeRequired = c.UltChargeRequired,
+                Trick = ToOptionalAbilityDef(c.Trick, c.Id + ".Trick"),
+                Talent = ToTalentDef(c.Talent)
             };
             def.Validate();
             return def;
+        }
+
+        /// <summary>Ability of an optional slot (ult, trick): null if not set or with delivery <c>None</c>.</summary>
+        public static AbilityDef ToOptionalAbilityDef(AbilityConfig c, string owner) =>
+            c == null || c.Delivery == DeliveryKind.None ? null : ToAbilityDef(c, owner);
+
+        /// <summary>Talent, or null if not set or with modifier <c>None</c>.</summary>
+        public static TalentDef ToTalentDef(TalentConfig c)
+        {
+            if (c == null || c.Modifier == TalentModifier.None) return null;
+            return new TalentDef { Condition = c.Condition, Modifier = c.Modifier, Value = c.ValuePercent, Param = c.Param };
         }
 
         public static AbilityDef ToAbilityDef(AbilityConfig c, string owner)
@@ -89,10 +109,17 @@ namespace Arena.Data.Conversion
                 Range = c.Range,
                 ProjectileSpeed = c.ProjectileSpeed,
                 ProjectileRadius = c.ProjectileRadius,
+                ProjectileCount = c.ProjectileCount,
+                SpreadDegrees = c.SpreadDegrees,
                 PierceCount = c.PierceCount,
                 ConeAngleDegrees = c.ConeAngleDegrees,
                 BurstCount = c.BurstCount,
                 BurstIntervalTicks = SimTime.SecondsToTicks(c.BurstIntervalSeconds),
+                DashDistance = c.DashDistance,
+                DashSpeed = c.DashSpeed,
+                BreaksWalls = c.BreaksWalls,
+                IgnoresWalls = c.IgnoresWalls,
+                UsesMoveDirection = c.UsesMoveDirection,
                 Effects = effects
             };
         }

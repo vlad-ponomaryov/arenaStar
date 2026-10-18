@@ -1,4 +1,5 @@
 using Arena.Core.Math;
+using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
 using Arena.Core.Sim.Systems;
 using Arena.Core.State;
@@ -34,7 +35,8 @@ namespace Arena.Tests.EditMode.Core
         {
             var defs = F.CreateDefs();
             var sim = F.CreateWith(defs, new Arena.Core.Defs.PlayerSlotSetup(0, 0, 2, new Vec2(5f, 5f)), F.Slot(0, 1, 5f, 10f));
-            EffectSystem.ApplyAbility(sim.State, defs, sim.Events, defs.Fighters[0].Attack, 0, 0, 1);
+            var ctx = new EffectContext(defs.Fighters[0].Attack, -1, 0, 0, Vec2.Zero, Vec2.Zero);
+            EffectSystem.ApplyAbility(sim.State, defs, sim.Events, in ctx, 1);
             Assert.AreEqual(F.MaxHealth - 403, sim.State.Fighters[1].Health, "380 × 1.06 = 402.8 → 403");
         }
 

@@ -21,6 +21,21 @@ namespace Arena.Core.Defs
         /// <summary>Health/damage bonus per level above 1 (0.06).</summary>
         public float LevelBonusPerLevel;
 
+        /// <summary>Fraction of the ult charge lost on defeat (0.5, GDD §5.2).</summary>
+        public float UltLossOnDeath;
+
+        /// <summary>Trick uses per match (3).</summary>
+        public int TrickUses;
+
+        /// <summary>Ticks between trick uses (5 s = 150).</summary>
+        public int TrickCooldownTicks;
+
+        /// <summary>Fighter level that opens the trick (5) unless the match unlocks everything (D-012).</summary>
+        public int TrickUnlockLevel;
+
+        /// <summary>Fighter level that opens the talent (8) unless the match unlocks everything (D-012).</summary>
+        public int TalentUnlockLevel;
+
         /// <summary>
         /// Applies the level bonus to a level-1 value: <c>round(base × (1 + bonus × (level − 1)))</c>; level below 1 counts as 1.
         /// </summary>
@@ -37,6 +52,11 @@ namespace Arena.Core.Defs
             if (RegenFractionPerSecond < 0f) throw new ArgumentException("CombatRules.RegenFractionPerSecond must be ≥ 0");
             if (RespawnTicks < 0) throw new ArgumentException("CombatRules.RespawnTicks must be ≥ 0");
             if (LevelBonusPerLevel < 0f) throw new ArgumentException("CombatRules.LevelBonusPerLevel must be ≥ 0");
+            if (UltLossOnDeath < 0f || UltLossOnDeath > 1f) throw new ArgumentException("CombatRules.UltLossOnDeath must be in [0, 1]");
+            if (TrickUses < 0) throw new ArgumentException("CombatRules.TrickUses must be ≥ 0");
+            if (TrickCooldownTicks < 0) throw new ArgumentException("CombatRules.TrickCooldownTicks must be ≥ 0");
+            if (TrickUnlockLevel < 1) throw new ArgumentException("CombatRules.TrickUnlockLevel must be ≥ 1");
+            if (TalentUnlockLevel < 1) throw new ArgumentException("CombatRules.TalentUnlockLevel must be ≥ 1");
         }
     }
 }

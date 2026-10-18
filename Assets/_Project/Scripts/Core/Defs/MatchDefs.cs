@@ -22,6 +22,10 @@ namespace Arena.Core.Defs
         /// </summary>
         public static int MakeAbilityRef(int fighterIndex, AbilitySlot slot) => fighterIndex * AbilitySlotsPerFighter + (int)slot;
 
+        /// <summary>Slot part of an ability reference (−1 or another negative reference gives <see cref="AbilitySlot.Attack"/>
+        /// — check the reference first).</summary>
+        public static AbilitySlot SlotOf(int abilityRef) => abilityRef < 0 ? AbilitySlot.Attack : (AbilitySlot)(abilityRef % AbilitySlotsPerFighter);
+
         /// <summary>Ability by reference from <see cref="MakeAbilityRef"/>, or null.</summary>
         public AbilityDef GetAbility(int abilityRef)
         {

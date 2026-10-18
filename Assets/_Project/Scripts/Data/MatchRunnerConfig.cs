@@ -26,6 +26,9 @@ namespace Arena.Data
 
         [Min(1)] public int FighterLevel;
 
+        [Tooltip("Trick and talent open regardless of level (D-012: on in the prototype).")]
+        public bool UnlockAllAbilities = true;
+
         [Header("Temporary spawns (until map spawns)")]
         [Tooltip("Distance of the spawn row from the team's own short edge of the arena, cells.")]
         [Min(0f)] public float SpawnEdgeInset;

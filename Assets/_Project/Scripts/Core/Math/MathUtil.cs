@@ -17,6 +17,9 @@ namespace Arena.Core.Math
         public const float DegToRad = MathF.PI / 180f;
         public const float RadToDeg = 180f / MathF.PI;
 
+        /// <summary>Percent → fraction (40 → 0.4): unit conversion of config percents.</summary>
+        public static float FromPercent(int percent) => percent * 0.01f;
+
         public static float Clamp(float v, float min, float max) => v < min ? min : (v > max ? max : v);
         public static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
         public static float Clamp01(float v) => Clamp(v, 0f, 1f);

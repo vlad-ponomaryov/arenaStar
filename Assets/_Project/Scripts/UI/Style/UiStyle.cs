@@ -34,6 +34,30 @@ namespace Arena.UI.Style
         public float TrickButtonSize;
         public Color TrickButtonColor;
 
+        [Header("Ability state (ult charge, trick uses)")]
+        [Tooltip("Ult stick base / knob while the ult is not charged (dim); charged = UltStick colours.")]
+        public Color UltNotReadyBaseColor;
+        public Color UltNotReadyKnobColor;
+
+        [Tooltip("Radial fill around the ult stick showing the charge.")]
+        public Color UltChargeFillColor;
+
+        [Tooltip("Diameter of the ult charge ring, canvas units.")]
+        public float UltChargeRingSize;
+
+        [Tooltip("Trick button while on cooldown, locked or out of uses.")]
+        public Color TrickButtonDisabledColor;
+
+        [Tooltip("Dots above the trick button: one per use left.")]
+        public float TrickDotSize;
+        public float TrickDotSpacing;
+
+        [Tooltip("Distance from the trick button centre up to the row of dots.")]
+        public float TrickDotOffset;
+
+        public Color TrickDotOnColor;
+        public Color TrickDotOffColor;
+
         [Tooltip("Dead zone, cancel zone, tap time of the sticks.")]
         public StickGestureSettings Gesture;
 

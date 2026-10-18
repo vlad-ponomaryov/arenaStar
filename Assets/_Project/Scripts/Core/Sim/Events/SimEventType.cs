@@ -35,6 +35,13 @@ namespace Arena.Core.Sim.Events
         ProjectileEnded = 8,
 
         /// <summary>Area applied its effects. Source = owner, Value = area slot, Position = centre.</summary>
-        AreaTriggered = 9
+        AreaTriggered = 9,
+
+        /// <summary>Ult became fully charged. Source = fighter slot, Value = charge.</summary>
+        UltReady = 10,
+
+        /// <summary>Timed effect applied or refreshed. Source = applier (or −1), Target = affected fighter,
+        /// Value = <c>EffectKind</c>, Position = target.</summary>
+        StatusApplied = 11
     }
 }

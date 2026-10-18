@@ -28,6 +28,22 @@ namespace Arena.Data
         [Tooltip("Health and damage bonus per level above 1 (0.06 = +6 %).")]
         [Min(0f)] public float LevelBonusPerLevel;
 
+        [Header("Ult, trick, talent")]
+        [Tooltip("Fraction of the ult charge lost on defeat (0.5 = half).")]
+        [Range(0f, 1f)] public float UltLossOnDeath;
+
+        [Tooltip("Trick uses per match.")]
+        [Min(0)] public int TrickUses;
+
+        [Tooltip("Seconds between trick uses.")]
+        [Min(0f)] public float TrickCooldownSeconds;
+
+        [Tooltip("Fighter level that opens the trick (unless the match unlocks all, D-012).")]
+        [Min(1)] public int TrickUnlockLevel = 1;
+
+        [Tooltip("Fighter level that opens the talent (unless the match unlocks all, D-012).")]
+        [Min(1)] public int TalentUnlockLevel = 1;
+
         [Header("Movement speed by class, cells per second")]
         [Min(0f)] public float SlowSpeed;
         [Min(0f)] public float NormalSpeed;

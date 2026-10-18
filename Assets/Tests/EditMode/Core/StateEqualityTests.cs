@@ -17,7 +17,7 @@ namespace Arena.Tests.EditMode.Core
         private static readonly Type[] StateStructs =
         {
             typeof(FighterState), typeof(MatchGlobals), typeof(DeterministicRng), typeof(Vec2), typeof(PlayerInput),
-            typeof(FighterStats), typeof(ProjectileState), typeof(AreaState)
+            typeof(FighterStats), typeof(ProjectileState), typeof(AreaState), typeof(StatusEffectState)
         };
 
         [Test]
@@ -45,6 +45,7 @@ namespace Arena.Tests.EditMode.Core
         [Test] public void FighterStats_EveryFieldInEquals() => AssertEveryFieldMatters<FighterStats>();
         [Test] public void ProjectileState_EveryFieldInEquals() => AssertEveryFieldMatters<ProjectileState>();
         [Test] public void AreaState_EveryFieldInEquals() => AssertEveryFieldMatters<AreaState>();
+        [Test] public void StatusEffectState_EveryFieldInEquals() => AssertEveryFieldMatters<StatusEffectState>();
 
         private static void AssertEveryFieldMatters<T>() where T : struct, IEquatable<T>
         {

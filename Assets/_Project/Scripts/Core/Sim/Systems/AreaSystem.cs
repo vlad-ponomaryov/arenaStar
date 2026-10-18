@@ -1,5 +1,6 @@
 using Arena.Core.Defs;
 using Arena.Core.Math;
+using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 
@@ -53,13 +54,14 @@ namespace Arena.Core.Sim.Systems
                     events.Add(new SimEvent(SimEventType.AreaTriggered, tick, a.Owner, -1, i, a.Position, Vec2.Zero));
                     if (ability != null)
                     {
+                        var ctx = new EffectContext(ability, a.AbilityRef, a.Owner, a.Team, a.Position, Vec2.Zero);
                         for (int j = 0; j < count; j++)
                         {
                             if (!EffectSystem.CanAffect(state, ability, a.Owner, a.Team, j)) continue;
                             ref FighterState t = ref state.Fighters[j];
                             float reach = a.Radius + defs.Fighters[t.DefIndex].Radius;
                             if (Vec2.SqrDistance(t.Position, a.Position) > reach * reach) continue;
-                            EffectSystem.ApplyAbility(state, defs, events, ability, a.Owner, a.Team, j);
+                            EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
                         }
                     }
                 }

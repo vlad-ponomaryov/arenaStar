@@ -16,6 +16,7 @@ namespace Arena.Core.State
         public readonly FighterStats[] Stats = new FighterStats[SimLimits.MaxFighters];
         public readonly ProjectileState[] Projectiles = new ProjectileState[SimLimits.MaxProjectiles];
         public readonly AreaState[] Areas = new AreaState[SimLimits.MaxAreas];
+        public readonly StatusEffectState[] Statuses = new StatusEffectState[SimLimits.MaxStatusEffects];
 
         public int Tick => Globals.Tick;
         public int FighterCount => Globals.FighterCount;
@@ -30,6 +31,7 @@ namespace Arena.Core.State
             Array.Copy(other.Stats, Stats, Stats.Length);
             Array.Copy(other.Projectiles, Projectiles, Projectiles.Length);
             Array.Copy(other.Areas, Areas, Areas.Length);
+            Array.Copy(other.Statuses, Statuses, Statuses.Length);
         }
 
         /// <summary>Field-by-field equality of the whole state (determinism and snapshot checks).</summary>
@@ -43,6 +45,8 @@ namespace Arena.Core.State
                 if (!Projectiles[i].Equals(other.Projectiles[i])) return false;
             for (int i = 0; i < Areas.Length; i++)
                 if (!Areas[i].Equals(other.Areas[i])) return false;
+            for (int i = 0; i < Statuses.Length; i++)
+                if (!Statuses[i].Equals(other.Statuses[i])) return false;
             return true;
         }
 
@@ -54,6 +58,7 @@ namespace Arena.Core.State
             Array.Clear(Stats, 0, Stats.Length);
             Array.Clear(Projectiles, 0, Projectiles.Length);
             Array.Clear(Areas, 0, Areas.Length);
+            Array.Clear(Statuses, 0, Statuses.Length);
         }
     }
 }

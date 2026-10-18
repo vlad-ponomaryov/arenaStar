@@ -11,6 +11,7 @@ namespace Arena.UI.Hud
     /// Scene bootstrap of the match HUD: builds the controls from <see cref="UiStyle"/> and every frame forwards the sticks
     /// into the runner's <see cref="LocalInputCollector"/> (touch channel, view space). Runs before <see cref="MatchRunner"/>
     /// so the values of this frame reach this frame's ticks. Lives in Arena.UI because UI depends on Gameplay, not back.
+    /// The ult stick works only while the ult is charged (GDD §5.1); ability state is shown by <see cref="AbilityHudView"/>.
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class MatchHud : MonoBehaviour
@@ -19,6 +20,7 @@ namespace Arena.UI.Hud
         [SerializeField] private UiStyle _style;
 
         private MatchHudControls _controls;
+        private AbilityHudView _abilityView;
 
         public MatchRunner Runner => _runner;
         public UiStyle Style => _style;
@@ -33,17 +35,21 @@ namespace Arena.UI.Hud
                 return;
             }
             _controls = MatchHudBuilder.Build(transform, _style);
+            _abilityView = new AbilityHudView(_controls, _style);
         }
 
         private void Update()
         {
             if (_controls == null) return;
             LocalInputCollector input = _runner.InputCollector;
+            AbilityHudInfo abilities = AbilityHudInfo.From(_runner.Simulation, _runner.LocalSlot);
+            if (_runner.Simulation != null) _abilityView.Apply(in abilities);
+            bool ultActive = abilities.UltCharged;
 
             input.SetMove(InputChannel.Touch, ToVec2(_controls.MoveStick.Value));
 
             Vector2 aim = _controls.AttackStick.IsHeld ? _controls.AttackStick.Aim
-                : _controls.UltStick.IsHeld ? _controls.UltStick.Aim : Vector2.zero;
+                : ultActive && _controls.UltStick.IsHeld ? _controls.UltStick.Aim : Vector2.zero;
             input.SetAim(InputChannel.Touch, ToVec2(aim));
 
             if (_controls.AttackStick.TryConsumeRelease(out StickGestureResult attack, out Vector2 attackAim))
@@ -51,7 +57,7 @@ namespace Arena.UI.Hud
                 if (attack == StickGestureResult.Tap) input.PressAttack(Vec2.Zero, true);
                 else if (attack == StickGestureResult.Manual) input.PressAttack(ToVec2(attackAim), false);
             }
-            if (_controls.UltStick.TryConsumeRelease(out StickGestureResult ult, out Vector2 ultAim))
+            if (_controls.UltStick.TryConsumeRelease(out StickGestureResult ult, out Vector2 ultAim) && ultActive)
             {
                 if (ult == StickGestureResult.Tap) input.PressUlt(Vec2.Zero, true);
                 else if (ult == StickGestureResult.Manual) input.PressUlt(ToVec2(ultAim), false);

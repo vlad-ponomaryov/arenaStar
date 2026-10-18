@@ -42,6 +42,16 @@ MonoBehaviour:
   TrickButtonPosition: {x: 290, y: 600}
   TrickButtonSize: 150
   TrickButtonColor: {r: 0.35, g: 0.9, b: 0.55, a: 0.75}
+  UltNotReadyBaseColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.18}
+  UltNotReadyKnobColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.4}
+  UltChargeFillColor: {r: 1, g: 0.85, b: 0.25, a: 0.55}
+  UltChargeRingSize: 230
+  TrickButtonDisabledColor: {r: 0.45, g: 0.5, b: 0.47, a: 0.35}
+  TrickDotSize: 26
+  TrickDotSpacing: 36
+  TrickDotOffset: 105
+  TrickDotOnColor: {r: 0.35, g: 0.95, b: 0.55, a: 0.95}
+  TrickDotOffColor: {r: 1, g: 1, b: 1, a: 0.15}
   Gesture:
     DeadZone: 0.2
     CancelRadius: 0.25

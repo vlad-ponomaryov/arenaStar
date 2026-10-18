@@ -26,8 +26,11 @@ namespace Arena.Core.State
         /// <summary>Areas not created because all <c>SimLimits.MaxAreas</c> slots were busy.</summary>
         public int DroppedAreas;
 
+        /// <summary>Status effects not applied because all <c>SimLimits.MaxStatusEffects</c> slots were busy.</summary>
+        public int DroppedStatuses;
+
         public bool Equals(MatchGlobals o) => Tick == o.Tick && FighterCount == o.FighterCount && Seed == o.Seed && Rng.Equals(o.Rng)
-            && DroppedProjectiles == o.DroppedProjectiles && DroppedAreas == o.DroppedAreas;
+            && DroppedProjectiles == o.DroppedProjectiles && DroppedAreas == o.DroppedAreas && DroppedStatuses == o.DroppedStatuses;
         public override bool Equals(object obj) => obj is MatchGlobals other && Equals(other);
         public override int GetHashCode() => (Tick * 397) ^ FighterCount ^ Rng.GetHashCode();
     }

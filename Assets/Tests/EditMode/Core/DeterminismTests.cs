@@ -33,6 +33,39 @@ namespace Arena.Tests.EditMode.Core
         }
 
         [Test]
+        public void WithAbilities_SnapshotRestoreAndReplay_GivesIdenticalState()
+        {
+            const int fighters = 6;
+            var sim = AbilityTestFactory.Create(
+                AbilityTestFactory.Slot(AbilityTestFactory.Pix, 0, 8f, 12f), AbilityTestFactory.Slot(AbilityTestFactory.Bruno, 0, 10f, 13f),
+                AbilityTestFactory.Slot(AbilityTestFactory.Pix, 0, 12f, 12f), AbilityTestFactory.Slot(AbilityTestFactory.Bruno, 1, 8f, 16f),
+                AbilityTestFactory.Slot(AbilityTestFactory.Pix, 1, 10f, 15f), AbilityTestFactory.Slot(AbilityTestFactory.Bruno, 1, 12f, 16f));
+            var inputs = TestMatchFactory.Inputs();
+            var rng = DeterministicRng.FromSeed(99);
+            for (int t = 0; t < 200; t++) RandomStep(sim, inputs, ref rng, fighters, t);
+
+            var snapshot = new MatchState();
+            snapshot.CopyFrom(sim.State);
+            var rngAtSnapshot = rng;
+            for (int t = 200; t < 500; t++) RandomStep(sim, inputs, ref rng, fighters, t);
+            var first = new MatchState();
+            first.CopyFrom(sim.State);
+
+            sim.State.CopyFrom(snapshot);
+            rng = rngAtSnapshot;
+            for (int t = 200; t < 500; t++) RandomStep(sim, inputs, ref rng, fighters, t);
+            Assert.IsTrue(first.ContentEquals(sim.State), "replay from a snapshot (statuses, dashes, ult charge) is identical");
+        }
+
+        private static void RandomStep(MatchSimulation sim, Arena.Core.Input.PlayerInput[] inputs, ref DeterministicRng rng, int fighters, int t)
+        {
+            TestMatchFactory.FillRandomInputs(ref rng, inputs, fighters);
+            if (t % 25 == 0)
+                for (int i = 0; i < fighters; i++) AbilityTestFactory.ChargeUlt(sim, i);
+            sim.Tick(inputs);
+        }
+
+        [Test]
         public void Reset_RestoresInitialState()
         {
             var sim = new MatchSimulation(TestMatchFactory.CreateDefs(), TestMatchFactory.CreateSetup(4, 8));

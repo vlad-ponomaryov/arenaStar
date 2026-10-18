@@ -23,13 +23,60 @@ MonoBehaviour:
     Range: 10
     ProjectileSpeed: 18
     ProjectileRadius: 0.15
+    ProjectileCount: 1
+    SpreadDegrees: 0
     PierceCount: 1
     ConeAngleDegrees: 0
     BurstCount: 1
     BurstIntervalSeconds: 0
+    DashDistance: 0
+    DashSpeed: 0
+    BreaksWalls: 0
+    IgnoresWalls: 0
+    UsesMoveDirection: 0
     Effects:
     - Kind: 1
       Filter: 1
       Value: 1500
       DurationSeconds: 0
       Distance: 0
+  UltChargeRequired: 0
+  Ult:
+    Delivery: 0
+    Range: 0
+    ProjectileSpeed: 0
+    ProjectileRadius: 0
+    ProjectileCount: 1
+    SpreadDegrees: 0
+    PierceCount: 0
+    ConeAngleDegrees: 0
+    BurstCount: 1
+    BurstIntervalSeconds: 0
+    DashDistance: 0
+    DashSpeed: 0
+    BreaksWalls: 0
+    IgnoresWalls: 0
+    UsesMoveDirection: 0
+    Effects: []
+  Trick:
+    Delivery: 0
+    Range: 0
+    ProjectileSpeed: 0
+    ProjectileRadius: 0
+    ProjectileCount: 1
+    SpreadDegrees: 0
+    PierceCount: 0
+    ConeAngleDegrees: 0
+    BurstCount: 1
+    BurstIntervalSeconds: 0
+    DashDistance: 0
+    DashSpeed: 0
+    BreaksWalls: 0
+    IgnoresWalls: 0
+    UsesMoveDirection: 0
+    Effects: []
+  Talent:
+    Condition: 0
+    Modifier: 0
+    ValuePercent: 0
+    Param: 0

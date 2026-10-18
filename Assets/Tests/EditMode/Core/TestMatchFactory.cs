@@ -18,6 +18,11 @@ namespace Arena.Tests.EditMode.Core
         public const float ArenaWidth = 21f;
         public const float ArenaHeight = 31f;
         public const int RespawnTicks = 90;
+        public const float UltLossOnDeath = 0.5f;
+        public const int TrickUses = 3;
+        public const int TrickCooldownTicks = 150;
+        public const int TrickUnlockLevel = 5;
+        public const int TalentUnlockLevel = 8;
 
         // Fighter 0 ("test", Pix-like): burst of straight drops.
         public const float ShooterRange = 8f;
@@ -59,7 +64,12 @@ namespace Arena.Tests.EditMode.Core
                     RegenDelayTicks = RegenDelayTicks,
                     RegenFractionPerSecond = RegenFraction,
                     RespawnTicks = RespawnTicks,
-                    LevelBonusPerLevel = 0.06f
+                    LevelBonusPerLevel = 0.06f,
+                    UltLossOnDeath = UltLossOnDeath,
+                    TrickUses = TrickUses,
+                    TrickCooldownTicks = TrickCooldownTicks,
+                    TrickUnlockLevel = TrickUnlockLevel,
+                    TalentUnlockLevel = TalentUnlockLevel
                 },
                 Fighters = new[]
                 {

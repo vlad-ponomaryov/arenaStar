@@ -14,6 +14,12 @@ namespace Arena.Core.Defs
 
         public PlayerSlotSetup[] Slots;
 
+        /// <summary>
+        /// Trick and talent are available regardless of level (D-012: true in the prototype). When false they open at
+        /// <see cref="CombatRules.TrickUnlockLevel"/> / <see cref="CombatRules.TalentUnlockLevel"/>.
+        /// </summary>
+        public bool UnlockAllAbilities = true;
+
         public int SlotCount => Slots == null ? 0 : Slots.Length;
 
         public void Validate(MatchDefs defs)

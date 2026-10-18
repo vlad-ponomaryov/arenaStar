@@ -7,7 +7,7 @@ namespace Arena.Core.Sim.Systems
     /// <summary>
     /// Respawn (GDD §5.2): a defeated fighter returns at its slot's spawn point with full health and charges once
     /// <see cref="FighterState.RespawnTick"/> is reached (<see cref="CombatRules.RespawnTicks"/> after the defeat).
-    /// Reuses <see cref="SpawnSystem.SpawnFighter"/>; statistics are kept (separate array). Modes without respawn — S2.7+.
+    /// Reuses <see cref="SpawnSystem.Respawn"/> (keeps half the ult charge and the trick budget); statistics are kept (separate array). Modes without respawn — S2.7+.
     /// </summary>
     public static class RespawnSystem
     {
@@ -19,7 +19,7 @@ namespace Arena.Core.Sim.Systems
             {
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active || f.Alive || tick < f.RespawnTick) continue;
-                SpawnSystem.SpawnFighter(state, defs, in setup.Slots[i], i, events);
+                SpawnSystem.Respawn(state, defs, setup, i, events);
             }
         }
     }

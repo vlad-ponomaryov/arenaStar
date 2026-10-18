@@ -34,6 +34,14 @@ namespace Arena.Editor.Data
         private const float NormalSpeed = 2.5f;
         private const float FastSpeed = 2.8f;
         private const float RespawnSeconds = 3f;
+        private const float UltLossOnDeath = 0.5f;
+        private const int TrickUses = 3;
+        private const float TrickCooldownSeconds = 5f;
+
+        // GDD §9.4: trick opens at level 5, talent at 8 (the prototype unlocks all, D-012).
+        private const int TrickUnlockLevel = 5;
+        private const int TalentUnlockLevel = 8;
+        private const bool UnlockAllAbilities = true;
 
         // Temporary arena = size of the Acorns map (GDD §5.4), until grid maps (S2.5).
         private static readonly Vector2 TempArenaSize = new Vector2(21f, 31f);
@@ -60,6 +68,33 @@ namespace Arena.Editor.Data
         private const float VexClawAngle = 90f;
         private const int VexClawHits = 2;
         private const float VexClawInterval = 0.15f;
+
+        // Pix full set (GDD §6): ult "Downpour" — fan of 10 drops, 8 cells, 400 each, light knockback; trick "Roll" — dash
+        // 3 cells along movement; talent "Tailwind" — +10 % speed while the ult is charged. PROTO: fan angle, knockback,
+        // roll speed, ult charge.
+        private const int PixUltCharge = 7600;      // PROTO ≈ 5 full bursts hitting (4 × 380 × 5)
+        private const int PixUltDrops = 10;
+        private const float PixUltSpread = 50f;     // PROTO
+        private const int PixUltDamage = 400;
+        private const float PixUltPush = 0.5f;      // PROTO "light knockback", cells
+        private const float PixUltPushTime = 0.1f;  // PROTO
+        private const float PixRollDistance = 3f;
+        private const float PixRollSpeed = 15f;     // PROTO: 3 cells in 0.2 s
+        private const int PixTalentSpeedPercent = 10;
+
+        // Bruno full set (GDD §6): ult "Ram" — dash 6 cells, 1000, knockback 2 cells, stun 0.5 s, breaks walls; trick
+        // "Hard Hat" — −40 % damage taken for 2 s; talent "Stubborn" — +15 % damage below 40 % health. PROTO: speeds, charge.
+        private const int BrunoUltCharge = 7200;    // PROTO ≈ 6 swings hitting (6 × 1200)
+        private const float BrunoRamDistance = 6f;
+        private const float BrunoRamSpeed = 15f;    // PROTO: 6 cells in 0.4 s
+        private const int BrunoRamDamage = 1000;
+        private const float BrunoRamPush = 2f;
+        private const float BrunoRamPushTime = 0.2f; // PROTO
+        private const float BrunoRamStun = 0.5f;
+        private const int BrunoHelmetPercent = 40;
+        private const float BrunoHelmetSeconds = 2f;
+        private const int BrunoTalentHealthPercent = 40;
+        private const int BrunoTalentDamagePercent = 15;
 
         // Camera (GDD §5.5: ~55°); the rest PROTO (D-013).
         private const float CameraPitch = 55f;
@@ -89,7 +124,7 @@ namespace Arena.Editor.Data
 
             CombatRulesConfig rules = SeedCombatRules();
 
-            var fighters = new[]
+            FighterConfig[] fighters =
             {
                 //                     id       HP    speed               radius         recharge  attack (range, damage — GDD §6)
                 SeedFighter("pix",   3400, SpeedClass.Normal, RadiusDefault, 1.4f, Projectile(8f, PixDropSpeed, PixDropRadius, 0, PixBurstCount, PixBurstInterval, 380)),
@@ -99,6 +134,9 @@ namespace Arena.Editor.Data
                 SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 2.0f, Projectile(10f, NovaConeSpeed, NovaConeRadius, NovaPierce, 1, 0f, 1500)),
                 SeedFighter("vex",   3600, SpeedClass.Fast,   RadiusDefault, 0.9f, Cone(1.8f, VexClawAngle, VexClawHits, VexClawInterval, 520))
             };
+
+            SeedPixAbilities(fighters[0]);
+            SeedBrunoAbilities(fighters[1]);
 
             GameDatabase db = LoadOrCreate<GameDatabase>(GameDatabasePath);
             db.CombatRules = rules;
@@ -122,6 +160,11 @@ namespace Arena.Editor.Data
             c.RegenFractionPerSecond = RegenFractionPerSecond;
             c.RespawnSeconds = RespawnSeconds;
             c.LevelBonusPerLevel = LevelBonusPerLevel;
+            c.UltLossOnDeath = UltLossOnDeath;
+            c.TrickUses = TrickUses;
+            c.TrickCooldownSeconds = TrickCooldownSeconds;
+            c.TrickUnlockLevel = TrickUnlockLevel;
+            c.TalentUnlockLevel = TalentUnlockLevel;
             c.SlowSpeed = SlowSpeed;
             c.NormalSpeed = NormalSpeed;
             c.FastSpeed = FastSpeed;
@@ -153,11 +196,69 @@ namespace Arena.Editor.Data
             c.SlotFighterIds.AddRange(SlotFighterIds);
             c.TeamSize = TeamSize;
             c.FighterLevel = FighterLevel;
+            c.UnlockAllAbilities = UnlockAllAbilities;
             c.SpawnEdgeInset = SpawnEdgeInset;
             c.SpawnSpacing = SpawnSpacing;
             EditorUtility.SetDirty(c);
             return c;
         }
+
+        private static void SeedPixAbilities(FighterConfig c)
+        {
+            c.UltChargeRequired = PixUltCharge;
+            c.Ult = new AbilityConfig
+            {
+                Delivery = DeliveryKind.Projectile, Range = 8f, ProjectileSpeed = PixDropSpeed, ProjectileRadius = PixDropRadius,
+                ProjectileCount = PixUltDrops, SpreadDegrees = PixUltSpread,
+                Effects = new[]
+                {
+                    Effect(EffectKind.Damage, TargetFilter.Enemy, PixUltDamage),
+                    Effect(EffectKind.Knockback, TargetFilter.Enemy, 0, PixUltPushTime, PixUltPush)
+                }
+            };
+            c.Trick = new AbilityConfig
+            {
+                Delivery = DeliveryKind.Dash, DashDistance = PixRollDistance, DashSpeed = PixRollSpeed, UsesMoveDirection = true,
+                Effects = new EffectConfig[0]
+            };
+            c.Talent = new TalentConfig
+            {
+                Condition = TalentCondition.UltCharged, Modifier = TalentModifier.MoveSpeedMul, ValuePercent = PixTalentSpeedPercent
+            };
+            EditorUtility.SetDirty(c);
+        }
+
+        private static void SeedBrunoAbilities(FighterConfig c)
+        {
+            c.UltChargeRequired = BrunoUltCharge;
+            c.Ult = new AbilityConfig
+            {
+                Delivery = DeliveryKind.Dash, Range = BrunoRamDistance, DashDistance = BrunoRamDistance, DashSpeed = BrunoRamSpeed,
+                BreaksWalls = true,
+                Effects = new[]
+                {
+                    Effect(EffectKind.Damage, TargetFilter.Enemy, BrunoRamDamage),
+                    Effect(EffectKind.Knockback, TargetFilter.Enemy, 0, BrunoRamPushTime, BrunoRamPush),
+                    Effect(EffectKind.Stun, TargetFilter.Enemy, 0, BrunoRamStun)
+                }
+            };
+            c.Trick = new AbilityConfig
+            {
+                Delivery = DeliveryKind.SelfBuff,
+                Effects = new[] { Effect(EffectKind.DamageReduction, TargetFilter.Self, BrunoHelmetPercent, BrunoHelmetSeconds) }
+            };
+            c.Talent = new TalentConfig
+            {
+                Condition = TalentCondition.HealthBelow, Param = BrunoTalentHealthPercent,
+                Modifier = TalentModifier.DamageMul, ValuePercent = BrunoTalentDamagePercent
+            };
+            EditorUtility.SetDirty(c);
+        }
+
+        private static EffectConfig Effect(EffectKind kind, TargetFilter filter, int value, float durationSeconds = 0f, float distance = 0f) =>
+            new EffectConfig { Kind = kind, Filter = filter, Value = value, DurationSeconds = durationSeconds, Distance = distance };
+
+        private static AbilityConfig None() => new AbilityConfig { Delivery = DeliveryKind.None, Effects = new EffectConfig[0] };
 
         private static AbilityConfig Projectile(float range, float speed, float radius, int pierce, int burstCount,
             float burstInterval, int damage)
@@ -192,6 +293,11 @@ namespace Arena.Editor.Data
             c.Radius = radius;
             c.AttackRechargeSeconds = attackRechargeSeconds;
             c.Attack = attack;
+            // Ult, trick and talent: set per fighter after this (Pix, Bruno); the others get theirs in S2.11–S2.12.
+            c.UltChargeRequired = 0;
+            c.Ult = None();
+            c.Trick = None();
+            c.Talent = new TalentConfig();
             EditorUtility.SetDirty(c);
             return c;
         }

@@ -7,8 +7,8 @@ namespace Arena.UI.Hud
 {
     /// <summary>
     /// Builds the match controls canvas at runtime from <see cref="UiStyle"/> (D-018): the left half of the screen is the
-    /// floating movement stick zone; on the right — the attack stick, the ult stick and the trick button.
-    /// Called once at match start.
+    /// floating movement stick zone; on the right — the attack stick, the ult stick (with a radial charge ring) and the
+    /// trick button (with dots for the uses left, <see cref="CreateTrickDots"/>). Called once at match start.
     /// </summary>
     public static class MatchHudBuilder
     {
@@ -25,8 +25,46 @@ namespace Arena.UI.Hud
             controls.MoveStick = CreateMoveStick(root, style);
             controls.AttackStick = CreateFixedStick("AttackStick", root, style, style.AttackStick);
             controls.UltStick = CreateFixedStick("UltStick", root, style, style.UltStick);
+            controls.UltChargeRing = CreateChargeRing(controls.UltStick.transform, style);
+            Transform ultBase = controls.UltStick.transform.Find("Base");
+            controls.UltBase = ultBase != null ? ultBase.GetComponent<Image>() : null;
+            Transform ultKnob = ultBase != null ? ultBase.Find("Knob") : null;
+            controls.UltKnob = ultKnob != null ? ultKnob.GetComponent<Image>() : null;
             controls.TrickButton = CreateTrickButton(root, style);
+            controls.TrickImage = controls.TrickButton.GetComponent<Image>();
+            controls.TrickDots = new Image[0];
             return controls;
+        }
+
+        /// <summary>Creates <paramref name="count"/> dots in a centred row above the trick button (replaces existing ones).</summary>
+        public static void CreateTrickDots(MatchHudControls controls, UiStyle style, int count)
+        {
+            if (controls.TrickDots != null)
+                for (int i = 0; i < controls.TrickDots.Length; i++)
+                    if (controls.TrickDots[i] != null) Object.Destroy(controls.TrickDots[i].gameObject);
+
+            controls.TrickDots = new Image[count < 0 ? 0 : count];
+            Transform parent = controls.TrickButton.transform;
+            float start = -(count - 1) * 0.5f * style.TrickDotSpacing;
+            for (int i = 0; i < controls.TrickDots.Length; i++)
+            {
+                RectTransform dot = CreateCircle("TrickDot" + i, parent, style, style.TrickDotSize, style.TrickDotOnColor);
+                dot.localPosition = new Vector3(start + i * style.TrickDotSpacing, style.TrickDotOffset, 0f);
+                controls.TrickDots[i] = dot.GetComponent<Image>();
+            }
+        }
+
+        private static Image CreateChargeRing(Transform stickZone, UiStyle style)
+        {
+            RectTransform ring = CreateCircle("ChargeRing", stickZone, style, style.UltChargeRingSize, style.UltChargeFillColor);
+            ring.SetAsFirstSibling(); // behind the base and the knob
+            Image image = ring.GetComponent<Image>();
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Radial360;
+            image.fillOrigin = (int)Image.Origin360.Top;
+            image.fillClockwise = true;
+            image.fillAmount = 0f;
+            return image;
         }
 
         private static Canvas CreateCanvas(Transform parent, UiStyle style)

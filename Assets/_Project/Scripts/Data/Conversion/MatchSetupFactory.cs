@@ -20,7 +20,10 @@ namespace Arena.Data.Conversion
             if (config.TeamSize <= 0) throw new ArgumentException("MatchRunnerConfig.TeamSize must be > 0");
 
             int count = config.SlotFighterIds.Count;
-            var setup = new MatchSetup { Seed = config.Seed, Slots = new PlayerSlotSetup[count] };
+            var setup = new MatchSetup
+            {
+                Seed = config.Seed, Slots = new PlayerSlotSetup[count], UnlockAllAbilities = config.UnlockAllAbilities
+            };
             for (int i = 0; i < count; i++)
             {
                 string id = config.SlotFighterIds[i];

@@ -15,15 +15,18 @@ namespace Arena.Core.Sim
     /// Order of systems in a tick (fixed; new systems are inserted at their documented place):
     ///   0. events cleared;
     ///   1. input: sanitize, latch buttons (PrevButtons ← Buttons ← input) for rising-edge detection;
-    ///   2. movement;
-    ///   3. attacks (aim resolution inside, then shots: projectiles spawned, cones applied at once);
-    ///   4. projectiles (move, hit, apply effects);
-    ///   5. areas (delayed zones);
-    ///      damage, healing and defeat happen inside 3–5 through DamageSystem (single point);
-    ///   6. respawn;
-    ///   7. attack charges;
-    ///   8. regeneration;
-    ///   9. Tick++.
+    ///   2. statuses: drop expired, recompute aggregates (stun, slow, damage reduction, invisibility, marks);
+    ///   3. movement (knockback &gt; stun &gt; dash &gt; input; slow and talent speed);
+    ///   4. abilities per fighter: attack (burst / press), ult, trick — aim resolution, then delivery: projectiles
+    ///      spawned, cones / self areas / self buffs applied at once, dashes started;
+    ///   5. dashes (move, hit touched fighters);
+    ///   6. projectiles (move, hit, apply effects);
+    ///   7. areas (delayed zones);
+    ///      effects, damage, healing, ult charge and defeat happen inside 4–7 (DamageSystem is the single health point);
+    ///   8. respawn;
+    ///   9. attack charges;
+    ///  10. regeneration;
+    ///  11. Tick++.
     ///
     /// No allocations per tick: the state, the event buffer and the input scratch array are allocated once here.
     /// </summary>
@@ -64,7 +67,7 @@ namespace Arena.Core.Sim
             g.Rng = DeterministicRng.FromSeed(Setup.Seed);
             g.FighterCount = Setup.SlotCount;
             for (int i = 0; i < Setup.SlotCount; i++)
-                SpawnSystem.SpawnFighter(State, Defs, in Setup.Slots[i], i, Events);
+                SpawnSystem.SpawnFighter(State, Defs, Setup, i, Events);
         }
 
         /// <param name="inputs">Input per fighter slot (index = slot); length ≥ <see cref="FighterCount"/>.</param>
@@ -76,8 +79,10 @@ namespace Arena.Core.Sim
 
             Events.Clear();
             ApplyInputs(inputs, count);
+            StatusSystem.Run(State);
             MovementSystem.Run(State, Defs, _inputs);
-            AttackSystem.Run(State, Defs, _inputs, Events);
+            AbilitySystem.Run(State, Defs, _inputs, Events);
+            DashSystem.Run(State, Defs, Events);
             ProjectileSystem.Run(State, Defs, Events);
             AreaSystem.Run(State, Defs, Events);
             RespawnSystem.Run(State, Defs, Setup, Events);

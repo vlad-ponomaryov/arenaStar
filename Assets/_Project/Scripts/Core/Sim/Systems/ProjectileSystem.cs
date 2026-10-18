@@ -1,5 +1,6 @@
 using Arena.Core.Defs;
 using Arena.Core.Math;
+using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 
@@ -63,7 +64,8 @@ namespace Arena.Core.Sim.Systems
                     p.HitMask |= 1u << hit;
                     Vec2 hitPoint = start + p.Dir * along;
                     events.Add(new SimEvent(SimEventType.ProjectileHit, tick, p.Owner, hit, i, hitPoint, p.Dir));
-                    EffectSystem.ApplyAbility(state, defs, events, ability, p.Owner, p.Team, hit);
+                    var ctx = new EffectContext(ability, p.AbilityRef, p.Owner, p.Team, hitPoint, p.Dir);
+                    EffectSystem.ApplyAbility(state, defs, events, in ctx, hit);
                     if (p.PierceLeft > 0)
                     {
                         p.PierceLeft--;

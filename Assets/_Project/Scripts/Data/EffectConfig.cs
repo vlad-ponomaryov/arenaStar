@@ -11,13 +11,13 @@ namespace Arena.Data
         public EffectKind Kind = EffectKind.Damage;
         public TargetFilter Filter = TargetFilter.Enemy;
 
-        [Tooltip("Damage/heal at level 1; percent for multipliers (S2.4).")]
+        [Tooltip("Damage/heal at level 1; percent for Slow and DamageReduction.")]
         [Min(0)] public int Value;
 
-        [Tooltip("Seconds, for timed effects (S2.4).")]
+        [Tooltip("Seconds: duration of stun/slow/reduction/invisibility/mark; push time of a knockback.")]
         [Min(0f)] public float DurationSeconds;
 
-        [Tooltip("Cells, for knockback-like effects (S2.4).")]
+        [Tooltip("Cells, for knockback.")]
         [Min(0f)] public float Distance;
     }
 }

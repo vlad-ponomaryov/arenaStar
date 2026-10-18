@@ -1,4 +1,5 @@
 using Arena.Core.Defs;
+using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 
@@ -6,29 +7,47 @@ namespace Arena.Core.Sim.Systems
 {
     /// <summary>
     /// Applies an ability's effects to one target (D-011): each effect checks its <see cref="TargetFilter"/> against the
-    /// relation source → target, then a small handler runs per <see cref="EffectKind"/>. Values are level-scaled by the
-    /// source's level (GDD §6). S2.4 adds the other kinds here (one <c>case</c> + one static handler each).
+    /// relation source → target, then a small static handler runs per <see cref="EffectKind"/> (<c>Arena.Core.Sim.Effects</c>).
+    /// A new effect kind = one enum value + one handler + one <c>case</c> here; fighters only combine kinds in data.
+    /// Effects run in the order of <see cref="AbilityDef.Effects"/>; a target defeated by an earlier effect ignores the rest.
     /// </summary>
     public static class EffectSystem
     {
-        /// <param name="source">Fighter slot that owns the ability (may be defeated already), or −1.</param>
-        /// <param name="sourceTeam">Team of the source at the time of the shot.</param>
-        public static void ApplyAbility(MatchState state, MatchDefs defs, SimEventBuffer events, AbilityDef ability,
-            int source, int sourceTeam, int target)
+        public static void ApplyAbility(MatchState state, MatchDefs defs, SimEventBuffer events, in EffectContext ctx, int target)
         {
-            TargetFilter relation = Relation(source, sourceTeam, target, state.Fighters[target].Team);
-            int level = source >= 0 ? state.Fighters[source].Level : 1;
-            EffectDef[] effects = ability.Effects;
+            TargetFilter relation = Relation(ctx.Source, ctx.SourceTeam, target, state.Fighters[target].Team);
+            EffectDef[] effects = ctx.Ability.Effects;
             for (int i = 0; i < effects.Length; i++)
             {
                 EffectDef e = effects[i];
                 if ((e.Filter & relation) == 0) continue;
-                switch (e.Kind)
-                {
-                    case EffectKind.Damage:
-                        DamageSystem.ApplyDamage(state, defs, events, source, target, defs.Rules.ScaleByLevel(e.Value, level));
-                        break;
-                }
+                if (!state.Fighters[target].Alive) return;
+                Apply(state, defs, events, in ctx, e, target);
+            }
+        }
+
+        private static void Apply(MatchState state, MatchDefs defs, SimEventBuffer events, in EffectContext ctx, EffectDef e, int target)
+        {
+            switch (e.Kind)
+            {
+                case EffectKind.Damage:
+                    DamageEffect.Apply(state, defs, events, in ctx, e, target);
+                    break;
+                case EffectKind.Heal:
+                    HealEffect.Apply(state, defs, events, in ctx, e, target);
+                    break;
+                case EffectKind.Knockback:
+                    KnockbackEffect.Apply(state, in ctx, e, target);
+                    break;
+                case EffectKind.Stun:
+                    StunEffect.Apply(state, events, in ctx, e, target);
+                    break;
+                case EffectKind.Slow:
+                case EffectKind.DamageReduction:
+                case EffectKind.Invisibility:
+                case EffectKind.Mark:
+                    StatusEffect.Apply(state, events, in ctx, e, target);
+                    break;
             }
         }
 

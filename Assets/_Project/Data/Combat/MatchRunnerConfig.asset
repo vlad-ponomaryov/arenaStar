@@ -24,5 +24,6 @@ MonoBehaviour:
   - vex
   TeamSize: 3
   FighterLevel: 1
+  UnlockAllAbilities: 1
   SpawnEdgeInset: 3
   SpawnSpacing: 4

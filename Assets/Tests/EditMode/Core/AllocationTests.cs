@@ -70,6 +70,48 @@ namespace Arena.Tests.EditMode.Core
         }
 
         [Test]
+        public void Tick_WithUltsTricksDashesAndStatuses_DoesNotAllocate()
+        {
+            var sim = AbilityTestFactory.Create(
+                AbilityTestFactory.Slot(AbilityTestFactory.Pix, 0, 8f, 12f), AbilityTestFactory.Slot(AbilityTestFactory.Bruno, 0, 10f, 13f),
+                AbilityTestFactory.Slot(AbilityTestFactory.Pix, 0, 12f, 12f), AbilityTestFactory.Slot(AbilityTestFactory.Bruno, 1, 8f, 16f),
+                AbilityTestFactory.Slot(AbilityTestFactory.Pix, 1, 10f, 15f), AbilityTestFactory.Slot(AbilityTestFactory.Bruno, 1, 12f, 16f));
+            var inputs = TestMatchFactory.Inputs();
+
+            for (int t = 0; t < AbilityWarmupTicks; t++) AbilityStep(sim, inputs, t);
+            AllocationAssert.NoGcAllocations(() =>
+            {
+                for (int t = AbilityWarmupTicks; t < AbilityWarmupTicks + CombatTicks; t++) AbilityStep(sim, inputs, t);
+            }, CombatTicks + " ticks with ults and tricks");
+
+            int deaths = 0;
+            for (int i = 0; i < Fighters; i++) deaths += sim.State.Stats[i].Deaths;
+            Assert.Greater(deaths, 0, "the measured ticks must include defeats");
+        }
+
+        private const int AbilityWarmupTicks = 120;
+
+        private static void AbilityStep(MatchSimulation sim, PlayerInput[] inputs, int t)
+        {
+            // Rotate attack / ult / trick presses (with releases in between) and keep the ults charged.
+            InputButtons buttons;
+            switch (t % 6)
+            {
+                case 0: buttons = InputButtons.Attack | InputButtons.AutoAim; break;
+                case 2: buttons = InputButtons.Ult | InputButtons.AutoAim; break;
+                case 4: buttons = InputButtons.Trick; break;
+                default: buttons = InputButtons.None; break;
+            }
+            var move = new Vec2(t % 40 < 20 ? 1f : -1f, 0f);
+            for (int i = 0; i < Fighters; i++)
+            {
+                inputs[i] = new PlayerInput(move, Vec2.Zero, buttons);
+                if (t % 30 == 1) AbilityTestFactory.ChargeUlt(sim, i);
+            }
+            sim.Tick(inputs);
+        }
+
+        [Test]
         public void SnapshotCopy_DoesNotAllocate()
         {
             var sim = new MatchSimulation(TestMatchFactory.CreateDefs(), TestMatchFactory.CreateSetup(Fighters, 4));
