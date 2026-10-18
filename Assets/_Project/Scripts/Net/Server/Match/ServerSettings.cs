@@ -56,6 +56,17 @@ namespace Arena.Net.Server.Match
         /// <summary>Record every applied input of every slot (<c>InputLog</c>, <c>ReplayVerifier</c>); tests — always.</summary>
         public bool RecordInputLog;
 
+        // ---- Lobby (§6.2, S3.8) ----
+
+        /// <summary>The oldest ticket of a queue waited this long — the match is assembled with bots in the free slots (GDD §7).</summary>
+        public float BotFillSeconds;
+
+        /// <summary>The same for players under 300 trophies (GDD §7) — used from stage 4, when trophies exist.</summary>
+        public float BotFillSecondsNewPlayers;
+
+        /// <summary>A queued client gets <c>QueueStatus</c> this often (it also keeps the NAT mapping alive).</summary>
+        public float QueueStatusIntervalSeconds;
+
         public SnapshotSettings Snapshots;
 
         public static ServerSettings CreateDefault() => new ServerSettings
@@ -75,6 +86,9 @@ namespace Arena.Net.Server.Match
             MaxCatchUpTicks = 5,
             MaxMatches = 200,
             RecordInputLog = false,
+            BotFillSeconds = 15f,
+            BotFillSecondsNewPlayers = 8f,
+            QueueStatusIntervalSeconds = 1f,
             Snapshots = SnapshotSettings.CreateDefault()
         };
 
@@ -100,6 +114,8 @@ namespace Arena.Net.Server.Match
                 throw new ArgumentException("ServerSettings: times must be ≥ 0");
             if (MaxCatchUpTicks < 1) throw new ArgumentException("ServerSettings: MaxCatchUpTicks must be ≥ 1");
             if (MaxMatches < 1) throw new ArgumentException("ServerSettings: MaxMatches must be ≥ 1");
+            if (BotFillSeconds < 0f || BotFillSecondsNewPlayers < 0f) throw new ArgumentException("ServerSettings: bot fill times must be ≥ 0");
+            if (QueueStatusIntervalSeconds <= 0f) throw new ArgumentException("ServerSettings: QueueStatusIntervalSeconds must be > 0");
             if (Snapshots == null) throw new ArgumentException("ServerSettings: Snapshots missing");
             Snapshots.Validate();
         }

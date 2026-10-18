@@ -88,5 +88,16 @@ namespace Arena.Net
 
         /// <summary>Bins of 1 ms in the client's extrapolation-duration histogram (<c>ClientNetStats</c>); the last bin holds everything above.</summary>
         public const int ExtrapolationHistogramBins = 1024;
+
+        // ---- Lobby (§6.3, S3.8) ----
+
+        /// <summary>Regions one <c>RegionPinger</c> measures at once (the list lives in <c>NetConfig</c>).</summary>
+        public const int MaxRegions = 8;
+
+        /// <summary>Pings per region at most (<c>PingSamples</c> of the client settings, §13: 5).</summary>
+        public const int MaxPingSamples = 16;
+
+        /// <summary>Servers one LAN discovery remembers; more answers are counted and dropped.</summary>
+        public const int MaxLanServers = 8;
     }
 }

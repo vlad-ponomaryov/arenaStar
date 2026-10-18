@@ -13,8 +13,8 @@ namespace Arena.Net.Server.Match
     /// .NET host (S3.9): receive every datagram (inputs into the slots' buffers, <c>ClientReady</c>, <c>Leave</c>,
     /// acknowledgements of snapshot packets) → the due steps of every room (at most <c>MaxCatchUpTicks</c>, the rest is
     /// skipped and counted) → transport timers and flushes. A player connects with the ticket of his slot
-    /// (<see cref="ConnectPurpose.Match"/> or <see cref="ConnectPurpose.Rejoin"/>); the lobby (S3.8) will hand out tickets, here
-    /// <see cref="CreateMatch"/> returns them. No allocations in <see cref="Tick"/> (rooms allocate when created).
+    /// (<see cref="ConnectPurpose.Match"/> or <see cref="ConnectPurpose.Rejoin"/>; <see cref="CreateMatch"/> returns the tickets)
+    /// or is handed over by the lobby of a <c>ServerNode</c> (<see cref="AssignConnection"/>, S3.8). No allocations in <see cref="Tick"/> (rooms allocate when created).
     /// </summary>
     public sealed class MatchHost : IServerTransportHandler
     {
@@ -22,27 +22,42 @@ namespace Arena.Net.Server.Match
         private readonly ContentBundle _bundle;
         private readonly BotDifficultyDef _botDifficulty;
         private readonly INetRandom _random;
-        private readonly ServerTransport _transport;
+        private ServerTransport _transport;
         private readonly MatchRoom[] _rooms;
         private readonly int[] _connRoom;
         private readonly int[] _connSlot;
         private readonly BitReader _reader = new BitReader();
         private readonly InputMessage _input = new InputMessage();
 
+        /// <summary>A standalone match server: owns its <see cref="ServerTransport"/> and is its handler (tests of S3.6–S3.7).</summary>
         public MatchHost(IServerDatagramSocket socket, TransportSettings transportSettings, ServerSettings settings, ContentBundle bundle,
             ulong contentHash, INetRandom random)
+            : this(settings, bundle, random, transportSettings?.MaxConnections ?? throw new ArgumentNullException(nameof(transportSettings)))
         {
-            if (transportSettings == null) throw new ArgumentNullException(nameof(transportSettings));
+            _transport = new ServerTransport(socket, transportSettings, contentHash, random, this);
+        }
+
+        /// <summary>
+        /// The match part of a <c>ServerNode</c> (S3.8): the node owns <paramref name="transport"/>, is its handler and forwards
+        /// the events of match connections here; the node calls <see cref="StepRooms"/> instead of <see cref="Tick"/>.
+        /// </summary>
+        public MatchHost(ServerTransport transport, ServerSettings settings, ContentBundle bundle, INetRandom random)
+            : this(settings, bundle, random, transport?.Settings.MaxConnections ?? throw new ArgumentNullException(nameof(transport)))
+        {
+            _transport = transport;
+        }
+
+        private MatchHost(ServerSettings settings, ContentBundle bundle, INetRandom random, int maxConnections)
+        {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _settings.Validate();
             _bundle = bundle ?? throw new ArgumentNullException(nameof(bundle));
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _botDifficulty = bundle.FindBotDifficulty(settings.FillBotDifficulty)
                 ?? throw new ArgumentException("MatchHost: no bot difficulty " + settings.FillBotDifficulty + " in the content pack");
-            _transport = new ServerTransport(socket, transportSettings, contentHash, random, this);
             _rooms = new MatchRoom[settings.MaxMatches];
-            _connRoom = new int[transportSettings.MaxConnections];
-            _connSlot = new int[transportSettings.MaxConnections];
+            _connRoom = new int[maxConnections];
+            _connSlot = new int[maxConnections];
             for (int i = 0; i < _connRoom.Length; i++) _connRoom[i] = -1;
         }
 
@@ -53,6 +68,22 @@ namespace Arena.Net.Server.Match
         public ServerMetrics Metrics { get; } = new ServerMetrics();
 
         public int RoomCapacity => _rooms.Length;
+
+        public ContentBundle Bundle => _bundle;
+
+        /// <summary>A room can be created now (fewer than <c>MaxMatches</c> are open).</summary>
+        public bool HasFreeRoom
+        {
+            get
+            {
+                for (int i = 0; i < _rooms.Length; i++)
+                    if (_rooms[i] == null) return true;
+                return false;
+            }
+        }
+
+        /// <summary>The connection is bound to a slot of a room.</summary>
+        public bool OwnsConnection(int connection) => _connRoom[connection] >= 0;
 
         /// <summary>Room by index, or null (closed rooms are removed).</summary>
         public MatchRoom GetRoom(int index) => _rooms[index];
@@ -87,10 +118,17 @@ namespace Arena.Net.Server.Match
 
         public static NetToken TokenOf(MatchRoom room, int slot) => room.GetSlot(slot).Token;
 
-        /// <summary>One pass of the game thread at <paramref name="nowMicros"/>.</summary>
+        /// <summary>One pass of the game thread at <paramref name="nowMicros"/> (standalone host).</summary>
         public void Tick(long nowMicros)
         {
             _transport.Receive(nowMicros);
+            StepRooms(nowMicros);
+            _transport.Update(nowMicros);
+        }
+
+        /// <summary>The due steps of every room (at most <c>MaxCatchUpTicks</c> each); closed rooms are removed.</summary>
+        public void StepRooms(long nowMicros)
+        {
             for (int i = 0; i < _rooms.Length; i++)
             {
                 MatchRoom room = _rooms[i];
@@ -105,7 +143,18 @@ namespace Arena.Net.Server.Match
                 for (int k = 0; k < due && room.Phase != MatchPhase.Closed; k++) room.Step(nowMicros);
                 if (room.Phase == MatchPhase.Closed) RemoveRoom(i);
             }
-            _transport.Update(nowMicros);
+        }
+
+        /// <summary>
+        /// Hands an open connection (from the lobby, §6.1) to <paramref name="slot"/> of <paramref name="room"/>: from now on its
+        /// messages go to the room, <c>MatchStart</c> follows when the room loads. No reconnect.
+        /// </summary>
+        public void AssignConnection(int connection, MatchRoom room, int slot)
+        {
+            if (room == null) throw new ArgumentNullException(nameof(room));
+            if (_rooms[room.Index] != room) throw new ArgumentException("MatchHost: the room is not open on this host");
+            if (_connRoom[connection] >= 0) throw new InvalidOperationException("MatchHost: the connection already has a slot");
+            Bind(connection, room.Index, slot);
         }
 
         private void RemoveRoom(int index)
@@ -140,7 +189,7 @@ namespace Arena.Net.Server.Match
         public RejectReason Approve(ConnectPurpose purpose, bool hasToken, in NetToken token)
         {
             RejectReason reason = RejectReason.None;
-            if (purpose == ConnectPurpose.Lobby || !hasToken) reason = RejectReason.InvalidToken; // the lobby comes in S3.8
+            if (purpose == ConnectPurpose.Lobby || !hasToken) reason = RejectReason.InvalidToken; // lobby: ServerNode
             else if (!TryFind(in token, out int room, out _)) reason = RejectReason.InvalidToken;
             else if (_rooms[room].Phase == MatchPhase.Closed) reason = RejectReason.MatchOver;
             if (reason != RejectReason.None) Metrics.RejectedConnections++;
@@ -155,6 +204,11 @@ namespace Arena.Net.Server.Match
                 _transport.Disconnect(connection, DisconnectReason.Rejected);
                 return;
             }
+            Bind(connection, room, slot);
+        }
+
+        private void Bind(int connection, int room, int slot)
+        {
             MatchRoom r = _rooms[room];
             int old = r.GetSlot(slot).Connection;
             if (old >= 0 && old != connection)

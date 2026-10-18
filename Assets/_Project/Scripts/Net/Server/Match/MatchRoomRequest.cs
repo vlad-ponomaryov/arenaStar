@@ -23,9 +23,11 @@ namespace Arena.Net.Server.Match
         /// Builds the line-up from the content pack: <paramref name="fighters"/> has one entry per slot — the fighter index a
         /// player chose, or −1 for a bot (a random fighter by <paramref name="seed"/>, no repeats within a team). Team modes
         /// fill both teams with the map's team spawns; Last Beast is free-for-all on the shared spawns
-        /// (<see cref="MatchSetupBuilder"/>). Level and the unlock flag — from the pack's policy.
+        /// (<see cref="MatchSetupBuilder"/>). Level and the unlock flag — from the pack policy. <paramref name="teamSize"/> ≤ 0 —
+        /// the spawn count of team 0 on the map (the lobby passes the size it assembled for).
         /// </summary>
-        public static MatchRoomRequest FromBundle(ContentBundle bundle, int mapIndex, ModeKind mode, int[] fighters, int seed)
+        public static MatchRoomRequest FromBundle(ContentBundle bundle, int mapIndex, ModeKind mode, int[] fighters, int seed,
+            int teamSize = 0)
         {
             if (bundle == null) throw new ArgumentNullException(nameof(bundle));
             if (fighters == null || fighters.Length == 0) throw new ArgumentException("MatchRoomRequest: no slots");
@@ -40,7 +42,8 @@ namespace Arena.Net.Server.Match
                 if (fighters[i] >= defs.Fighters.Length) throw new ArgumentException("MatchRoomRequest: fighter " + fighters[i] + " out of range");
             }
             bool ffa = mode == ModeKind.LastBeast;
-            int teamSize = ffa ? 0 : defs.Map.SpawnCount(0);
+            if (ffa) teamSize = 0;
+            else if (teamSize <= 0) teamSize = defs.Map.SpawnCount(0);
             MatchSetupBuilder.PickRandomFighters(defs, chosen, isPlayer, teamSize, seed);
             ContentMatchPolicy policy = bundle.Policy;
             MatchSetup setup = ffa

@@ -7,7 +7,10 @@ namespace Arena.Net.Client
     /// <summary>
     /// The client end of a game connection (Server-Spec §3.2, §12.3): owns the <see cref="ClientTransport"/>, connects with a
     /// purpose and ticket, and routes what arrives by the <see cref="MessageKind"/> byte — match messages and snapshots to the
-    /// attached <see cref="IMatchMessageHandler"/> (<see cref="MatchClientSession"/>); lobby messages join here in S3.8.
+    /// attached <see cref="IMatchMessageHandler"/> (<see cref="MatchClientSession"/>), lobby messages (<c>QueueStatus</c>,
+    /// <c>MatchAssigned</c>, <c>QueueRejected</c>, <c>ServerNotice</c>) to the <see cref="ILobbyMessageHandler"/>
+    /// (<see cref="LobbyClient"/>). The lobby connection becomes the match connection (§6.1): attach the match session before
+    /// <c>MatchAssigned</c> arrives (or in its handler) — <c>MatchStart</c> may come in the same packet.
     /// Polled from one thread: <see cref="Update"/> receives everything pending (handlers run inside) and runs the transport
     /// timers. No allocations after construction.
     /// </summary>
@@ -24,6 +27,9 @@ namespace Arena.Net.Client
 
         /// <summary>Receiver of match messages (set by <see cref="MatchClientSession"/>).</summary>
         public IMatchMessageHandler Match { get; set; }
+
+        /// <summary>Receiver of lobby messages (set by <see cref="LobbyClient"/>).</summary>
+        public ILobbyMessageHandler Lobby { get; set; }
 
         public bool IsConnected => Transport.IsConnected;
 
@@ -42,6 +48,10 @@ namespace Arena.Net.Client
 
         public void Connect(IDatagramSocket socket, ConnectPurpose purpose, in NetToken token, long nowMicros) =>
             Transport.Connect(socket, purpose, true, token, nowMicros);
+
+        /// <summary>Connects for the lobby: no ticket (§6.4 — the server knows only the connection).</summary>
+        public void ConnectLobby(IDatagramSocket socket, long nowMicros) =>
+            Transport.Connect(socket, ConnectPurpose.Lobby, false, default, nowMicros);
 
         public void Update(long nowMicros) => Transport.Update(nowMicros);
 
@@ -75,6 +85,11 @@ namespace Arena.Net.Client
                     _reader.Reset(buffer, offset + 1, length - 1);
                     if (!Match.OnMatchMessage(kind, _reader)) MalformedMessages++;
                     return;
+                case MessageKind.MatchAssigned:
+                case MessageKind.QueueRejected:
+                case MessageKind.ServerNotice:
+                    ToLobby(kind, buffer, offset, length);
+                    return;
                 default:
                     UnknownMessages++;
                     return;
@@ -83,6 +98,11 @@ namespace Arena.Net.Client
 
         public void OnPayload(int connection, ushort sequence, byte[] buffer, int offset, int length)
         {
+            if (length >= 1 && (MessageKind)buffer[offset] == MessageKind.QueueStatus)
+            {
+                ToLobby(MessageKind.QueueStatus, buffer, offset, length);
+                return;
+            }
             if (length < 1 || (MessageKind)buffer[offset] != MessageKind.Snapshot)
             {
                 MalformedMessages++;
@@ -97,5 +117,16 @@ namespace Arena.Net.Client
         }
 
         public void OnPacketAcked(int connection, ushort sequence) { }
+
+        private void ToLobby(MessageKind kind, byte[] buffer, int offset, int length)
+        {
+            if (Lobby == null)
+            {
+                UnknownMessages++;
+                return;
+            }
+            _reader.Reset(buffer, offset + 1, length - 1);
+            if (!Lobby.OnLobbyMessage(kind, _reader)) MalformedMessages++;
+        }
     }
 }

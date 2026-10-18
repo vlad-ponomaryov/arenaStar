@@ -6,7 +6,8 @@ namespace Arena.Net.Transport
     /// <summary>
     /// A virtual datagram network on a virtual clock for deterministic tests (Server-Spec §3.2, §11.1). Endpoints are
     /// <see cref="InMemorySocket"/>s bound to <see cref="NetAddress"/>es; each endpoint's outgoing link applies its
-    /// <see cref="NetworkConditions"/> (latency, jitter, loss with bursts, duplicates, reordering, bandwidth). The RNG is
+    /// <see cref="NetworkConditions"/> (latency, jitter, loss with bursts, duplicates, reordering, bandwidth); a datagram to
+    /// <see cref="NetAddress.IPv4Broadcast"/> reaches every other endpoint on that port (LAN discovery). The RNG is
     /// seeded, so a failing test repeats exactly. Packet storage is preallocated; sending and receiving do not allocate.
     /// Single-threaded.
     /// </summary>
@@ -110,6 +111,21 @@ namespace Arena.Net.Transport
         internal bool Send(InMemorySocket from, in NetAddress to, byte[] buffer, int offset, int length)
         {
             if (length < 0 || length > NetLimits.ReceiveBufferBytes) return false;
+            if (to.IsBroadcast)
+            {
+                // LAN broadcast (§3.2): a copy to every other endpoint on the port, each through the sender's link.
+                for (int i = 0; i < _endpointCount; i++)
+                {
+                    InMemorySocket e = _endpoints[i];
+                    if (e != from && e.Local.Port == to.Port) SendOne(from, e.Local, buffer, offset, length);
+                }
+                return true;
+            }
+            return SendOne(from, to, buffer, offset, length);
+        }
+
+        private bool SendOne(InMemorySocket from, in NetAddress to, byte[] buffer, int offset, int length)
+        {
             SentCount++;
             SentBytes += length;
             if (SendFilter != null && !SendFilter(from.Local, to, buffer, offset, length))

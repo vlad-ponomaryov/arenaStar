@@ -36,7 +36,13 @@ namespace Arena.Net.Transport
         public static NetAddress FromIPv4(byte a, byte b, byte c, byte d, ushort port) =>
             FromIPv4(((uint)a << 24) | ((uint)b << 16) | ((uint)c << 8) | d, port);
 
+        /// <summary>The IPv4 limited broadcast 255.255.255.255 on <paramref name="port"/> (LAN discovery, §3.2).</summary>
+        public static NetAddress IPv4Broadcast(ushort port) => FromIPv4(uint.MaxValue, port);
+
         public bool IsIPv4 => High == 0ul && (Low & 0xFFFFFFFF00000000ul) == IPv4MappedPrefix;
+
+        /// <summary>255.255.255.255 (any port).</summary>
+        public bool IsBroadcast => IsIPv4 && IPv4 == uint.MaxValue;
 
         public uint IPv4 => (uint)Low;
 

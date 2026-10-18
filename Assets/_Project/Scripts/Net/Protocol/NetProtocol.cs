@@ -10,8 +10,9 @@ namespace Arena.Net.Protocol
         /// <summary>Protocol "magic": ASCII "ARN1" little-endian. Packets with another id are dropped.</summary>
         public const uint Id = 0x314E5241u;
 
-        /// <summary>Wire format version (u16). Bump on any format change. 2 — match messages (<see cref="MessageKind"/>, S3.6).</summary>
-        public const ushort Version = 2;
+        /// <summary>Wire format version (u16). Bump on any format change. 2 — match messages (<see cref="MessageKind"/>, S3.6);
+        /// 3 — lobby messages (S3.8).</summary>
+        public const ushort Version = 3;
 
         /// <summary>Transport header size in bytes: kind|flags, connectionId, sequence, ack, ackBits, ackDelay (§3.2).</summary>
         public const int HeaderBytes = 18;
