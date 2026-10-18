@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using Arena.Bots;
 using UnityEngine;
 
 namespace Arena.Data
 {
     /// <summary>
-    /// Local match loop and the default (prototype) match setup: who sits in which slot (spawns come from the map).
+    /// Local match loop and the default (prototype) match setup: who sits in which slot (spawns come from the map); all slots
+    /// except <see cref="LocalSlot"/> are bots.
     /// Values are written by DataSeeder (D-010).
     /// </summary>
     [CreateAssetMenu(fileName = "MatchRunnerConfig", menuName = "Arena/Match Runner Config")]
@@ -28,5 +30,11 @@ namespace Arena.Data
 
         [Tooltip("Trick and talent open regardless of level (D-012: on in the prototype).")]
         public bool UnlockAllAbilities = true;
+
+        [Tooltip("Bot difficulty when the Match scene is opened directly (no menu choice).")]
+        public BotDifficulty DefaultBots;
+
+        [Tooltip("Bots play random fighters (match seed, no repeats within a team) instead of the slot line-up.")]
+        public bool RandomBotFighters = true;
     }
 }

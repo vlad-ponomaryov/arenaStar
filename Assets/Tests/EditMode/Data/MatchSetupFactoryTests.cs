@@ -100,6 +100,51 @@ namespace Arena.Tests.EditMode.Data
         }
 
         [Test]
+        public void RandomBots_AreSeeded_KeepTheLocalFighter_NoRepeatsWithinATeam()
+        {
+            MatchDefs defs = SixFighterDefs();
+            for (int i = 0; i < 6; i++) _config.SlotFighterIds[i] = "f" + i;
+
+            MatchSetup a = MatchSetupFactory.Create(_config, defs, "f3", 11, true);
+            MatchSetup b = MatchSetupFactory.Create(_config, defs, "f3", 11, true);
+            Assert.AreEqual(3, a.Slots[0].FighterIndex, "the local slot keeps the menu choice");
+            for (int i = 0; i < 6; i++) Assert.AreEqual(a.Slots[i].FighterIndex, b.Slots[i].FighterIndex, "same seed, same line-up");
+
+            bool differs = false;
+            for (int seed = 0; seed < 20; seed++)
+            {
+                MatchSetup s = MatchSetupFactory.Create(_config, defs, "f3", seed, true);
+                Assert.AreEqual(3, s.Slots[0].FighterIndex);
+                for (int team = 0; team < 2; team++)
+                    for (int i = team * 3; i < team * 3 + 3; i++)
+                        for (int j = i + 1; j < team * 3 + 3; j++)
+                            Assert.AreNotEqual(s.Slots[i].FighterIndex, s.Slots[j].FighterIndex, "seed " + seed + ": no repeats in team " + team);
+                for (int i = 1; i < 6; i++) differs |= s.Slots[i].FighterIndex != a.Slots[i].FighterIndex;
+            }
+            Assert.IsTrue(differs, "other seeds give other line-ups");
+
+            MatchSetup fixedLineUp = MatchSetupFactory.Create(_config, defs, "f3", 11, false);
+            Assert.AreEqual(0, fixedLineUp.Slots[3].FighterIndex, "without random bots: the config line-up (f0 swapped to slot 3)");
+        }
+
+        private static MatchDefs SixFighterDefs()
+        {
+            MatchDefs defs = TestMatchFactory.CreateDefs();
+            var fighters = new FighterDef[6];
+            for (int i = 0; i < 6; i++)
+            {
+                FighterDef src = defs.Fighters[i % 2];
+                fighters[i] = new FighterDef
+                {
+                    Id = "f" + i, NameKey = "fighter.f" + i + ".name", MaxHealth = src.MaxHealth, MoveSpeed = src.MoveSpeed,
+                    Radius = src.Radius, AttackRechargeTicks = src.AttackRechargeTicks, Attack = src.Attack
+                };
+            }
+            defs.Fighters = fighters;
+            return defs;
+        }
+
+        [Test]
         public void SeededDatabase_BuildsAPlayableDefaultMatch()
         {
             DataSeeder.SeedAll();

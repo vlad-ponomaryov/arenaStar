@@ -1,3 +1,4 @@
+using Arena.Bots;
 using Arena.Core.Defs;
 using Arena.Data;
 using Arena.Data.Localization;
@@ -28,6 +29,42 @@ namespace Arena.Editor.Data
         public const string AcornsModePath = ModesFolder + "/Acorns.asset";
         public const string LocalizationFolder = DataRoot + "/Localization";
         public const string StringsPath = LocalizationFolder + "/Strings.asset";
+        public const string BotsFolder = DataRoot + "/Bots";
+        public const string BotNovicePath = BotsFolder + "/Novice.asset";
+        public const string BotEasyPath = BotsFolder + "/Easy.asset";
+        public const string BotBehaviourPath = BotsFolder + "/Behaviour.asset";
+
+        // Bots (GDD §7): Novice ±25° / 600 ms, Easy ±15° / 450 ms, decisions every 0.2 s, retreat below 35 % health.
+        private const float NoviceSpread = 25f;
+        private const float NoviceReaction = 0.6f;
+        private const float EasySpread = 15f;
+        private const float EasyReaction = 0.45f;
+        private const float BotDecisionSeconds = 0.2f;
+        private const float BotRetreatHealth = 0.35f;
+
+        // PROTO (D-013, D-057): view radius ≈ the visible part of the map on a phone; retreat until 80 % health; the last
+        // charge only to finish or against an enemy closer than 3 cells; keep 80 % of the attack range, shoot within 95 %;
+        // ≥ 0.3 s between presses; strafe side kept 0.8 s; utility scores (retreat > attack > objective > wander, a near
+        // enemy beats the objective); A* node limit = the largest map, 64 waypoints per bot.
+        private const float BotViewRadius = 10f;
+        private const float BotRecoverHealth = 0.8f;
+        private const float BotLastChargeDistance = 3f;
+        private const float BotEngageRange = 0.8f;
+        private const float BotFireRange = 0.95f;
+        private const float BotMinShotInterval = 0.3f;
+        private const float BotStrafeSwitch = 0.8f;
+        private const float BotWaypointReach = 0.3f;
+        private const int BotWanderRadius = 4;
+        private const int BotWanderAttempts = 8;
+        private const float BotRetreatScore = 1f;
+        private const float BotAttackScore = 0.6f;
+        private const float BotAttackProximityBonus = 0.3f;
+        private const float BotObjectiveScore = 0.5f;
+        private const float BotWanderScore = 0.1f;
+        private const int BotPathNodeLimit = 2048;
+        private const int BotMaxPathLength = 64;
+        private const BotDifficulty DefaultBots = BotDifficulty.Novice;
+        private const bool RandomBotFighters = true;
 
         // Acorns mode (GDD §5.4): acorn every 6 s, golden every 60 s worth 3, 12 to hold for 12 s, 2:30 match.
         private const float AcornSpawnSeconds = 6f;
@@ -192,7 +229,8 @@ namespace Arena.Editor.Data
         private const float CameraEdgeInset = 7f;
         private const float CameraFollowSharpness = 8f;
 
-        // Match runner: technical limit + prototype setup (3×3: pix/bruno/chomp vs kora/nova/vex dummies). PROTO spawns.
+        // Match runner: technical limit + prototype setup (3×3: the local player in slot 0, bots in the others; the line-up is
+        // the fallback when bots do not pick random fighters).
         private const int MaxTicksPerFrame = 4;
         private const int MatchSeed = 1;
         private const int LocalSlot = 0;
@@ -210,6 +248,7 @@ namespace Arena.Editor.Data
             ProjectConfigurator.EnsureFolder(MapsFolder);
             ProjectConfigurator.EnsureFolder(ModesFolder);
             ProjectConfigurator.EnsureFolder(LocalizationFolder);
+            ProjectConfigurator.EnsureFolder(BotsFolder);
 
             CombatRulesConfig rules = SeedCombatRules();
 
@@ -237,6 +276,11 @@ namespace Arena.Editor.Data
             db.MatchRunner = SeedMatchRunner();
             db.AcornsMode = SeedAcornsMode();
             db.Strings = SeedStrings();
+            if (db.BotDifficulties == null) db.BotDifficulties = new System.Collections.Generic.List<BotDifficultyConfig>();
+            db.BotDifficulties.Clear();
+            db.BotDifficulties.Add(SeedBotDifficulty(BotNovicePath, BotDifficulty.Novice, NoviceSpread, NoviceReaction));
+            db.BotDifficulties.Add(SeedBotDifficulty(BotEasyPath, BotDifficulty.Easy, EasySpread, EasyReaction));
+            db.BotBehaviour = SeedBotBehaviour();
             EditorUtility.SetDirty(db);
 
             AssetDatabase.SaveAssets();
@@ -324,6 +368,44 @@ namespace Arena.Editor.Data
             c.TeamSize = TeamSize;
             c.FighterLevel = FighterLevel;
             c.UnlockAllAbilities = UnlockAllAbilities;
+            c.DefaultBots = DefaultBots;
+            c.RandomBotFighters = RandomBotFighters;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static BotDifficultyConfig SeedBotDifficulty(string path, BotDifficulty difficulty, float spread, float reaction)
+        {
+            BotDifficultyConfig c = LoadOrCreate<BotDifficultyConfig>(path);
+            c.Difficulty = difficulty;
+            c.AimSpreadDegrees = spread;
+            c.ReactionSeconds = reaction;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static BotBehaviourConfig SeedBotBehaviour()
+        {
+            BotBehaviourConfig c = LoadOrCreate<BotBehaviourConfig>(BotBehaviourPath);
+            c.DecisionIntervalSeconds = BotDecisionSeconds;
+            c.ViewRadius = BotViewRadius;
+            c.RetreatHealthFraction = BotRetreatHealth;
+            c.RecoverHealthFraction = BotRecoverHealth;
+            c.LastChargeEnemyDistance = BotLastChargeDistance;
+            c.EngageRangeFraction = BotEngageRange;
+            c.FireRangeFraction = BotFireRange;
+            c.MinShotIntervalSeconds = BotMinShotInterval;
+            c.StrafeSwitchSeconds = BotStrafeSwitch;
+            c.WaypointReachDistance = BotWaypointReach;
+            c.WanderRadiusCells = BotWanderRadius;
+            c.WanderAttempts = BotWanderAttempts;
+            c.RetreatScore = BotRetreatScore;
+            c.AttackScore = BotAttackScore;
+            c.AttackProximityBonus = BotAttackProximityBonus;
+            c.ObjectiveScore = BotObjectiveScore;
+            c.WanderScore = BotWanderScore;
+            c.PathNodeLimit = BotPathNodeLimit;
+            c.MaxPathLength = BotMaxPathLength;
             EditorUtility.SetDirty(c);
             return c;
         }

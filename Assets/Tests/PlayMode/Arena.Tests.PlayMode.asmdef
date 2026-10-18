@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Arena.Core",
+        "Arena.Bots",
         "Arena.Data",
         "Arena.Gameplay",
         "Arena.UI"

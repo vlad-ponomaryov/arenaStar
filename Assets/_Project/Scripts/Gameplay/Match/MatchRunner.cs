@@ -1,4 +1,5 @@
 using System;
+using Arena.Bots;
 using Arena.Core.Defs;
 using Arena.Core.Input;
 using Arena.Core.Math;
@@ -18,7 +19,8 @@ namespace Arena.Gameplay.Match
     /// <summary>
     /// Local (offline) implementation of the match loop (D-038): accumulates frame time, runs <see cref="MatchSimulation.Tick"/>
     /// with a fixed 1/30 s step (at most <see cref="MatchRunnerConfig.MaxTicksPerFrame"/> per frame), feeds the local player's
-    /// <see cref="PlayerInput"/> from <see cref="InputCollector"/> (other slots get zero input — dummies until bots, S2.8),
+    /// <see cref="PlayerInput"/> from <see cref="InputCollector"/>; every other slot is a bot (<see cref="BotController"/>, difficulty
+    /// from the menu or <see cref="MatchRunnerConfig.DefaultBots"/>, random fighters by the match seed),
     /// then interpolates the views (D-015): map (walls break on <c>TileBroken</c>), fighters (enemies the local team does not
     /// see are hidden, own fighters in bushes are translucent — D-024), projectiles (pooled), health bars; drives the
     /// camera within the map. Thin layer: no game logic here.
@@ -37,6 +39,7 @@ namespace Arena.Gameplay.Match
         private readonly HealthBarView[] _healthBars = new HealthBarView[SimLimits.MaxFighters];
 
         private MatchSimulation _simulation;
+        private BotController _bots;
         private AimIndicatorView _aimIndicator;
         private ProjectileViewPool _projectileViews;
         private MapView _mapView;
@@ -51,6 +54,9 @@ namespace Arena.Gameplay.Match
         public LocalInputCollector InputCollector => _inputCollector;
 
         public MatchSimulation Simulation => _simulation;
+
+        /// <summary>Bots of all non-local slots.</summary>
+        public BotController Bots => _bots;
         public MapView MapView => _mapView;
         public int LocalSlot { get; private set; }
         public int LocalTeam { get; private set; }
@@ -84,15 +90,19 @@ namespace Arena.Gameplay.Match
             if (_database.MatchRunner == null) throw new InvalidOperationException("MatchRunner: GameDatabase.MatchRunner is not set");
             if (_database.Camera == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Camera is not set");
 
+            if (_database.BotBehaviour == null) throw new InvalidOperationException("MatchRunner: GameDatabase.BotBehaviour is not set");
+
             MatchDefs defs = ConfigConverter.ToMatchDefs(_database);
             LaunchParams = SceneFlow.Current;
+            MatchRunnerConfig config = _database.MatchRunner;
             MatchSetup setup = LaunchParams != null
-                ? MatchSetupFactory.Create(_database.MatchRunner, defs, LaunchParams.FighterId, LaunchParams.Seed)
-                : MatchSetupFactory.CreateDefault(_database.MatchRunner, defs);
+                ? MatchSetupFactory.Create(config, defs, LaunchParams.FighterId, LaunchParams.Seed, config.RandomBotFighters)
+                : MatchSetupFactory.Create(config, defs, null, config.Seed, config.RandomBotFighters);
             _simulation = new MatchSimulation(defs, setup);
-            _maxTicksPerFrame = _database.MatchRunner.MaxTicksPerFrame;
-            LocalSlot = _database.MatchRunner.LocalSlot;
+            _maxTicksPerFrame = config.MaxTicksPerFrame;
+            LocalSlot = config.LocalSlot;
             LocalTeam = setup.Slots[LocalSlot].Team;
+            _bots = CreateBots(setup, LaunchParams != null ? LaunchParams.Bots : config.DefaultBots);
 
             _inputCollector.Clear();
             _inputCollector.ViewRotated = LocalTeam != 0;
@@ -154,6 +164,7 @@ namespace Arena.Gameplay.Match
         {
             int count = _simulation.FighterCount;
             for (int i = 0; i < count; i++) _inputs[i] = default;
+            _bots.Update(_simulation.State, _simulation.Defs, _inputs);
             _inputs[LocalSlot] = _inputCollector.ConsumeForTick();
             _simulation.Tick(_inputs);
             SimEventBuffer events = _simulation.Events;
@@ -212,6 +223,17 @@ namespace Arena.Gameplay.Match
                 bar.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), facing);
                 bar.SetValues(f.MaxHealth > 0 ? (float)f.Health / f.MaxHealth : 0f, f.Charges, maxCharges);
             }
+        }
+
+        private BotController CreateBots(MatchSetup setup, BotDifficulty difficulty)
+        {
+            BotDifficultyConfig difficultyConfig = _database.FindBotDifficulty(difficulty);
+            if (difficultyConfig == null) throw new InvalidOperationException("MatchRunner: no BotDifficultyConfig for " + difficulty);
+            var bots = new BotController(ConfigConverter.ToBotBehaviourDef(_database.BotBehaviour));
+            var difficultyDef = ConfigConverter.ToBotDifficultyDef(difficultyConfig);
+            for (int i = 0; i < setup.SlotCount; i++)
+                if (i != LocalSlot) bots.AddBot(i, difficultyDef, setup.Seed);
+            return bots;
         }
 
         private Vector3 LocalWorldPosition(float alpha) => WorldCoords.ToWorld(_viewState.Position(LocalSlot, alpha));

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Arena.Bots;
 using Arena.Data.Localization;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace Arena.Data
 {
     /// <summary>
     /// Root of all game configs (D-010); scenes reference it directly. Filled by DataSeeder.
-    /// Bots and feel come in later steps.
+    /// Feel comes in a later step.
     /// </summary>
     [CreateAssetMenu(fileName = "GameDatabase", menuName = "Arena/Game Database")]
     public sealed class GameDatabase : ScriptableObject
@@ -28,11 +29,25 @@ namespace Arena.Data
         [Tooltip("UI strings EN/RU (D-019).")]
         public LocTable Strings;
 
+        [Tooltip("Bot skill levels offered in the menu (GDD §7).")]
+        public List<BotDifficultyConfig> BotDifficulties = new List<BotDifficultyConfig>();
+
+        [Tooltip("Bot behaviour shared by all difficulties.")]
+        public BotBehaviourConfig BotBehaviour;
+
         /// <summary>Fighter config by id, or null.</summary>
         public FighterConfig FindFighter(string id)
         {
             for (int i = 0; i < Fighters.Count; i++)
                 if (Fighters[i] != null && string.Equals(Fighters[i].Id, id, StringComparison.Ordinal)) return Fighters[i];
+            return null;
+        }
+
+        /// <summary>Bot difficulty config of <paramref name="difficulty"/>, or null.</summary>
+        public BotDifficultyConfig FindBotDifficulty(BotDifficulty difficulty)
+        {
+            for (int i = 0; i < BotDifficulties.Count; i++)
+                if (BotDifficulties[i] != null && BotDifficulties[i].Difficulty == difficulty) return BotDifficulties[i];
             return null;
         }
     }

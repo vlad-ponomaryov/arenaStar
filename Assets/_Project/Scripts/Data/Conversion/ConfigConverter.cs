@@ -1,4 +1,5 @@
 using System;
+using Arena.Bots.Defs;
 using Arena.Core.Defs;
 using Arena.Core.Math;
 using Arena.Core.Modes;
@@ -39,6 +40,48 @@ namespace Arena.Data.Conversion
             }
             defs.Validate();
             return defs;
+        }
+
+        public static BotDifficultyDef ToBotDifficultyDef(BotDifficultyConfig c)
+        {
+            if (c == null) throw new ArgumentNullException(nameof(c));
+            var def = new BotDifficultyDef
+            {
+                Difficulty = c.Difficulty,
+                AimSpreadDegrees = c.AimSpreadDegrees,
+                ReactionTicks = SimTime.SecondsToTicks(c.ReactionSeconds)
+            };
+            def.Validate();
+            return def;
+        }
+
+        public static BotBehaviourDef ToBotBehaviourDef(BotBehaviourConfig c)
+        {
+            if (c == null) throw new ArgumentNullException(nameof(c));
+            var def = new BotBehaviourDef
+            {
+                DecisionIntervalTicks = MathUtil.Max(1, SimTime.SecondsToTicks(c.DecisionIntervalSeconds)),
+                ViewRadius = c.ViewRadius,
+                RetreatHealthFraction = c.RetreatHealthFraction,
+                RecoverHealthFraction = c.RecoverHealthFraction,
+                LastChargeEnemyDistance = c.LastChargeEnemyDistance,
+                EngageRangeFraction = c.EngageRangeFraction,
+                FireRangeFraction = c.FireRangeFraction,
+                MinShotIntervalTicks = SimTime.SecondsToTicks(c.MinShotIntervalSeconds),
+                StrafeSwitchTicks = MathUtil.Max(1, SimTime.SecondsToTicks(c.StrafeSwitchSeconds)),
+                WaypointReachDistance = c.WaypointReachDistance,
+                WanderRadiusCells = c.WanderRadiusCells,
+                WanderAttempts = c.WanderAttempts,
+                RetreatScore = c.RetreatScore,
+                AttackScore = c.AttackScore,
+                AttackProximityBonus = c.AttackProximityBonus,
+                ObjectiveScore = c.ObjectiveScore,
+                WanderScore = c.WanderScore,
+                PathNodeLimit = c.PathNodeLimit,
+                MaxPathLength = c.MaxPathLength
+            };
+            def.Validate();
+            return def;
         }
 
         public static AcornsModeDef ToAcornsModeDef(AcornsModeConfig c)
