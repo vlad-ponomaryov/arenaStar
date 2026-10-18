@@ -60,5 +60,8 @@ namespace Arena.Bots
 
         /// <summary>Enemy whose vanishing near a bush is being checked (<c>BotAction.CheckBush</c>), or −1.</summary>
         public int MemoryEnemy;
+
+        /// <summary>Berry box being broken (<c>BotAction.BreakBox</c>); <see cref="Goal"/> is the free cell next to it.</summary>
+        public GridCell BoxCell;
     }
 }

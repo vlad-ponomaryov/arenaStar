@@ -82,6 +82,29 @@ namespace Arena.Tests.EditMode.Gameplay
         }
 
         /// <summary>Moves in a slow circle, aims manually and fires now and then, uses the trick.</summary>
+        [Test]
+        public void LastBeastTraining_OnePlayerAndBots_OnTheRoyaleMap_RunsWithFog()
+        {
+            var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
+            var settings = GameSettings.FromDefaults(db.Feel);
+            var launch = new MatchLaunchParams("kora", BotDifficulty.Novice, Seed, false, Arena.Core.Modes.ModeKind.LastBeast);
+            var driver = new OfflineMatchDriver(db, launch, settings);
+            Assert.AreEqual(Arena.Core.Modes.ModeKind.LastBeast, driver.Defs.Mode);
+            Assert.IsTrue(driver.Defs.NoRespawn);
+            Assert.AreEqual(SimLimits.MaxFighters, driver.Setup.SlotCount, "one slot per shared spawn");
+            Assert.AreEqual(SimLimits.MaxFighters - 1, driver.Bots.BotCount, "everybody else is a bot");
+            Assert.AreEqual("kora", driver.Defs.Fighters[driver.Setup.Slots[driver.LocalSlot].FighterIndex].Id, "the chosen fighter");
+            for (int i = 0; i < driver.Setup.SlotCount; i++) Assert.AreEqual(i, driver.Setup.Slots[i].Team, "free-for-all: team = slot");
+            var input = new LocalInputCollector();
+            int fogStart = driver.Defs.LastBeast.FogStartTicks;
+            for (int frame = 0; frame < MaxFrames && driver.State.Globals.Tick <= fogStart && !driver.IsEnded; frame++)
+            {
+                int ticks = driver.BeginFrame(1f / 30f);
+                for (int i = 0; i < ticks; i++) driver.Step(input);
+            }
+            Assert.IsTrue(driver.IsEnded || driver.State.Mode.FogStep >= 1, "the fog came (or the match ended)");
+        }
+
         private static void Script(LocalInputCollector input, int frame)
         {
             float angle = frame * 0.02f;

@@ -22,6 +22,7 @@ namespace Arena.Tests.EditMode.Bots
         public const int MemoryTicks = 90;
         public const int CarrierAcorns = 8;
         public const int FogWarn = 90;
+        public const int LootRadius = 12;
 
         public static BotBehaviourDef Behaviour() => new BotBehaviourDef
         {
@@ -63,7 +64,14 @@ namespace Arena.Tests.EditMode.Bots
             CheckBushScore = 0.55f,
             StayWithTeamScore = 0.55f,
             FleeFogScore = 1.2f,
-            FogWarnTicks = FogWarn
+            FogWarnTicks = FogWarn,
+            BreakBoxScore = 0.4f,
+            LootRadiusCells = LootRadius,
+            FogSafeMarginCells = 1.5f,
+            ExploreRadiusCells = 8,
+            CautiousEngageDistance = 5f,
+            CautiousUntilAlive = 4,
+            ProvokedTicks = 90
         };
 
         public static BotDifficultyDef Novice() => new BotDifficultyDef

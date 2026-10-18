@@ -144,7 +144,9 @@ namespace Arena.Gameplay.Match
             MatchState state = _driver.State;
 
             _inputCollector.Clear();
-            _inputCollector.ViewRotated = LocalTeam != 0;
+            // Team modes: team 1 sees the map from the other side; free-for-all (Last Beast) is never rotated (S3.14).
+            bool freeForAll = defs.Mode == Arena.Core.Modes.ModeKind.LastBeast;
+            _inputCollector.ViewRotated = !freeForAll && LocalTeam != 0;
             _keyboardMouse.Reset();
 
             _mapView = MapView.Create(transform, _viewCatalog, state.Grid);
@@ -168,7 +170,7 @@ namespace Arena.Gameplay.Match
             if (_logViews != null) _logViews.Capture(state);
             if (_cameraController != null)
                 _cameraController.Init(_database.Camera, new Vector2(defs.Map.Width, defs.Map.Height), _inputCollector.ViewRotated,
-                    LocalWorldPosition(0f));
+                    LocalWorldPosition(0f), freeForAll);
             RenderViews(0f);
         }
 

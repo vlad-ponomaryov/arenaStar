@@ -6,7 +6,7 @@ namespace Arena.Gameplay.View
 {
     /// <summary>
     /// Thin view of the map (D-014): the floor is one scaled quad, walls one combined mesh, water one combined sheet;
-    /// breakable walls are separate cubes (switched off when the simulation reports <c>TileBroken</c>), bushes are low
+    /// breakable walls and berry boxes (S3.14) are separate cubes (switched off when the simulation reports <c>TileBroken</c>), bushes are low
     /// cubes whose material turns see-through around the local fighter while it hides in a bush.
     /// Built once at match start from the state's tiles; no allocations per frame. All map renderers sit under one "Static"
     /// child that is static-batched at runtime (<see cref="StaticBatchingUtility.Combine(GameObject)"/>, S2.13): the many
@@ -22,6 +22,9 @@ namespace Arena.Gameplay.View
         private int _bushCount;
 
         public int BreakableCount { get; private set; }
+
+        /// <summary>Berry box cubes built (Last Beast tiles).</summary>
+        public int BoxCount { get; private set; }
         public int BushCount => _bushCount;
 
         /// <summary>True if the bush and breakable cubes are static-batched (tests).</summary>
@@ -105,6 +108,14 @@ namespace Arena.Gameplay.View
                         go.name = "Breakable_" + c + "_" + r;
                         _breakables[grid.IndexOf(c, r)] = go;
                         BreakableCount++;
+                    }
+                    else if (t == TileType.BerryBox && catalog.BerryBoxPrefab != null)
+                    {
+                        // Last Beast (S3.14): a box breaks like a wall (TileBroken); elsewhere it is an unbreakable block.
+                        GameObject go = Instantiate(catalog.BerryBoxPrefab, centre, Quaternion.identity, root);
+                        go.name = "BerryBox_" + c + "_" + r;
+                        _breakables[grid.IndexOf(c, r)] = go;
+                        BoxCount++;
                     }
                     else if (t == TileType.Bush && catalog.BushPrefab != null)
                     {

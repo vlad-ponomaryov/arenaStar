@@ -32,6 +32,15 @@ MonoBehaviour:
   AcornPoolPrewarm: 16
   AcornHeight: 0.35
   AcornSpinSpeed: 90
+  BerryBoxPrefab: {fileID: 306602959493220344, guid: f7bb1887dfc91874d9e0c5ff089bc792, type: 3}
+  BerryPrefab: {fileID: 1743620091570861751, guid: b4431da7b6e04aa44b942de50c1f642f, type: 3}
+  FogPrefab: {fileID: 6160679101479010682, guid: 3b6baf9a48ab58e4f8bf40eef1ac9939, type: 3}
+  BerryPoolPrewarm: 16
+  BerryHeight: 0.35
+  BerryBobHeight: 0.06
+  BerryBobSpeed: 3
+  FogHeight: 0.06
+  FogFollowSharpness: 6
   ProjectilePoolPrewarm: 64
   ProjectileHeight: 0.8
   WallHeight: 1.2
@@ -65,3 +74,6 @@ MonoBehaviour:
   Acorn: {fileID: 2100000, guid: 90c3b679bce8b744481ccc16c39aaa64, type: 2}
   AcornGolden: {fileID: 2100000, guid: b442733606964a44e9f9cda8cd208b8f, type: 2}
   Hollow: {fileID: 2100000, guid: b8d40b240668932419e1dacb31581a60, type: 2}
+  BerryBox: {fileID: 2100000, guid: fc5ebc6dde7a785438776e0389f13f3e, type: 2}
+  Berry: {fileID: 2100000, guid: fe0e05e1c670fff478246724e549ca15, type: 2}
+  Fog: {fileID: 2100000, guid: 0bdb85249dffdb34bb46f397e45736cf, type: 2}

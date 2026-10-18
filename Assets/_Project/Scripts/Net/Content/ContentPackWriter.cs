@@ -305,6 +305,13 @@ namespace Arena.Net.Content
             w.WriteFloat(b.StayWithTeamScore);
             w.WriteFloat(b.FleeFogScore);
             w.WriteVarInt(b.FogWarnTicks);
+            w.WriteFloat(b.BreakBoxScore);
+            w.WriteVarInt(b.LootRadiusCells);
+            w.WriteFloat(b.FogSafeMarginCells);
+            w.WriteVarInt(b.ExploreRadiusCells);
+            w.WriteFloat(b.CautiousEngageDistance);
+            w.WriteVarInt(b.CautiousUntilAlive);
+            w.WriteVarInt(b.ProvokedTicks);
         }
 
         private static void WriteBotDifficulty(BitWriter w, BotDifficultyDef d)

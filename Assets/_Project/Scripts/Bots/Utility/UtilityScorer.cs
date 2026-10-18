@@ -9,12 +9,13 @@ namespace Arena.Bots.Utility
     /// Low health: <see cref="BotAction.HideInBush"/> if a bush was found, else <see cref="BotAction.Retreat"/>; the threshold is
     /// shifted per life (<see cref="BotSituation.RetreatShift"/>) and raised for an acorns carrier. A carrier attacks only an enemy
     /// in fire range, does not check bushes and stays with its team instead of going to the objective. In Last Beast the fog
-    /// threat (<see cref="BotAction.FleeFog"/>) scores above everything (data).
+    /// threat (<see cref="BotAction.FleeFog"/>) scores above everything (data); a reachable berry box
+    /// (<see cref="BotAction.BreakBox"/>) scores above wandering and below the berry objective and an attack (S3.14).
     /// </summary>
     public static class UtilityScorer
     {
         public const BotAction FirstAction = BotAction.Retreat;
-        public const BotAction LastAction = BotAction.FleeFog;
+        public const BotAction LastAction = BotAction.BreakBox;
 
         /// <summary>Retreat threshold of this bot now: base + shift, raised for a carrier.</summary>
         public static float RetreatThreshold(in BotSituation s, BotBehaviourDef b)
@@ -52,6 +53,8 @@ namespace Arena.Bots.Utility
                     return s.HasObjective && !s.IsCarrier ? b.ObjectiveScore : 0f;
                 case BotAction.FleeFog:
                     return s.FogThreat ? b.FleeFogScore : 0f;
+                case BotAction.BreakBox:
+                    return s.HasBox ? b.BreakBoxScore : 0f;
                 case BotAction.Wander:
                     return b.WanderScore;
                 default:

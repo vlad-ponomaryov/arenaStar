@@ -26,5 +26,12 @@ namespace Arena.Data
 
         [Tooltip("Follow smoothing: higher = snappier (1/s). 0 = no smoothing.")]
         [Min(0f)] public float FollowSharpness;
+
+        [Header("Free-for-all map (Last Beast): follows along both axes, not rotated")]
+        [Tooltip("Focus is shifted this many cells ahead (world +Z) of the fighter.")]
+        public float FreeForwardOffset;
+
+        [Tooltip("Closest distance, cells, of the focus point to the left and right map edges.")]
+        [Min(0f)] public float FreeSideInset;
     }
 }

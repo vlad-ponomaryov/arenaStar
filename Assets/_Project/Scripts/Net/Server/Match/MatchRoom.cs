@@ -285,9 +285,13 @@ namespace Arena.Net.Server.Match
                     else _metrics.MissingInputTicks++;
                 }
                 if (input.ViewDelayTicks != 0) input.ViewDelayTicks = LimitViewDelay(s, input.ViewDelayTicks);
-                long before = Takeover.TakeoverCount;
-                Takeover.Observe(i, real, in input);
-                _metrics.Takeovers += Takeover.TakeoverCount - before;
+                // A fighter that is out of a no-respawn match (Last Beast) is not taken over for AFK / no input (S3.14).
+                if (!Defs.NoRespawn || Simulation.State.Fighters[i].Alive)
+                {
+                    long before = Takeover.TakeoverCount;
+                    Takeover.Observe(i, real, in input);
+                    _metrics.Takeovers += Takeover.TakeoverCount - before;
+                }
                 _inputs[i] = input;
             }
             Takeover.Bots.Update(state, Defs, Simulation.Events, _inputs);

@@ -178,7 +178,14 @@ namespace Arena.Data.Conversion
                 CheckBushScore = c.CheckBushScore,
                 StayWithTeamScore = c.StayWithTeamScore,
                 FleeFogScore = c.FleeFogScore,
-                FogWarnTicks = SimTime.SecondsToTicks(c.FogWarnSeconds)
+                FogWarnTicks = SimTime.SecondsToTicks(c.FogWarnSeconds),
+                BreakBoxScore = c.BreakBoxScore,
+                LootRadiusCells = c.LootRadiusCells,
+                FogSafeMarginCells = c.FogSafeMarginCells,
+                ExploreRadiusCells = c.ExploreRadiusCells,
+                CautiousEngageDistance = c.CautiousEngageDistance,
+                CautiousUntilAlive = c.CautiousUntilAlive,
+                ProvokedTicks = SimTime.SecondsToTicks(c.ProvokedSeconds)
             };
             def.Validate();
             return def;

@@ -30,6 +30,9 @@ namespace Arena.Bots.Utility
         StayWithTeam = 7,
 
         /// <summary>Last Beast: the bot is in the fog, or the next fog step comes soon and will cover it — run to the safe centre.</summary>
-        FleeFog = 8
+        FleeFog = 8,
+
+        /// <summary>Last Beast: nothing better around — go next to the nearest berry box (not in the fog soon) and shoot it.</summary>
+        BreakBox = 9
     }
 }

@@ -25,12 +25,13 @@ namespace Arena.UI.Menu
     /// S3.11 (Server-Spec §12.4): "Play 3 vs 3" (Acorns online), "Last Beast" (online) and "Training" (offline with bots — the
     /// bot difficulty applies to it) with the chosen fighter; the region button (cycles the regions of <c>NetConfig</c>) with its
     /// ping coloured like the badge (the session pings the regions when the menu opens and picks the best one); a status line
-    /// shows the error of a failed search. While searching, the <see cref="MatchmakingScreen"/> covers the menu; "Cancel" stops
+    /// shows the error of a failed search. S3.14: the "Training mode" row picks Acorns or Last Beast for "Training". While searching, the <see cref="MatchmakingScreen"/> covers the menu; "Cancel" stops
     /// the search; <c>MatchStart</c> loads the match. After "Play again" of an online match the menu opens with the search running.
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
     {
         private static readonly BotDifficulty[] BotChoices = { BotDifficulty.Novice, BotDifficulty.Easy };
+        private static readonly ModeKind[] TrainingModes = { ModeKind.Acorns, ModeKind.LastBeast };
 
         [SerializeField] private GameDatabase _database;
         [SerializeField] private UiStyle _style;
@@ -40,6 +41,8 @@ namespace Arena.UI.Menu
         private BotDifficulty _bots;
         private Button[] _fighterButtons = new Button[0];
         private Button[] _botButtons = new Button[0];
+        private Button[] _trainingModeButtons = new Button[0];
+        private ModeKind _trainingMode;
         private Button[] _languageButtons = new Button[0];
         private GameObject _matchmakingCanvas;
 
@@ -47,6 +50,9 @@ namespace Arena.UI.Menu
         public UiStyle Style => _style;
         public string SelectedFighterId => _fighterId;
         public BotDifficulty SelectedBots => _bots;
+
+        /// <summary>Mode of the offline "Training" (S3.14).</summary>
+        public ModeKind SelectedTrainingMode => _trainingMode;
         /// <summary>"Training": an offline match with bots.</summary>
         public Button TrainingButton { get; private set; }
         public Button SettingsButton { get; private set; }
@@ -88,6 +94,7 @@ namespace Arena.UI.Menu
             MatchLaunchParams last = SceneFlow.Current;
             _fighterId = last != null ? last.FighterId : DefaultFighterId();
             _bots = last != null ? last.Bots : BotChoices[0];
+            _trainingMode = last != null && !last.Online ? last.Mode : TrainingModes[0];
             Loc.LanguageChanged += Rebuild;
             Rebuild();
             OnlineSession online = OnlineSession.Instance;
@@ -111,12 +118,18 @@ namespace Arena.UI.Menu
             RefreshSelection();
         }
 
-        /// <summary>"Training": an offline match with the current choice and a new seed.</summary>
+        public void SelectTrainingMode(ModeKind mode)
+        {
+            _trainingMode = mode;
+            RefreshSelection();
+        }
+
+        /// <summary>"Training": an offline match with the current choice (fighter, bots, mode) and a new seed.</summary>
         public void Play()
         {
             OnlineSession online = OnlineSession.Instance;
             if (online != null && online.IsBusy) online.Cancel();
-            SceneFlow.PlayMatch(new MatchLaunchParams(_fighterId, _bots, Environment.TickCount));
+            SceneFlow.PlayMatch(new MatchLaunchParams(_fighterId, _bots, Environment.TickCount, false, _trainingMode));
         }
 
         /// <summary>Starts an online search of <paramref name="mode"/> with the current fighter in the selected region.</summary>
@@ -247,6 +260,16 @@ namespace Arena.UI.Menu
                     Loc.Get(bots == BotDifficulty.Novice ? LocKeys.BotsNovice : LocKeys.BotsEasy), () => SelectBots(bots), out _);
             }
 
+            _trainingModeButtons = new Button[TrainingModes.Length];
+            RectTransform trainingRow = CreateLabeledRow(column, LocKeys.MenuTrainingMode);
+            for (int i = 0; i < TrainingModes.Length; i++)
+            {
+                ModeKind mode = TrainingModes[i];
+                _trainingModeButtons[i] = UiFactory.CreateButton("TrainingMode_" + mode, trainingRow, s,
+                    new Vector2(s.MenuButtonSize.x * 1.5f, s.MenuButtonSize.y), s.ButtonColor, s.MediumFontSize,
+                    Loc.Get(mode == ModeKind.LastBeast ? LocKeys.ModeLastBeast : LocKeys.ModeAcorns), () => SelectTrainingMode(mode), out _);
+            }
+
             RectTransform languageRow = CreateLabeledRow(column, LocKeys.MenuLanguage);
             _languageButtons = new[]
             {
@@ -309,6 +332,7 @@ namespace Arena.UI.Menu
             for (int i = 0; i < _fighterButtons.Length; i++)
                 Highlight(_fighterButtons[i], string.Equals(_database.Fighters[i].Id, _fighterId, StringComparison.Ordinal));
             for (int i = 0; i < _botButtons.Length; i++) Highlight(_botButtons[i], BotChoices[i] == _bots);
+            for (int i = 0; i < _trainingModeButtons.Length; i++) Highlight(_trainingModeButtons[i], TrainingModes[i] == _trainingMode);
             for (int i = 0; i < _languageButtons.Length; i++) Highlight(_languageButtons[i], (int)Loc.Current == i);
         }
 

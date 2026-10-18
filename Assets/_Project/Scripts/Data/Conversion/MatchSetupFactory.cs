@@ -55,6 +55,33 @@ namespace Arena.Data.Conversion
             return MatchSetupBuilder.CreateTeams(defs, fighters, config.TeamSize, config.FighterLevel, config.UnlockAllAbilities, seed);
         }
 
+        /// <summary>
+        /// Free-for-all setup of offline training (Last Beast, S3.14): one slot per shared spawn of the map (at most
+        /// <c>SimLimits.MaxFighters</c>), the local slot of the config gets <paramref name="localFighterId"/> (else its
+        /// configured fighter), every other slot a random fighter drawn by the seed; spawns by
+        /// <see cref="MatchSetupBuilder.CreateFreeForAll"/> (as on the server).
+        /// </summary>
+        public static MatchSetup CreateFreeForAll(MatchRunnerConfig config, MatchDefs defs, string localFighterId, int seed)
+        {
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (defs == null) throw new ArgumentNullException(nameof(defs));
+            int count = defs.Map.SpawnCount(Arena.Core.Map.MapSpawn.SharedTeam);
+            if (count > Arena.Core.Sim.SimLimits.MaxFighters) count = Arena.Core.Sim.SimLimits.MaxFighters;
+            if (config.LocalSlot < 0 || config.LocalSlot >= count)
+                throw new ArgumentException("MatchRunnerConfig.LocalSlot " + config.LocalSlot + " out of range of " + count + " shared spawns");
+            string localId = !string.IsNullOrEmpty(localFighterId) ? localFighterId
+                : config.LocalSlot < config.SlotFighterIds.Count ? config.SlotFighterIds[config.LocalSlot] : null;
+            int local = localId != null ? defs.IndexOfFighter(localId) : -1;
+            if (local < 0) throw new ArgumentException("MatchSetupFactory: unknown fighter id '" + localId + "'");
+            var fighters = new int[count];
+            var isFixed = new bool[count];
+            for (int i = 0; i < count; i++) fighters[i] = -1;
+            fighters[config.LocalSlot] = local;
+            isFixed[config.LocalSlot] = true;
+            MatchSetupBuilder.PickRandomFighters(defs, fighters, isFixed, 0, seed);
+            return MatchSetupBuilder.CreateFreeForAll(defs, fighters, config.FighterLevel, config.UnlockAllAbilities, seed);
+        }
+
         private static void PutLocalFighter(string[] ids, int localSlot, string fighterId)
         {
             if (string.Equals(ids[localSlot], fighterId, StringComparison.Ordinal)) return;

@@ -35,5 +35,8 @@ namespace Arena.Bots.Utility
 
         /// <summary>Last Beast: in the fog now, or covered by the next fog step that comes within <c>FogWarnTicks</c>.</summary>
         public bool FogThreat;
+
+        /// <summary>Last Beast: a berry box within <c>LootRadiusCells</c> that is not in the fog soon and can be reached.</summary>
+        public bool HasBox;
     }
 }

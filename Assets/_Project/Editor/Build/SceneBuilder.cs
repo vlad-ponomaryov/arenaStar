@@ -138,6 +138,11 @@ namespace Arena.Editor.Build
             SetRef(acornsSo, "_runner", runner);
             acornsSo.ApplyModifiedPropertiesWithoutUndo();
 
+            var lastBeast = new GameObject("LastBeastModeView").AddComponent<LastBeastModeView>();
+            var lastBeastSo = new SerializedObject(lastBeast);
+            SetRef(lastBeastSo, "_runner", runner);
+            lastBeastSo.ApplyModifiedPropertiesWithoutUndo();
+
             Save(scene, SceneNames.Match);
         }
 

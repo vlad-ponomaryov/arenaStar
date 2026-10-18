@@ -168,6 +168,18 @@ MonoBehaviour:
   - Key: menu.training
     En: Training
     Ru: "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430"
+  - Key: hud.alive_left
+    En: Left
+    Ru: "\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C"
+  - Key: hud.fog_in
+    En: Fog in
+    Ru: "\u0422\u0443\u043C\u0430\u043D \u0447\u0435\u0440\u0435\u0437"
+  - Key: hud.berries
+    En: Berries
+    Ru: "\u042F\u0433\u043E\u0434\u044B"
+  - Key: menu.training_mode
+    En: 'Training mode:'
+    Ru: "\u0420\u0435\u0436\u0438\u043C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438:"
   - Key: menu.region
     En: 'Region:'
     Ru: "\u0420\u0435\u0433\u0438\u043E\u043D:"

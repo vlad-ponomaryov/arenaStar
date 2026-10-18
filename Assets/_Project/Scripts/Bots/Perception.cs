@@ -47,10 +47,15 @@ namespace Arena.Bots
 
         /// <summary>
         /// Objective point of the mode: Acorns — the nearest acorn on the map, otherwise the hollow; Last Beast — the nearest
-        /// berry that is not in the fog, otherwise the map centre (the safe zone); no mode — the map centre.
+        /// berry that is not in the fog, otherwise none (S3.14: the bots break boxes and explore instead of rushing the centre —
+    /// the fog brings them together); no mode — the map centre.
         /// False once the match has ended.
         /// </summary>
-        public static bool FindObjective(MatchState state, MatchDefs defs, Vec2 from, out Vec2 point)
+        public static bool FindObjective(MatchState state, MatchDefs defs, Vec2 from, out Vec2 point) =>
+            FindObjective(state, defs, from, 0f, out point);
+
+        /// <param name="berryRadius">Last Beast: only berries within this distance count (≤ 0 — any distance).</param>
+        public static bool FindObjective(MatchState state, MatchDefs defs, Vec2 from, float berryRadius, out Vec2 point)
         {
             point = Vec2.Zero;
             if (state.Mode.IsEnded) return false;
@@ -79,7 +84,7 @@ namespace Arena.Bots
             }
             if (defs.Mode == ModeKind.LastBeast)
             {
-                float bestSq = float.PositiveInfinity;
+                float bestSq = berryRadius > 0f ? berryRadius * berryRadius : float.PositiveInfinity;
                 bool found = false;
                 for (int i = 0; i < state.Pickups.Length; i++)
                 {
@@ -93,7 +98,7 @@ namespace Arena.Bots
                         found = true;
                     }
                 }
-                if (found) return true;
+                return found;
             }
             point = defs.Map.Center;
             return true;

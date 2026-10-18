@@ -6,6 +6,7 @@ namespace Arena.Gameplay.Cameras
     /// <summary>
     /// Pure math of the match camera (D-016): focus is the map centre across, the target along the long axis (map Y = world Z)
     /// shifted forward towards the enemy side and clamped by the edges; team 1 looks from the other side (yaw 180°).
+    /// Free-for-all maps (Last Beast, S3.14) are followed along both axes (<see cref="FocusFree"/>), never rotated.
     /// </summary>
     public static class CameraMath
     {
@@ -19,6 +20,18 @@ namespace Arena.Gameplay.Cameras
             float hi = mapSize.y - edgeInset;
             z = lo > hi ? mapSize.y * 0.5f : MathUtil.Clamp(z, lo, hi);
             return new Vector3(mapSize.x * 0.5f, 0f, z);
+        }
+
+        /// <summary>
+        /// Focus that follows the target along both axes (a big free-for-all map): world X clamped <paramref name="sideInset"/>
+        /// from the side edges, world Z shifted by <paramref name="forwardOffset"/> and clamped <paramref name="edgeInset"/> from
+        /// the near and far edges; an axis shorter than twice its inset stays at the map centre.
+        /// </summary>
+        public static Vector3 FocusFree(Vector3 target, Vector2 mapSize, float forwardOffset, float edgeInset, float sideInset)
+        {
+            float x = sideInset * 2f > mapSize.x ? mapSize.x * 0.5f : MathUtil.Clamp(target.x, sideInset, mapSize.x - sideInset);
+            float z = edgeInset * 2f > mapSize.y ? mapSize.y * 0.5f : MathUtil.Clamp(target.z + forwardOffset, edgeInset, mapSize.y - edgeInset);
+            return new Vector3(x, 0f, z);
         }
 
         public static Quaternion Rotation(float pitchDegrees, bool rotated) =>

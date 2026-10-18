@@ -68,6 +68,32 @@ namespace Arena.Gameplay.View
         [Tooltip("Spin of lying acorns, degrees per second (view only).")]
         public float AcornSpinSpeed;
 
+        [Header("Last Beast mode (S3.14: berry boxes in MapView, Arena.Modes.LastBeastModeView)")]
+        [Tooltip("Berry box cube of 1 cell, pivot at the bottom centre (a map tile, removed when broken).")]
+        public GameObject BerryBoxPrefab;
+
+        [Tooltip("Berry view, pivot at the centre.")]
+        public GameObject BerryPrefab;
+
+        [Tooltip("Fog strip: quad of 1×1 cell on the XZ plane, centred, translucent; scaled at runtime.")]
+        public GameObject FogPrefab;
+
+        [Tooltip("Berry views created at match start.")]
+        [Min(0)] public int BerryPoolPrewarm;
+
+        [Tooltip("Height of a berry above the ground, world units (view only).")]
+        [Min(0f)] public float BerryHeight;
+
+        [Tooltip("Bobbing of lying berries: amplitude (world units) and speed (radians per second).")]
+        [Min(0f)] public float BerryBobHeight;
+        public float BerryBobSpeed;
+
+        [Tooltip("Height of the fog strips above the ground, world units.")]
+        [Min(0f)] public float FogHeight;
+
+        [Tooltip("The shown fog edge follows a new step with this sharpness (1/s); 0 — at once.")]
+        [Min(0f)] public float FogFollowSharpness;
+
         [Header("Projectiles")]
         [Tooltip("Views created at match start; the pool grows only if more projectiles fly at once.")]
         [Min(0)] public int ProjectilePoolPrewarm;
@@ -132,5 +158,10 @@ namespace Arena.Gameplay.View
         public Material Acorn;
         public Material AcornGolden;
         public Material Hollow;
+
+        [Header("Last Beast mode materials")]
+        public Material BerryBox;
+        public Material Berry;
+        public Material Fog;
     }
 }

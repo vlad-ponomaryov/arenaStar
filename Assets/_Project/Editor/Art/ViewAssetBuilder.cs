@@ -41,6 +41,9 @@ namespace Arena.Editor.Art
         public const string LobBombPrefabPath = PrefabsFolder + "/LobBomb.prefab";
         public const string MinePrefabPath = PrefabsFolder + "/Mine.prefab";
         public const string DomePrefabPath = PrefabsFolder + "/Dome.prefab";
+        public const string BerryBoxPrefabPath = PrefabsFolder + "/BerryBox.prefab";
+        public const string BerryPrefabPath = PrefabsFolder + "/Berry.prefab";
+        public const string FogPrefabPath = PrefabsFolder + "/Fog.prefab";
 
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
@@ -107,6 +110,20 @@ namespace Arena.Editor.Art
         private const int AcornPoolPrewarm = 16;
         private const float HollowDiameter = 1f;
         private const float HollowHeight = 0.5f;
+
+        // Last Beast mode (S3.14, view only, PROTO): a crate slightly lower than a wall, a small bobbing red berry, purple fog
+        // a little above the ground; the fog edge reaches a new step in ≈ 0.5 s.
+        private static readonly Color BerryBoxColor = new Color(0.62f, 0.45f, 0.25f, 1f);
+        private static readonly Color BerryColor = new Color(0.85f, 0.12f, 0.30f, 1f);
+        private static readonly Color FogColor = new Color(0.45f, 0.25f, 0.60f, 0.45f);
+        private const float BerryBoxHeight = 0.9f;
+        private const float BerryDiameter = 0.35f;
+        private const float BerryHeight = 0.35f;
+        private const float BerryBobHeight = 0.06f;
+        private const float BerryBobSpeed = 3f;
+        private const int BerryPoolPrewarm = 16;
+        private const float FogHeight = 0.06f;
+        private const float FogFollowSharpness = 6f;
 
         // Projectiles: pool prewarm (S2.3 plan) and flight height (view only).
         private const int ProjectilePoolPrewarm = 64;
@@ -206,6 +223,12 @@ namespace Arena.Editor.Art
             GameObject acornPrefab = BuildSpherePrefab("Acorn", AcornPrefabPath, acorn, AcornDiameter);
             GameObject acornGoldenPrefab = BuildSpherePrefab("AcornGolden", AcornGoldenPrefabPath, acornGolden, AcornGoldenDiameter);
             GameObject hollowPrefab = BuildHollowPrefab(hollow);
+            Material berryBox = SaveMaterial("BerryBox", LitShader, BerryBoxColor);
+            Material berry = SaveMaterial("Berry", UnlitShader, BerryColor);
+            Material fog = SaveMaterial("Fog", UnlitShader, FogColor, true);
+            GameObject berryBoxPrefab = BuildBlockPrefab("BerryBox", BerryBoxPrefabPath, berryBox, BerryBoxHeight);
+            GameObject berryPrefab = BuildSpherePrefab("Berry", BerryPrefabPath, berry, BerryDiameter);
+            GameObject fogPrefab = BuildQuadPrefab("Fog", FogPrefabPath, fog);
             Material log = SaveMaterial("Log", LitShader, LogColor);
             Material pineCone = SaveMaterial("PineCone", LitShader, PineConeColor);
             Material mine = SaveMaterial("Mine", LitShader, MineColor);
@@ -247,6 +270,18 @@ namespace Arena.Editor.Art
             catalog.Acorn = acorn;
             catalog.AcornGolden = acornGolden;
             catalog.Hollow = hollow;
+            catalog.BerryBoxPrefab = berryBoxPrefab;
+            catalog.BerryPrefab = berryPrefab;
+            catalog.FogPrefab = fogPrefab;
+            catalog.BerryPoolPrewarm = BerryPoolPrewarm;
+            catalog.BerryHeight = BerryHeight;
+            catalog.BerryBobHeight = BerryBobHeight;
+            catalog.BerryBobSpeed = BerryBobSpeed;
+            catalog.FogHeight = FogHeight;
+            catalog.FogFollowSharpness = FogFollowSharpness;
+            catalog.BerryBox = berryBox;
+            catalog.Berry = berry;
+            catalog.Fog = fog;
             catalog.WallHeight = WallHeight;
             catalog.WaterHeight = WaterHeight;
             catalog.BushSeeThroughRadius = BushSeeThroughRadius;
@@ -500,14 +535,17 @@ namespace Arena.Editor.Art
             }
         }
 
-        private static GameObject BuildFloorPrefab(Material floor)
+        private static GameObject BuildFloorPrefab(Material floor) => BuildQuadPrefab("Floor", FloorPrefabPath, floor);
+
+        /// <summary>Quad of 1×1 cell on the XZ plane facing up, centred (floor, fog strips).</summary>
+        private static GameObject BuildQuadPrefab(string name, string path, Material material)
         {
-            var root = new GameObject("Floor");
+            var root = new GameObject(name);
             try
             {
-                GameObject quad = CreatePart(PrimitiveType.Quad, "Quad", root.transform, floor);
+                GameObject quad = CreatePart(PrimitiveType.Quad, "Quad", root.transform, material);
                 quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                return SavePrefab(root, FloorPrefabPath);
+                return SavePrefab(root, path);
             }
             finally
             {

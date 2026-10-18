@@ -296,6 +296,13 @@ namespace Arena.Net.Content
             b.StayWithTeamScore = r.ReadFloat();
             b.FleeFogScore = r.ReadFloat();
             b.FogWarnTicks = r.ReadVarInt();
+            b.BreakBoxScore = r.ReadFloat();
+            b.LootRadiusCells = r.ReadVarInt();
+            b.FogSafeMarginCells = r.ReadFloat();
+            b.ExploreRadiusCells = r.ReadVarInt();
+            b.CautiousEngageDistance = r.ReadFloat();
+            b.CautiousUntilAlive = r.ReadVarInt();
+            b.ProvokedTicks = r.ReadVarInt();
             return b;
         }
 

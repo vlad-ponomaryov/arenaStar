@@ -19,7 +19,8 @@ namespace Arena.UI.Hud
     /// into the runner's <see cref="LocalInputCollector"/> (touch channel, view space). Runs before <see cref="MatchRunner"/>
     /// so the values of this frame reach this frame's ticks. Lives in Arena.UI because UI depends on Gameplay, not back.
     /// The ult stick works only while the ult is charged (GDD §5.1); ability state is shown by <see cref="AbilityHudView"/>.
-    /// The Acorns score bar (<see cref="ScoreBarView"/>) is on the same canvas; when the match ends the controls are hidden
+    /// The Acorns score bar (<see cref="ScoreBarView"/>) and the Last Beast panel (<see cref="LastBeastHudView"/>, S3.14) are on
+    /// the same canvas; when the match ends the controls are hidden
     /// and the <see cref="ResultsScreen"/> appears ("Play again" → <see cref="SceneFlow.Restart"/>, "Menu" → <see cref="SceneFlow.ToMenu"/>).
     /// S2.10: the layout follows the "mirrored" setting, the charged ult stick pulses (<see cref="FeelConfig"/>), an FPS counter
     /// sits in the top-left corner; the aim line knows whether the ult stick is held (its range).
@@ -37,6 +38,7 @@ namespace Arena.UI.Hud
         private MatchHudControls _controls;
         private AbilityHudView _abilityView;
         private ScoreBarView _scoreBar;
+        private LastBeastHudView _lastBeast;
         private ResultsScreen _results;
         private FpsCounter _fps;
         private FeelConfig _feel;
@@ -50,6 +52,9 @@ namespace Arena.UI.Hud
         public UiStyle Style => _style;
         public MatchHudControls Controls => _controls;
         public ScoreBarView ScoreBar => _scoreBar;
+
+        /// <summary>Last Beast panel: fighters left, fog timer, own berries (S3.14).</summary>
+        public LastBeastHudView LastBeast => _lastBeast;
         public ResultsScreen Results => _results;
         public FpsCounter Fps => _fps;
 
@@ -75,6 +80,7 @@ namespace Arena.UI.Hud
             _controls = MatchHudBuilder.Build(transform, _style, PlayerSettingsStore.SharedFor(_feel).Current.MirroredLayout);
             _abilityView = new AbilityHudView(_controls, _style);
             _scoreBar = ScoreBarView.Build(_controls.Canvas.transform, _style);
+            _lastBeast = LastBeastHudView.Build(_controls.Canvas.transform, _style);
             _results = ResultsScreen.Build(transform, _style, PlayAgain, SceneFlow.ToMenu);
             if (_feel != null) _fps = new FpsCounter(_controls.Canvas.transform, _style, _feel.FpsUpdateSeconds);
         }
@@ -88,15 +94,19 @@ namespace Arena.UI.Hud
             _netOverlay?.Tick(Time.unscaledDeltaTime);
             _ping?.Tick(Time.unscaledDeltaTime);
             _connection?.Tick();
-            if (driver != null) _scoreBar.Apply(driver.Defs, driver.State, _runner.LocalTeam);
-            bool eliminated = _online != null && _online.IsEliminated;
+            if (driver != null)
+            {
+                _scoreBar.Apply(driver.Defs, driver.State, _runner.LocalTeam);
+                _lastBeast.Apply(driver.Defs, driver.State, _runner.LocalSlot);
+            }
+            int eliminatedPlace = EliminatedPlace(driver);
+            bool eliminated = eliminatedPlace > 0;
             if (_runner.IsMatchEnded || eliminated)
             {
                 if (!_results.IsShown)
                 {
                     SetControlsVisible(false);
-                    _results.Show(driver.Defs, driver.State, _runner.LocalTeam, _runner.LocalSlot,
-                        eliminated ? _online.EliminatedPlace : 0);
+                    _results.Show(driver.Defs, driver.State, _runner.LocalTeam, _runner.LocalSlot, eliminatedPlace);
                 }
                 _results.Tick();
                 return;
@@ -125,6 +135,18 @@ namespace Arena.UI.Hud
                 else if (ult == StickGestureResult.Manual) input.PressUlt(ToVec2(ultAim), false);
             }
             if (_controls.TrickButton.ConsumePress()) input.PressTrick();
+        }
+
+        /// <summary>
+        /// Place of the own fighter that is out of a free-for-all match still running (the personal result is shown at once):
+        /// online from <c>Eliminated</c>, offline (Last Beast training, S3.14) from its <c>FighterStats.Place</c>; 0 otherwise.
+        /// </summary>
+        private int EliminatedPlace(IMatchDriver driver)
+        {
+            if (_online != null) return _online.IsEliminated ? _online.EliminatedPlace : 0;
+            if (driver == null || !driver.Defs.NoRespawn || driver.IsEnded) return 0;
+            int slot = _runner.LocalSlot;
+            return (uint)slot < (uint)driver.State.Stats.Length ? driver.State.Stats[slot].Place : 0;
         }
 
         /// <summary>The runner gets its driver after this Start: the online widgets are made on the first frame with a driver.</summary>

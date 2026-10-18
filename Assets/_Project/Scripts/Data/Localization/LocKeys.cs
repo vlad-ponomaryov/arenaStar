@@ -82,6 +82,12 @@ namespace Arena.Data.Localization
         /// <summary>Format: {0} — the place (Last Beast).</summary>
         public const string ResultsPlace = "results.place";
 
+        // S3.14 (Server-Spec §12.4): the Last Beast HUD panel and the training mode choice.
+        public const string HudAliveLeft = "hud.alive_left";
+        public const string HudFogIn = "hud.fog_in";
+        public const string HudBerries = "hud.berries";
+        public const string MenuTrainingMode = "menu.training_mode";
+
         public static readonly string[] All =
         {
             MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, LanguageEn, LanguageRu, ModeAcorns,
@@ -91,7 +97,7 @@ namespace Arena.Data.Localization
             MenuPlayOnline, RegionLan, QueueSearching, QueueCancel, NetConnecting, ErrorServerUnreachable, ErrorUpdateRequired,
             ErrorMaintenance, DevNetRtt, DevNetJitter, DevNetLoss, DevNetMargin, DevNetInterp, DevNetCorrections, DevNetMs,
             DevNetSimulator, MenuLastBeast, MenuTraining, MenuRegion, ModeLastBeast, QueueFound, NetReconnecting, NetBotPlaying,
-            NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace
+            NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace, HudAliveLeft, HudFogIn, HudBerries, MenuTrainingMode
         };
     }
 }

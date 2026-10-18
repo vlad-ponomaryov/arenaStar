@@ -182,6 +182,20 @@ namespace Arena.Editor.Data
         private const float BotFleeFogScore = 1.2f;
         private const float BotFogWarnSeconds = 3f;
 
+        // PROTO (S3.14, D-105): Last Beast pace — loot (boxes, berries) within 12 cells; a box is broken when nothing better is
+        // around (score 0.4: above wander 0.1, below a berry 0.5 and an attack 0.6); fleeing the fog goes to the nearest point
+        // 1.5 cells inside the next safe square (not all to the centre); wandering explores safe cells within 6 cells.
+        private const float BotBreakBoxScore = 0.4f;
+        private const int BotLootRadius = 12;
+        private const float BotFogSafeMargin = 1.5f;
+        private const int BotExploreRadius = 6;
+
+        // PROTO (S3.14, D-105): caution — while more than 4 are alive, enemies farther than 5 cells are left alone unless they
+        // hit the bot within 3 s (the match does not end before the fog).
+        private const float BotCautiousEngageDistance = 4f;
+        private const int BotCautiousUntilAlive = 4;
+        private const float BotProvokedSeconds = 3f;
+
         // UI strings EN / RU (D-019). Fighter names are original (GDD §6).
         private static readonly string[][] Strings =
         {
@@ -236,6 +250,10 @@ namespace Arena.Editor.Data
             new[] { LocKeys.DevNetSimulator, "simulator", "симулятор" },
             new[] { LocKeys.MenuLastBeast, "Last Beast", "Последний зверь" },
             new[] { LocKeys.MenuTraining, "Training", "Тренировка" },
+            new[] { LocKeys.HudAliveLeft, "Left", "Осталось" },
+            new[] { LocKeys.HudFogIn, "Fog in", "Туман через" },
+            new[] { LocKeys.HudBerries, "Berries", "Ягоды" },
+            new[] { LocKeys.MenuTrainingMode, "Training mode:", "Режим тренировки:" },
             new[] { LocKeys.MenuRegion, "Region:", "Регион:" },
             new[] { LocKeys.ModeLastBeast, "Last Beast", "Последний зверь" },
             new[] { LocKeys.QueueFound, "Found {0} of {1}", "Найдено {0} из {1}" },
@@ -460,6 +478,10 @@ namespace Arena.Editor.Data
         private const float CameraForwardOffset = 2f;
         private const float CameraEdgeInset = 7f;
         private const float CameraFollowSharpness = 8f;
+
+        // PROTO (S3.14): the 45×45 free-for-all map is followed along both axes, focus 1 cell ahead, 10 cells from the sides.
+        private const float CameraFreeForwardOffset = 1f;
+        private const float CameraFreeSideInset = 10f;
 
         // Feel (GDD §5.3): hit stop 40 ms, telegraph 0.5 s, aim magnet up to 5° (GDD §5.1); the rest PROTO (D-013, D-059):
         // short flash, numbers float up 0.7 s, small shake on ult hits, light 20 ms buzz per hit (60 ms per ult hit, at most
@@ -755,6 +777,8 @@ namespace Arena.Editor.Data
             c.ForwardOffset = CameraForwardOffset;
             c.EdgeInset = CameraEdgeInset;
             c.FollowSharpness = CameraFollowSharpness;
+            c.FreeForwardOffset = CameraFreeForwardOffset;
+            c.FreeSideInset = CameraFreeSideInset;
             EditorUtility.SetDirty(c);
             return c;
         }
@@ -836,6 +860,13 @@ namespace Arena.Editor.Data
             c.StayWithTeamScore = BotStayWithTeamScore;
             c.FleeFogScore = BotFleeFogScore;
             c.FogWarnSeconds = BotFogWarnSeconds;
+            c.BreakBoxScore = BotBreakBoxScore;
+            c.LootRadiusCells = BotLootRadius;
+            c.FogSafeMarginCells = BotFogSafeMargin;
+            c.ExploreRadiusCells = BotExploreRadius;
+            c.CautiousEngageDistance = BotCautiousEngageDistance;
+            c.CautiousUntilAlive = BotCautiousUntilAlive;
+            c.ProvokedSeconds = BotProvokedSeconds;
             EditorUtility.SetDirty(c);
             return c;
         }

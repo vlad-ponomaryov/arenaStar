@@ -121,5 +121,26 @@ namespace Arena.Data
 
         [Tooltip("Flee when the next fog step within … seconds would cover the bot.")]
         [Min(0f)] public float FogWarnSeconds;
+
+        [Header("Last Beast pace (S3.14)")]
+        [Tooltip("Score of breaking a berry box (below the berry objective and the attack, above wandering).")]
+        public float BreakBoxScore;
+
+        [Tooltip("Berries and boxes within … cells (per axis) are loot targets; 0 — no boxes, berries at any distance.")]
+        [Min(0)] public int LootRadiusCells;
+
+        [Tooltip("Fleeing the fog: own position clamped into the next safe square shrunk by … cells.")]
+        [Min(0f)] public float FogSafeMarginCells;
+
+        [Tooltip("Last Beast wandering: random safe cells within … cells (per axis).")]
+        [Min(0)] public int ExploreRadiusCells;
+
+        [Tooltip("While more than CautiousUntilAlive are alive, enemies farther than … cells are not engaged unless they hit the bot recently; 0 — off.")]
+        [Min(0f)] public float CautiousEngageDistance;
+
+        [Min(0)] public int CautiousUntilAlive;
+
+        [Tooltip("An enemy that hit the bot within … seconds is engaged at any distance.")]
+        [Min(0f)] public float ProvokedSeconds;
     }
 }

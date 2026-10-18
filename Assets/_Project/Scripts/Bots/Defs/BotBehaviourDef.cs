@@ -120,6 +120,29 @@ namespace Arena.Bots.Defs
         /// <summary>A bot flees when the next fog step within this many ticks would cover it.</summary>
         public int FogWarnTicks;
 
+        // --- Last Beast pace (S3.14). ---
+
+        /// <summary>Score of breaking a berry box (below the berry objective and the attack, above wandering).</summary>
+        public float BreakBoxScore;
+
+        /// <summary>Berries and boxes within this many cells (per axis) of the bot are its loot targets; 0 — bots do not break
+        /// boxes (berries are then taken at any distance).</summary>
+        public int LootRadiusCells;
+
+        /// <summary>Fleeing the fog: the goal is the own position clamped into the next safe square shrunk by this, cells.</summary>
+        public float FogSafeMarginCells;
+
+        /// <summary>Last Beast wandering: random safe cells within this many cells (per axis) — the bots explore the map.</summary>
+        public int ExploreRadiusCells;
+
+        /// <summary>
+        /// Last Beast caution: while more than <see cref="CautiousUntilAlive"/> fighters are alive, an enemy farther than this
+        /// (cells) is not engaged unless it hit the bot within <see cref="ProvokedTicks"/>; 0 — no caution.
+        /// </summary>
+        public float CautiousEngageDistance;
+        public int CautiousUntilAlive;
+        public int ProvokedTicks;
+
         public void Validate()
         {
             if (DecisionIntervalTicks < 1) throw new ArgumentException("BotBehaviourDef.DecisionIntervalTicks must be ≥ 1");
@@ -153,6 +176,10 @@ namespace Arena.Bots.Defs
                 throw new ArgumentException("BotBehaviourDef.CarrierRetreatHealthFraction must be in [0, 1]");
             if (CarrierBehindDistance < 0f) throw new ArgumentException("BotBehaviourDef.CarrierBehindDistance must be ≥ 0");
             if (FogWarnTicks < 0) throw new ArgumentException("BotBehaviourDef.FogWarnTicks must be ≥ 0");
+            if (LootRadiusCells < 0 || ExploreRadiusCells < 0) throw new ArgumentException("BotBehaviourDef: Last Beast radii must be ≥ 0");
+            if (FogSafeMarginCells < 0f) throw new ArgumentException("BotBehaviourDef.FogSafeMarginCells must be ≥ 0");
+            if (CautiousEngageDistance < 0f || CautiousUntilAlive < 0 || ProvokedTicks < 0)
+                throw new ArgumentException("BotBehaviourDef: Last Beast caution values must be ≥ 0");
         }
     }
 }

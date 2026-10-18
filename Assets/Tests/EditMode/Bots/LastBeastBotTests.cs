@@ -21,12 +21,56 @@ namespace Arena.Tests.EditMode.Bots
     /// <summary>
     /// Bots in «Last Beast» (Server-Spec §9.2, S3.3): they flee the fog (also shortly before a step that would cover them),
     /// every other fighter is an enemy, and a full match of 10 bots on the seeded royale map ends with one winner within
-    /// the time limit, without allocations in the steady state.
+    /// the time limit, without allocations in the steady state. Pace (S3.14, D-105): without enemies a bot breaks the nearest box
+    /// and picks the berry; in a full match the bots spend at most <see cref="MaxFogShare"/> of their alive time in the fog
+    /// (PROTO), break boxes and the match outlasts the fog start.
     /// </summary>
     public sealed class LastBeastBotTests
     {
         private const int WarmupTicks = 300;
         private const double SoftBudgetMs = 2.0;
+
+        /// <summary>PROTO (D-105): share of alive fighter-ticks spent in the fog in a 10-bot match.</summary>
+        private const double MaxFogShare = 0.1;
+
+        /// <summary>PROTO (D-105): at least this share of the map's boxes is broken in a 10-bot match.</summary>
+        private const double MinBoxesBrokenShare = 0.25;
+
+        [Test]
+        public void Bot_WithoutEnemies_BreaksTheNearestBox_AndTakesTheBerry()
+        {
+            MatchSimulation sim = LastBeastTestFactory.Create(LastBeastTestFactory.Defs(), new Vec2(10.5f, 11.5f), new Vec2(1.5f, 1.5f));
+            BotController bots = BotTestFactory.Bots(sim, BotTestFactory.Careful(), 0);
+            PlayerInput[] inputs = TestMatchFactory.Inputs();
+            BotTestFactory.Step(sim, bots, inputs);
+            Assert.AreEqual(BotAction.BreakBox, bots.GetBrain(0).Action, "nothing else to do: the box");
+            Assert.AreEqual(LastBeastTestFactory.BoxA, bots.GetBrain(0).BoxCell, "the nearest box");
+            int ticks = 0;
+            while (sim.State.Grid.Get(LastBeastTestFactory.BoxA) == Arena.Core.Map.TileType.BerryBox && ticks < 900)
+            {
+                BotTestFactory.Step(sim, bots, inputs);
+                ticks++;
+            }
+            Assert.AreEqual(Arena.Core.Map.TileType.Floor, sim.State.Grid.Get(LastBeastTestFactory.BoxA), "the box is broken");
+            for (int i = 0; i < 150 && sim.State.Fighters[0].Berries == 0; i++) BotTestFactory.Step(sim, bots, inputs);
+            Assert.Greater(sim.State.Fighters[0].Berries, 0, "the berry is picked up");
+        }
+
+        [Test]
+        public void FleeFog_GoesInsideTheNextSafeSquare_NotToTheCentre()
+        {
+            MatchSimulation sim = LastBeastTestFactory.Create(LastBeastTestFactory.Defs(), new Vec2(1.5f, 4.5f), new Vec2(18.5f, 18.5f));
+            BotController bots = BotTestFactory.Bots(sim, BotTestFactory.Careful(), 0);
+            PlayerInput[] inputs = TestMatchFactory.Inputs();
+            TestMatchFactory.Run(sim, inputs, LastBeastTestFactory.FogStart);
+            BotTestFactory.Step(sim, bots, inputs);
+            BotBrain brain = bots.GetBrain(0);
+            Assert.AreEqual(BotAction.FleeFog, brain.Action);
+            LastBeastRules.NextSafeRect(sim.State, sim.Defs, out Vec2 min, out Vec2 max);
+            Assert.That(brain.Goal.X, Is.InRange(min.X, max.X), "inside the next safe square");
+            Assert.That(brain.Goal.Y, Is.InRange(min.Y, max.Y));
+            Assert.Less(brain.Goal.Y, LastBeastTestFactory.Size * 0.5f - 2f, "near its own side, not the centre");
+        }
 
         [Test]
         public void Bot_InTheFog_FleesToTheSafeCentre()
@@ -89,6 +133,7 @@ namespace Arena.Tests.EditMode.Bots
             AllocationAssert.InitializeTypes(typeof(MatchSimulation).Assembly, typeof(BotController).Assembly);
             long elapsed = 0;
             int ticks = 0;
+            long aliveTicks = 0, fogTicks = 0;
             for (; ticks < WarmupTicks; ticks++) elapsed += TimedStep(sim, bots, inputs);
             AllocationAssert.NoGcAllocations(() =>
             {
@@ -96,6 +141,13 @@ namespace Arena.Tests.EditMode.Bots
                 {
                     elapsed += TimedStep(sim, bots, inputs);
                     ticks++;
+                    for (int i = 0; i < setup.SlotCount; i++)
+                    {
+                        ref Arena.Core.State.FighterState f = ref sim.State.Fighters[i];
+                        if (!f.Alive) continue;
+                        aliveTicks++;
+                        if (LastBeastRules.IsInFog(sim.State, f.Position)) fogTicks++;
+                    }
                 }
             }, "steady state of a Last Beast match");
 
@@ -120,12 +172,17 @@ namespace Arena.Tests.EditMode.Bots
             boxesBroken = boxes - Arena.Core.Sim.Systems.BoxSystem.ActiveCount(sim.State);
 
             double avgMs = elapsed * 1000.0 / Stopwatch.Frequency / ticks;
+            double fogShare = aliveTicks > 0 ? (double)fogTicks / aliveTicks : 0.0;
             string summary = "Last Beast bot match seed " + seed + ": " + ticks + " ticks, winner slot " + winner + ", alive at the end " +
                 LastBeastRules.CountAlive(sim.State) + ", fog step " + sim.State.Mode.FogStep + ", damage " + damage + ", boxes broken " +
-                boxesBroken + "/" + boxes + ", average tick (simulation + bots) " + avgMs.ToString("0.000") + " ms";
+                boxesBroken + "/" + boxes + ", in the fog " + fogShare.ToString("P2") + " of alive time, average tick (simulation + bots) " +
+                avgMs.ToString("0.000") + " ms";
             UnityEngine.Debug.Log(summary);
             TestContext.WriteLine(summary);
             Assert.Less(avgMs, SoftBudgetMs, "soft budget per tick");
+            Assert.LessOrEqual(fogShare, MaxFogShare, "time in the fog");
+            Assert.GreaterOrEqual(boxesBroken, (int)(boxes * MinBoxesBrokenShare), "boxes are broken");
+            Assert.Greater(sim.State.Mode.EndTick, defs.LastBeast.FogStartTicks, "the match outlasts the fog start");
         }
 
         [Test]

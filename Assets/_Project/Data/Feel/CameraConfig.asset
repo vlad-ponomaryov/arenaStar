@@ -18,3 +18,5 @@ MonoBehaviour:
   ForwardOffset: 2
   EdgeInset: 7
   FollowSharpness: 8
+  FreeForwardOffset: 1
+  FreeSideInset: 10

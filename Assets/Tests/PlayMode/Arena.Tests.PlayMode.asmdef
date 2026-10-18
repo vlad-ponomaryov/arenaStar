@@ -12,6 +12,7 @@
         "Arena.Net",
         "Arena.Net.Server",
         "Arena.Online",
+        "Arena.Modes",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],

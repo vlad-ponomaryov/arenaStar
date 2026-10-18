@@ -51,3 +51,10 @@ MonoBehaviour:
   StayWithTeamScore: 0.55
   FleeFogScore: 1.2
   FogWarnSeconds: 3
+  BreakBoxScore: 0.4
+  LootRadiusCells: 12
+  FogSafeMarginCells: 1.5
+  ExploreRadiusCells: 6
+  CautiousEngageDistance: 4
+  CautiousUntilAlive: 4
+  ProvokedSeconds: 3

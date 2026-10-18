@@ -31,11 +31,18 @@ namespace Arena.Bots
     /// Shooting: a fresh press (the simulation reacts to the rising edge), no burst in progress, the reaction delay of the
     /// target passed, the target within range with a clear line, the charge rule of <see cref="FireDecision"/>, aim spread
     /// of the difficulty (<see cref="BotAim"/>). Shots at bushes never spend the last charge.
+    /// Last Beast pace (S3.14, D-105): without an enemy or a berry the bot breaks the nearest berry box that is not in the fog
+    /// soon (<see cref="BotAction.BreakBox"/>: from a free cell next to it, never with the last charge), otherwise explores
+    /// safe cells within <c>ExploreRadiusCells</c>; fleeing the fog leads to the nearest point inside the next safe square
+    /// (not everybody to the centre). Boxes are read from the tiles, so a client bot on a display state sees them too.
     /// No allocations in Update: brains, paths, memory and the pathfinder are allocated here once.
     /// </summary>
     public sealed class BotController
     {
         private const int NotSeen = -1;
+
+        /// <summary>Half a cell plus a little: from a box centre to just outside its near face (geometry, not tuning).</summary>
+        private const float BoxFaceOffset = 0.55f;
 
         private readonly BotBehaviourDef _behaviour;
         private readonly BotBrain[] _brains = new BotBrain[SimLimits.MaxFighters];
@@ -233,7 +240,13 @@ namespace Arena.Bots
             b.BushShotPending = false;
 
             int target = Perception.FindNearestEnemy(state, slot, _behaviour.ViewRadius, out float distance);
-            bool hasObjective = Perception.FindObjective(state, defs, f.Position, out Vec2 objective);
+            int avoided = -1;
+            if (target >= 0 && IsCautious(state, defs) && distance > _behaviour.CautiousEngageDistance && !Provoked(slot, target, tick))
+            {
+                avoided = target; // Last Beast: leave a far enemy alone early on and keep away from it
+                target = -1;
+            }
+            bool hasObjective = Perception.FindObjective(state, defs, f.Position, _behaviour.LootRadiusCells, out Vec2 objective);
             float fireRange = def.AttackRange * _behaviour.FireRangeFraction;
             int memoryEnemy = FindBushMemory(state, slot, tick, out Vec2 bushPoint);
             var situation = new BotSituation
@@ -249,6 +262,9 @@ namespace Arena.Bots
                 HasBushMemory = memoryEnemy >= 0,
                 FogThreat = LastBeastRules.IsInFogSoon(state, defs, f.Position, _behaviour.FogWarnTicks)
             };
+            GridCell box = default, boxStand = default;
+            if (defs.Mode == ModeKind.LastBeast && target < 0)
+                situation.HasBox = FindBox(state, defs, f.Position, out box, out boxStand);
             Vec2 hideBush = Vec2.Zero;
             bool wantsRetreat = UtilityScorer.WantsRetreat(in situation, _behaviour);
             if (wantsRetreat)
@@ -277,7 +293,9 @@ namespace Arena.Bots
                     b.Goal = objective;
                     break;
                 case BotAction.Retreat:
-                    b.Goal = NearestOwnSpawn(defs.Map, f.Team, f.Position);
+                    b.Goal = defs.Mode == ModeKind.LastBeast
+                        ? AwayGoal(state, defs, f.Position, target >= 0 ? state.Fighters[target].Position : f.Position)
+                        : NearestOwnSpawn(defs.Map, f.Team, f.Position);
                     break;
                 case BotAction.HideInBush:
                     b.Goal = hideBush;
@@ -290,10 +308,18 @@ namespace Arena.Bots
                     b.Goal = TeamSpot(state, defs, slot);
                     break;
                 case BotAction.FleeFog:
-                    b.Goal = LastBeastRules.SafeCenter(state);
+                    b.Goal = FogGoal(state, defs, f.Position);
+                    break;
+                case BotAction.BreakBox:
+                    b.BoxCell = box;
+                    b.Goal = boxStand.Center;
                     break;
                 default:
-                    if (previous != BotAction.Wander || IsReached(f.Position, b.Goal)) b.Goal = PickWanderGoal(state.Grid, ref b, f.Position);
+                    if (avoided >= 0) b.Goal = AwayGoal(state, defs, f.Position, state.Fighters[avoided].Position);
+                    else if (previous != BotAction.Wander || IsReached(f.Position, b.Goal))
+                        b.Goal = defs.Mode == ModeKind.LastBeast && _behaviour.ExploreRadiusCells > 0
+                            ? PickExploreGoal(state, defs, ref b, f.Position)
+                            : PickWanderGoal(state.Grid, ref b, f.Position);
                     break;
             }
             PlanPath(state, slot, f.Position);
@@ -548,6 +574,139 @@ namespace Arena.Bots
             return from;
         }
 
+        /// <summary>
+        /// Nearest berry box tile within <c>LootRadiusCells</c> whose centre is not in the fog soon and that has a free
+        /// side cell; <paramref name="stand"/> = that side cell nearest to the bot.
+        /// </summary>
+        private bool FindBox(MatchState state, MatchDefs defs, Vec2 from, out GridCell box, out GridCell stand)
+        {
+            box = default;
+            stand = default;
+            int r = _behaviour.LootRadiusCells;
+            if (r <= 0) return false;
+            GridCell c = GridCell.Of(from);
+            float bestSq = float.PositiveInfinity;
+            for (int dy = -r; dy <= r; dy++)
+            for (int dx = -r; dx <= r; dx++)
+            {
+                int x = c.Column + dx, y = c.Row + dy;
+                if (state.Grid.Get(x, y) != TileType.BerryBox) continue;
+                var cell = new GridCell(x, y);
+                float d = Vec2.SqrDistance(cell.Center, from);
+                if (d >= bestSq) continue;
+                if (LastBeastRules.IsInFogSoon(state, defs, cell.Center, _behaviour.FogWarnTicks)) continue;
+                if (!FindFreeSide(state.Grid, cell, from, out GridCell side)) continue;
+                bestSq = d;
+                box = cell;
+                stand = side;
+            }
+            return bestSq < float.PositiveInfinity;
+        }
+
+        private static bool FindFreeSide(in TileGrid grid, GridCell cell, Vec2 from, out GridCell side)
+        {
+            side = default;
+            float bestSq = float.PositiveInfinity;
+            for (int i = 0; i < 4; i++)
+            {
+                int x = cell.Column + (i == 0 ? 1 : i == 1 ? -1 : 0);
+                int y = cell.Row + (i == 2 ? 1 : i == 3 ? -1 : 0);
+                if (grid.BlocksMovement(x, y)) continue;
+                var n = new GridCell(x, y);
+                float d = Vec2.SqrDistance(n.Center, from);
+                if (d >= bestSq) continue;
+                bestSq = d;
+                side = n;
+            }
+            return bestSq < float.PositiveInfinity;
+        }
+
+        private bool IsCautious(MatchState state, MatchDefs defs) =>
+            defs.Mode == ModeKind.LastBeast && _behaviour.CautiousEngageDistance > 0f
+            && LastBeastRules.CountAlive(state) > _behaviour.CautiousUntilAlive;
+
+        private bool Provoked(int slot, int enemy, int tick)
+        {
+            int hit = _memory.LastDamagedTick(slot, enemy);
+            return hit != EnemyMemory.Never && tick - hit <= _behaviour.ProvokedTicks;
+        }
+
+        /// <summary>Last Beast retreat (no own spawn): <c>ExploreRadiusCells</c> away from the threat, kept inside the next safe
+        /// square (<see cref="FogGoal"/>).</summary>
+        private Vec2 AwayGoal(MatchState state, MatchDefs defs, Vec2 from, Vec2 threat)
+        {
+            Vec2 away = (from - threat).Normalized;
+            if (away.IsZero) away = (LastBeastRules.SafeCenter(state) - from).Normalized;
+            return FogGoal(state, defs, from + away * _behaviour.ExploreRadiusCells);
+        }
+
+        /// <summary>The own position clamped into the next safe square shrunk by <c>FogSafeMarginCells</c> (its centre if
+        /// smaller), moved to a walkable cell nearby (towards the centre).</summary>
+        private Vec2 FogGoal(MatchState state, MatchDefs defs, Vec2 from)
+        {
+            LastBeastRules.NextSafeRect(state, defs, out Vec2 min, out Vec2 max);
+            float m = _behaviour.FogSafeMarginCells;
+            float x = max.X - min.X > 2f * m ? MathUtil.Clamp(from.X, min.X + m, max.X - m) : (min.X + max.X) * 0.5f;
+            float y = max.Y - min.Y > 2f * m ? MathUtil.Clamp(from.Y, min.Y + m, max.Y - m) : (min.Y + max.Y) * 0.5f;
+            var goal = new Vec2(x, y);
+            GridCell g = GridCell.Of(goal);
+            if (!state.Grid.BlocksMovement(g.Column, g.Row)) return goal;
+            Vec2 centre = LastBeastRules.SafeCenter(state);
+            for (int ring = 1; ring <= _behaviour.WanderRadiusCells; ring++)
+            {
+                float bestSq = float.PositiveInfinity;
+                Vec2 best = goal;
+                for (int dy = -ring; dy <= ring; dy++)
+                for (int dx = -ring; dx <= ring; dx++)
+                {
+                    if (dx != -ring && dx != ring && dy != -ring && dy != ring) continue;
+                    if (state.Grid.BlocksMovement(g.Column + dx, g.Row + dy)) continue;
+                    Vec2 p = new GridCell(g.Column + dx, g.Row + dy).Center;
+                    float d = Vec2.SqrDistance(p, centre);
+                    if (d < bestSq)
+                    {
+                        bestSq = d;
+                        best = p;
+                    }
+                }
+                if (bestSq < float.PositiveInfinity) return best;
+            }
+            return centre;
+        }
+
+        /// <summary>Last Beast wandering: a random walkable cell within <c>ExploreRadiusCells</c> that the fog does not cover soon.</summary>
+        private Vec2 PickExploreGoal(MatchState state, MatchDefs defs, ref BotBrain b, Vec2 from)
+        {
+            GridCell c = GridCell.Of(from);
+            int r = _behaviour.ExploreRadiusCells;
+            for (int i = 0; i < _behaviour.WanderAttempts; i++)
+            {
+                int x = c.Column + b.Rng.Range(-r, r + 1);
+                int y = c.Row + b.Rng.Range(-r, r + 1);
+                if (state.Grid.BlocksMovement(x, y)) continue;
+                Vec2 p = new GridCell(x, y).Center;
+                if (LastBeastRules.IsInFogSoon(state, defs, p, _behaviour.FogWarnTicks)) continue;
+                return p;
+            }
+            return PickWanderGoal(state.Grid, ref b, from);
+        }
+
+        /// <summary>Aim point at a box: its centre moved back towards the bot to just outside its near face, so the
+        /// line-of-fire check does not count the box itself.</summary>
+        private static Vec2 BoxAimPoint(GridCell box, Vec2 from)
+        {
+            Vec2 centre = box.Center;
+            Vec2 dir = (centre - from).Normalized;
+            return centre - dir * BoxFaceOffset;
+        }
+
+        private static bool InBoxRange(MatchState state, FighterDef def, Vec2 position, GridCell box, float fireRange)
+        {
+            Vec2 point = BoxAimPoint(box, position);
+            if (Vec2.Distance(position, point) > fireRange) return false;
+            return def.Attack.IgnoresWalls || Perception.HasClearShot(state.Grid, position, point);
+        }
+
         private bool IsReached(Vec2 position, Vec2 point)
         {
             float reach = _behaviour.WaypointReachDistance;
@@ -580,6 +739,8 @@ namespace Arena.Bots
                 }
             }
             else if (b.Action == BotAction.None) move = Vec2.Zero;
+            else if (b.Action == BotAction.BreakBox && IsBox(state, b.BoxCell) && InBoxRange(state, def, position, b.BoxCell, fireRange))
+                move = Vec2.Zero; // in range of the box: stop and shoot it
             else if (b.Action == BotAction.CheckBush && Vec2.Distance(position, b.Goal) <= fireRange
                 && (def.Attack.IgnoresWalls || Perception.HasClearShot(state.Grid, position, b.Goal)))
                 move = Vec2.Zero; // in range of the bush: stop and check it
@@ -623,6 +784,9 @@ namespace Arena.Bots
                     return new PlayerInput(move, aim, InputButtons.Attack);
                 }
             }
+            else if (b.Action == BotAction.BreakBox && IsBox(state, b.BoxCell) && InBoxRange(state, def, position, b.BoxCell, fireRange)
+                && TryShootAt(state, defs, slot, BoxAimPoint(b.BoxCell, position), tick, out aim))
+                return new PlayerInput(move, aim, InputButtons.Attack);
             else if (b.BushShotPending && TryShootAt(state, defs, slot, b.BushShotPoint, tick, out aim))
             {
                 b.BushShotPending = false;
@@ -630,6 +794,8 @@ namespace Arena.Bots
             }
             return new PlayerInput(move, Vec2.Zero, InputButtons.None);
         }
+
+        private static bool IsBox(MatchState state, GridCell cell) => state.Grid.Get(cell.Column, cell.Row) == TileType.BerryBox;
 
         /// <summary>Direction to the next waypoint (the exact goal point on the last one), or straight to the goal without a path.</summary>
         private Vec2 FollowPath(int slot, Vec2 position, Vec2 goal)

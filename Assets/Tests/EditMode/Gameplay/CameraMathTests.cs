@@ -72,5 +72,19 @@ namespace Arena.Tests.EditMode.Gameplay
             Assert.Less(k, 1f);
             Assert.Greater(CameraMath.DampFactor(8f, 0.1f), k, "longer frame — larger step");
         }
+
+        [Test]
+        public void FocusFree_FollowsBothAxes_ClampedBySidesAndEdges()
+        {
+            var map = new Vector2(45f, 45f);
+            Vector3 mid = CameraMath.FocusFree(new Vector3(20f, 0f, 22f), map, 1f, Inset, 10f);
+            Assert.AreEqual(20f, mid.x, 1e-5f, "follows along X");
+            Assert.AreEqual(23f, mid.z, 1e-5f, "follows along Z with the forward offset");
+            Vector3 corner = CameraMath.FocusFree(new Vector3(1f, 0f, 44f), map, 1f, Inset, 10f);
+            Assert.AreEqual(10f, corner.x, 1e-5f, "side inset");
+            Assert.AreEqual(45f - Inset, corner.z, 1e-5f, "far edge inset");
+            Vector3 narrow = CameraMath.FocusFree(new Vector3(1f, 0f, 3f), new Vector2(15f, 45f), 1f, Inset, 10f);
+            Assert.AreEqual(7.5f, narrow.x, 1e-5f, "an axis narrower than twice the inset stays centred");
+        }
     }
 }

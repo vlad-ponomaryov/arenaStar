@@ -2,6 +2,7 @@ using System;
 using Arena.Bots;
 using Arena.Core.Defs;
 using Arena.Core.Input;
+using Arena.Core.Modes;
 using Arena.Core.Sim;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
@@ -15,7 +16,8 @@ namespace Arena.Gameplay.Match
 {
     /// <summary>
     /// Offline <see cref="IMatchDriver"/> (S3.10a): the former loop of <see cref="MatchRunner"/>, behaviour unchanged.
-    /// Builds defs and the setup from data (menu choice <see cref="MatchLaunchParams"/>, else the config's line-up and seed),
+    /// Builds defs and the setup from data (menu choice <see cref="MatchLaunchParams"/>, else the config's line-up and seed;
+    /// <see cref="MatchLaunchParams.Mode"/> Last Beast — the royale map with one slot per shared spawn, S3.14),
     /// runs <see cref="MatchSimulation"/> with a fixed 1/30 s step (accumulator, at most
     /// <see cref="MatchRunnerConfig.MaxTicksPerFrame"/> per frame, the backlog is dropped), every non-local slot is a bot
     /// (<see cref="BotController"/>), the local manual aim gets the <see cref="AimMagnet"/> if the setting is on.
@@ -45,11 +47,24 @@ namespace Arena.Gameplay.Match
             _aimMagnet = settings.AimMagnet;
             _aimMagnetDegrees = database.Feel.AimMagnetDegrees;
 
-            MatchDefs defs = ConfigConverter.ToMatchDefs(database);
             MatchRunnerConfig config = database.MatchRunner;
-            MatchSetup setup = launch != null
-                ? MatchSetupFactory.Create(config, defs, launch.FighterId, launch.Seed, config.RandomBotFighters)
-                : MatchSetupFactory.Create(config, defs, null, config.Seed, config.RandomBotFighters);
+            MatchDefs defs;
+            MatchSetup setup;
+            if (launch != null && launch.Mode == ModeKind.LastBeast)
+            {
+                // Training in Last Beast (S3.14): 1 player + bots on the royale map, defs as the server builds them.
+                if (database.LastBeastMode == null || database.LastBeastMaps == null || database.LastBeastMaps.Count == 0)
+                    throw new InvalidOperationException("OfflineMatchDriver: Last Beast is not in the GameDatabase");
+                defs = ConfigConverter.ToLastBeastMatchDefs(database, database.LastBeastMaps[0]);
+                setup = MatchSetupFactory.CreateFreeForAll(config, defs, launch.FighterId, launch.Seed);
+            }
+            else
+            {
+                defs = ConfigConverter.ToMatchDefs(database);
+                setup = launch != null
+                    ? MatchSetupFactory.Create(config, defs, launch.FighterId, launch.Seed, config.RandomBotFighters)
+                    : MatchSetupFactory.Create(config, defs, null, config.Seed, config.RandomBotFighters);
+            }
             _simulation = new MatchSimulation(defs, setup);
             _maxTicksPerFrame = config.MaxTicksPerFrame;
             LocalSlot = config.LocalSlot;

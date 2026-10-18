@@ -128,10 +128,25 @@ namespace Arena.Core.Modes
             if (IsInFog(state, p)) return true;
             ref ModeState m = ref state.Mode;
             if (m.NextFogStepTick - (state.Globals.Tick + 1) > withinTicks) return false;
+            NextSafeRect(state, defs, out Vec2 min, out Vec2 max);
+            return p.X < min.X || p.X > max.X || p.Y < min.Y || p.Y > max.Y;
+        }
+
+        /// <summary>The safe rectangle after the next fog step (corners); the whole map's rectangle without the mode.</summary>
+        public static void NextSafeRect(MatchState state, MatchDefs defs, out Vec2 min, out Vec2 max)
+        {
+            if (defs.Mode != ModeKind.LastBeast || defs.LastBeast == null)
+            {
+                min = Vec2.Zero;
+                max = new Vec2(state.Globals.MapWidth, state.Globals.MapHeight);
+                return;
+            }
             LastBeastModeDef lb = defs.LastBeast;
             ModeState next = default;
-            SetSafeRect(ref next, state.Globals.MapWidth, state.Globals.MapHeight, (m.FogStep + 1) * lb.FogShrinkCells, lb.FogMinHalfSize);
-            return p.X < next.SafeMinX || p.X > next.SafeMaxX || p.Y < next.SafeMinY || p.Y > next.SafeMaxY;
+            SetSafeRect(ref next, state.Globals.MapWidth, state.Globals.MapHeight, (state.Mode.FogStep + 1) * lb.FogShrinkCells,
+                lb.FogMinHalfSize);
+            min = new Vec2(next.SafeMinX, next.SafeMinY);
+            max = new Vec2(next.SafeMaxX, next.SafeMaxY);
         }
 
         /// <summary>Centre of the safe rectangle (the map centre: the fog closes in evenly).</summary>
