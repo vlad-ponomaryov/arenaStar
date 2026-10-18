@@ -10,3 +10,4 @@
 ## 2026-10-18
 
 - 00:30 — план — CLAUDE.md, Plan-Stage1/2, Decisions, Questions, AssetLicenses, NightLog — (коммит документов)
+- 09:41 — S1.1 — частично: Tools/*.ps1 и PackageInstaller готовы; проект не создан, compile/test не запускались — нет лицензии Unity (Q-009), ночь остановлена — c1d3f98
