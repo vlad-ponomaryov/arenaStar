@@ -17,5 +17,24 @@ namespace Arena.Data
 
         [Tooltip("Seconds from first seeing an enemy until the bot may shoot at it.")]
         [Min(0f)] public float ReactionSeconds;
+
+        [Header("Ult, trick, mistakes (chances per decision)")]
+        [Tooltip("Chance to use a charged ult when it is worth it (2+ enemies in its zone or it finishes the target).")]
+        [Range(0f, 1f)] public float UltUseChance;
+
+        [Tooltip("Chance to waste a charged ult on a target in its zone when it is not worth it.")]
+        [Range(0f, 1f)] public float UltMisuseChance;
+
+        [Tooltip("Chance to use the trick when the fighter's bot rule fits.")]
+        [Range(0f, 1f)] public float TrickUseChance;
+
+        [Tooltip("Chance to use the trick off the mark while an enemy is perceived.")]
+        [Range(0f, 1f)] public float TrickMisuseChance;
+
+        [Tooltip("Chance to shoot into a random bush in range with nobody seen there.")]
+        [Range(0f, 1f)] public float EmptyBushShotChance;
+
+        [Tooltip("The retreat health threshold is shifted per life by a random amount within ± this.")]
+        [Range(0f, 1f)] public float RetreatThresholdJitter;
     }
 }

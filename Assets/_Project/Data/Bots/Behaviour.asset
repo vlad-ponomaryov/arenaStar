@@ -31,3 +31,21 @@ MonoBehaviour:
   WanderScore: 0.1
   PathNodeLimit: 2048
   MaxPathLength: 64
+  UltMinEnemies: 2
+  FocusMinEnemies: 2
+  FocusWindowSeconds: 1.5
+  EscapeEnemyDistance: 5
+  EnemyCloseDistance: 2.5
+  HealAllyHealthFraction: 0.6
+  ObjectivePlaceDistance: 1.5
+  MemorySeconds: 3
+  MemoryPredictSeconds: 0.5
+  BushNearCells: 1
+  HideBushRadiusCells: 6
+  EmptyBushShotAttempts: 8
+  CarrierAcorns: 8
+  CarrierRetreatHealthFraction: 0.6
+  CarrierBehindDistance: 1.5
+  HideInBushScore: 1.05
+  CheckBushScore: 0.55
+  StayWithTeamScore: 0.55

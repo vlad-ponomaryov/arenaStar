@@ -42,6 +42,9 @@ namespace Arena.Core.Defs
         /// <summary>Passive talent, or null.</summary>
         public TalentDef Talent;
 
+        /// <summary>When bots use the trick (<see cref="Defs.BotTrickHint"/>); ignored by the simulation.</summary>
+        public BotTrickHint BotTrickHint;
+
         /// <summary>Main attack range in cells (also the auto-aim radius, D-007) = <c>Attack.Range</c>.</summary>
         public float AttackRange => Attack != null ? Attack.Range : 0f;
 

@@ -17,5 +17,20 @@ namespace Arena.Bots.Utility
 
         /// <summary>The mode has an objective point (acorn, hollow, map centre).</summary>
         public bool HasObjective;
+
+        /// <summary>The perceived enemy is within the bot's fire range (a careful carrier attacks only then).</summary>
+        public bool TargetInFireRange;
+
+        /// <summary>Random shift of the retreat threshold for this life (difficulty "mistake": sometimes too late).</summary>
+        public float RetreatShift;
+
+        /// <summary>Carries <c>CarrierAcorns</c>+ acorns: retreats earlier, stays with the team, does not chase or check bushes.</summary>
+        public bool IsCarrier;
+
+        /// <summary>A bush to hide in was found (only searched when the bot wants to retreat).</summary>
+        public bool HasHideBush;
+
+        /// <summary>An enemy vanished near a bush within the memory time.</summary>
+        public bool HasBushMemory;
     }
 }

@@ -15,3 +15,9 @@ MonoBehaviour:
   Difficulty: 1
   AimSpreadDegrees: 15
   ReactionSeconds: 0.45
+  UltUseChance: 0.5
+  UltMisuseChance: 0.02
+  TrickUseChance: 0.5
+  TrickMisuseChance: 0.01
+  EmptyBushShotChance: 0.03
+  RetreatThresholdJitter: 0.06

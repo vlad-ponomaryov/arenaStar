@@ -49,7 +49,13 @@ namespace Arena.Data.Conversion
             {
                 Difficulty = c.Difficulty,
                 AimSpreadDegrees = c.AimSpreadDegrees,
-                ReactionTicks = SimTime.SecondsToTicks(c.ReactionSeconds)
+                ReactionTicks = SimTime.SecondsToTicks(c.ReactionSeconds),
+                UltUseChance = c.UltUseChance,
+                UltMisuseChance = c.UltMisuseChance,
+                TrickUseChance = c.TrickUseChance,
+                TrickMisuseChance = c.TrickMisuseChance,
+                EmptyBushShotChance = c.EmptyBushShotChance,
+                RetreatThresholdJitter = c.RetreatThresholdJitter
             };
             def.Validate();
             return def;
@@ -78,7 +84,25 @@ namespace Arena.Data.Conversion
                 ObjectiveScore = c.ObjectiveScore,
                 WanderScore = c.WanderScore,
                 PathNodeLimit = c.PathNodeLimit,
-                MaxPathLength = c.MaxPathLength
+                MaxPathLength = c.MaxPathLength,
+                UltMinEnemies = c.UltMinEnemies,
+                FocusMinEnemies = c.FocusMinEnemies,
+                FocusWindowTicks = SimTime.SecondsToTicks(c.FocusWindowSeconds),
+                EscapeEnemyDistance = c.EscapeEnemyDistance,
+                EnemyCloseDistance = c.EnemyCloseDistance,
+                HealAllyHealthFraction = c.HealAllyHealthFraction,
+                ObjectivePlaceDistance = c.ObjectivePlaceDistance,
+                MemoryTicks = SimTime.SecondsToTicks(c.MemorySeconds),
+                MemoryPredictTicks = SimTime.SecondsToTicks(c.MemoryPredictSeconds),
+                BushNearCells = c.BushNearCells,
+                HideBushRadiusCells = c.HideBushRadiusCells,
+                EmptyBushShotAttempts = c.EmptyBushShotAttempts,
+                CarrierAcorns = c.CarrierAcorns,
+                CarrierRetreatHealthFraction = c.CarrierRetreatHealthFraction,
+                CarrierBehindDistance = c.CarrierBehindDistance,
+                HideInBushScore = c.HideInBushScore,
+                CheckBushScore = c.CheckBushScore,
+                StayWithTeamScore = c.StayWithTeamScore
             };
             def.Validate();
             return def;
@@ -146,7 +170,8 @@ namespace Arena.Data.Conversion
                 Ult = ToOptionalAbilityDef(c.Ult, c.Id + ".Ult"),
                 UltChargeRequired = c.UltChargeRequired,
                 Trick = ToOptionalAbilityDef(c.Trick, c.Id + ".Trick"),
-                Talent = ToTalentDef(c.Talent)
+                Talent = ToTalentDef(c.Talent),
+                BotTrickHint = c.BotTrickHint
             };
             def.Validate();
             return def;

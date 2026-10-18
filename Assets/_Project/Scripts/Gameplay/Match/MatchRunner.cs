@@ -164,7 +164,7 @@ namespace Arena.Gameplay.Match
         {
             int count = _simulation.FighterCount;
             for (int i = 0; i < count; i++) _inputs[i] = default;
-            _bots.Update(_simulation.State, _simulation.Defs, _inputs);
+            _bots.Update(_simulation.State, _simulation.Defs, _simulation.Events, _inputs);
             _inputs[LocalSlot] = _inputCollector.ConsumeForTick();
             _simulation.Tick(_inputs);
             SimEventBuffer events = _simulation.Events;

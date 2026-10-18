@@ -59,6 +59,59 @@ namespace Arena.Bots.Defs
         /// <summary>Waypoints kept per bot; a longer path is cut and re-planned when its end is reached.</summary>
         public int MaxPathLength;
 
+        // --- Ult and trick (S2.9). ---
+
+        /// <summary>The ult is worth it with this many perceived enemies in its zone (GDD §7: 2).</summary>
+        public int UltMinEnemies;
+
+        /// <summary>"Focused" (<c>BotTrickHint.WhenFocused</c>): damaged by this many different enemies within <see cref="FocusWindowTicks"/>.</summary>
+        public int FocusMinEnemies;
+        public int FocusWindowTicks;
+
+        /// <summary><c>BotTrickHint.Escape</c>: retreating with a perceived enemy within this distance, cells.</summary>
+        public float EscapeEnemyDistance;
+
+        /// <summary><c>BotTrickHint.WhenEnemiesClose</c>: a perceived enemy within this distance, cells.</summary>
+        public float EnemyCloseDistance;
+
+        /// <summary><c>BotTrickHint.HealAllies</c>: the bot or an ally in the trick range is below this health fraction.</summary>
+        public float HealAllyHealthFraction;
+
+        /// <summary><c>BotTrickHint.PlaceAtObjective</c>: within this distance of the objective, cells.</summary>
+        public float ObjectivePlaceDistance;
+
+        // --- Memory and bushes (S2.9). ---
+
+        /// <summary>An enemy lost from sight is remembered (last position, velocity, tick) this long.</summary>
+        public int MemoryTicks;
+
+        /// <summary>The remembered position is extrapolated by the last velocity for at most this many ticks.</summary>
+        public int MemoryPredictTicks;
+
+        /// <summary>A bush cell within this many cells (per axis) of the extrapolated point is checked by an attack.</summary>
+        public int BushNearCells;
+
+        /// <summary>A retreating bot hides in a bush within this many cells (per axis) instead of walking to its spawn.</summary>
+        public int HideBushRadiusCells;
+
+        /// <summary>Random cells tried to find a bush for an empty-bush shot (a mistake).</summary>
+        public int EmptyBushShotAttempts;
+
+        // --- Acorns carrier (S2.9). ---
+
+        /// <summary>A bot carrying at least this many acorns plays carefully and stays with its team (GDD §7: 8).</summary>
+        public int CarrierAcorns;
+
+        /// <summary>The carrier retreats below this health fraction (if higher than its normal threshold).</summary>
+        public float CarrierRetreatHealthFraction;
+
+        /// <summary>The carrier's spot: the allies' centre moved this far towards the own spawn, cells.</summary>
+        public float CarrierBehindDistance;
+
+        public float HideInBushScore;
+        public float CheckBushScore;
+        public float StayWithTeamScore;
+
         public void Validate()
         {
             if (DecisionIntervalTicks < 1) throw new ArgumentException("BotBehaviourDef.DecisionIntervalTicks must be ≥ 1");
@@ -77,6 +130,20 @@ namespace Arena.Bots.Defs
             if (WanderAttempts < 1) throw new ArgumentException("BotBehaviourDef.WanderAttempts must be ≥ 1");
             if (PathNodeLimit < 1) throw new ArgumentException("BotBehaviourDef.PathNodeLimit must be ≥ 1");
             if (MaxPathLength < 1) throw new ArgumentException("BotBehaviourDef.MaxPathLength must be ≥ 1");
+            if (UltMinEnemies < 1) throw new ArgumentException("BotBehaviourDef.UltMinEnemies must be ≥ 1");
+            if (FocusMinEnemies < 1) throw new ArgumentException("BotBehaviourDef.FocusMinEnemies must be ≥ 1");
+            if (FocusWindowTicks < 1) throw new ArgumentException("BotBehaviourDef.FocusWindowTicks must be ≥ 1");
+            if (EscapeEnemyDistance < 0f || EnemyCloseDistance < 0f || ObjectivePlaceDistance < 0f)
+                throw new ArgumentException("BotBehaviourDef: trick distances must be ≥ 0");
+            if (HealAllyHealthFraction < 0f || HealAllyHealthFraction > 1f)
+                throw new ArgumentException("BotBehaviourDef.HealAllyHealthFraction must be in [0, 1]");
+            if (MemoryTicks < 0 || MemoryPredictTicks < 0) throw new ArgumentException("BotBehaviourDef: memory ticks must be ≥ 0");
+            if (BushNearCells < 0 || HideBushRadiusCells < 0) throw new ArgumentException("BotBehaviourDef: bush radii must be ≥ 0");
+            if (EmptyBushShotAttempts < 1) throw new ArgumentException("BotBehaviourDef.EmptyBushShotAttempts must be ≥ 1");
+            if (CarrierAcorns < 1) throw new ArgumentException("BotBehaviourDef.CarrierAcorns must be ≥ 1");
+            if (CarrierRetreatHealthFraction < 0f || CarrierRetreatHealthFraction > 1f)
+                throw new ArgumentException("BotBehaviourDef.CarrierRetreatHealthFraction must be in [0, 1]");
+            if (CarrierBehindDistance < 0f) throw new ArgumentException("BotBehaviourDef.CarrierBehindDistance must be ≥ 0");
         }
     }
 }

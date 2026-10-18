@@ -18,6 +18,9 @@ namespace Arena.Tests.EditMode.Bots
         public const float ViewRadius = 10f;
         public const float RetreatHealth = 0.35f;
         public const float LastChargeDistance = 3f;
+        public const int FocusWindow = 45;
+        public const int MemoryTicks = 90;
+        public const int CarrierAcorns = 8;
 
         public static BotBehaviourDef Behaviour() => new BotBehaviourDef
         {
@@ -39,17 +42,46 @@ namespace Arena.Tests.EditMode.Bots
             ObjectiveScore = 0.5f,
             WanderScore = 0.1f,
             PathNodeLimit = 2048,
-            MaxPathLength = 64
+            MaxPathLength = 64,
+            UltMinEnemies = 2,
+            FocusMinEnemies = 2,
+            FocusWindowTicks = FocusWindow,
+            EscapeEnemyDistance = 5f,
+            EnemyCloseDistance = 2.5f,
+            HealAllyHealthFraction = 0.6f,
+            ObjectivePlaceDistance = 1.5f,
+            MemoryTicks = MemoryTicks,
+            MemoryPredictTicks = 15,
+            BushNearCells = 1,
+            HideBushRadiusCells = 6,
+            EmptyBushShotAttempts = 8,
+            CarrierAcorns = CarrierAcorns,
+            CarrierRetreatHealthFraction = 0.6f,
+            CarrierBehindDistance = 1.5f,
+            HideInBushScore = 1.05f,
+            CheckBushScore = 0.55f,
+            StayWithTeamScore = 0.55f
         };
 
         public static BotDifficultyDef Novice() => new BotDifficultyDef
         {
-            Difficulty = BotDifficulty.Novice, AimSpreadDegrees = NoviceSpread, ReactionTicks = NoviceReaction
+            Difficulty = BotDifficulty.Novice, AimSpreadDegrees = NoviceSpread, ReactionTicks = NoviceReaction,
+            UltUseChance = 0.25f, UltMisuseChance = 0.05f, TrickUseChance = 0.25f, TrickMisuseChance = 0.02f,
+            EmptyBushShotChance = 0.06f, RetreatThresholdJitter = 0.12f
         };
 
         public static BotDifficultyDef Easy() => new BotDifficultyDef
         {
-            Difficulty = BotDifficulty.Easy, AimSpreadDegrees = EasySpread, ReactionTicks = EasyReaction
+            Difficulty = BotDifficulty.Easy, AimSpreadDegrees = EasySpread, ReactionTicks = EasyReaction,
+            UltUseChance = 0.5f, UltMisuseChance = 0.02f, TrickUseChance = 0.5f, TrickMisuseChance = 0.01f,
+            EmptyBushShotChance = 0.03f, RetreatThresholdJitter = 0.06f
+        };
+
+        /// <summary>Easy aim and reaction without random mistakes or misuse (deterministic yes/no scenarios).</summary>
+        public static BotDifficultyDef Careful() => new BotDifficultyDef
+        {
+            Difficulty = BotDifficulty.Easy, AimSpreadDegrees = EasySpread, ReactionTicks = EasyReaction,
+            UltUseChance = 0.5f, TrickUseChance = 0.5f
         };
 
         /// <summary>Controller with bots in the given slots (seed of the simulation's setup).</summary>
@@ -64,7 +96,7 @@ namespace Arena.Tests.EditMode.Bots
         public static void Step(MatchSimulation sim, BotController bots, PlayerInput[] inputs)
         {
             for (int i = 0; i < inputs.Length; i++) inputs[i] = default;
-            bots.Update(sim.State, sim.Defs, inputs);
+            bots.Update(sim.State, sim.Defs, sim.Events, inputs);
             sim.Tick(inputs);
         }
 

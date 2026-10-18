@@ -43,5 +43,22 @@ namespace Arena.Bots
         /// <summary>Strafe side around the target: −1 or +1, kept until <see cref="StrafeUntilTick"/>.</summary>
         public int StrafeSign;
         public int StrafeUntilTick;
+
+        /// <summary>Retreat threshold shift of this life (difficulty mistake, rolled at the start and after each defeat).</summary>
+        public float RetreatShift;
+
+        /// <summary>The last decision chose to use the ult at <see cref="TargetSlot"/>; pressed on the next possible tick.</summary>
+        public bool UltPending;
+
+        /// <summary>The last decision chose to use the trick along <see cref="TrickDir"/> (movement or aim by the trick).</summary>
+        public bool TrickPending;
+        public Vec2 TrickDir;
+
+        /// <summary>A mistake: shoot once at <see cref="BushShotPoint"/>, a bush where nobody was seen.</summary>
+        public bool BushShotPending;
+        public Vec2 BushShotPoint;
+
+        /// <summary>Enemy whose vanishing near a bush is being checked (<c>BotAction.CheckBush</c>), or −1.</summary>
+        public int MemoryEnemy;
     }
 }

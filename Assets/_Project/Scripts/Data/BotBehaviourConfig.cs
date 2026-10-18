@@ -63,5 +63,56 @@ namespace Arena.Data
 
         [Tooltip("Waypoints kept per bot; longer paths are re-planned when their end is reached.")]
         [Min(1)] public int MaxPathLength;
+
+        [Header("Ult and trick")]
+        [Tooltip("The ult is worth it with this many enemies in its zone (GDD §7: 2).")]
+        [Min(1)] public int UltMinEnemies;
+
+        [Tooltip("'Focused' (helmet trick): damaged by this many different enemies within the window (GDD §7: 2).")]
+        [Min(1)] public int FocusMinEnemies;
+
+        [Min(0f)] public float FocusWindowSeconds;
+
+        [Tooltip("Escape trick: retreating with an enemy within this distance, cells.")]
+        [Min(0f)] public float EscapeEnemyDistance;
+
+        [Tooltip("'Enemies close' trick: an enemy within this distance, cells.")]
+        [Min(0f)] public float EnemyCloseDistance;
+
+        [Tooltip("Heal trick: the bot or an ally in range is below this fraction of health.")]
+        [Range(0f, 1f)] public float HealAllyHealthFraction;
+
+        [Tooltip("Objective trick (mine): within this distance of the objective, cells.")]
+        [Min(0f)] public float ObjectivePlaceDistance;
+
+        [Header("Memory and bushes")]
+        [Tooltip("A lost enemy is remembered this long (bush checks).")]
+        [Min(0f)] public float MemorySeconds;
+
+        [Tooltip("The remembered position is extrapolated by the last velocity for at most this long.")]
+        [Min(0f)] public float MemoryPredictSeconds;
+
+        [Tooltip("A bush within this many cells of the remembered point is checked.")]
+        [Min(0)] public int BushNearCells;
+
+        [Tooltip("A retreating bot hides in a bush within this many cells.")]
+        [Min(0)] public int HideBushRadiusCells;
+
+        [Tooltip("Random cells tried for an empty-bush shot (a mistake).")]
+        [Min(1)] public int EmptyBushShotAttempts;
+
+        [Header("Acorns carrier")]
+        [Tooltip("A bot carrying this many acorns plays carefully (GDD §7: 8).")]
+        [Min(1)] public int CarrierAcorns;
+
+        [Range(0f, 1f)] public float CarrierRetreatHealthFraction;
+
+        [Tooltip("The carrier keeps this far behind the allies (towards the own spawn), cells.")]
+        [Min(0f)] public float CarrierBehindDistance;
+
+        [Header("Utility scores (S2.9)")]
+        public float HideInBushScore;
+        public float CheckBushScore;
+        public float StayWithTeamScore;
     }
 }

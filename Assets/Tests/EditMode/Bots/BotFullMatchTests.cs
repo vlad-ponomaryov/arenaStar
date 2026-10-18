@@ -38,6 +38,7 @@ namespace Arena.Tests.EditMode.Bots
             var inputs = TestMatchFactory.Inputs();
             int maxTicks = defs.Acorns.DurationTicks + 1;
 
+            AllocationAssert.InitializeTypes(typeof(MatchSimulation).Assembly, typeof(BotController).Assembly);
             long elapsed = 0;
             int ticks = 0;
             for (; ticks < WarmupTicks; ticks++) elapsed += TimedStep(sim, bots, inputs);

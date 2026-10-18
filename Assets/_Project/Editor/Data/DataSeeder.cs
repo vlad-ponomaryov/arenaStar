@@ -64,6 +64,48 @@ namespace Arena.Editor.Data
         private const int BotPathNodeLimit = 2048;
         private const int BotMaxPathLength = 64;
         private const BotDifficulty DefaultBots = BotDifficulty.Novice;
+
+        // PROTO (D-058): ult / trick / mistakes by difficulty — chances per decision (5 per second) while the situation fits;
+        // "misuse" = the ult at a lone tanky target in its zone / the trick at any perceived enemy; empty-bush shots without
+        // a reason; retreat threshold shifted per life by a random amount within ± jitter (sometimes too late).
+        // GDD §7: Novice "rarely and off the mark", Easy "sometimes".
+        private const float NoviceUltChance = 0.25f;
+        private const float NoviceUltMisuse = 0.05f;
+        private const float NoviceTrickChance = 0.25f;
+        private const float NoviceTrickMisuse = 0.02f;
+        private const float NoviceBushShot = 0.06f;
+        private const float NoviceRetreatJitter = 0.12f;
+        private const float EasyUltChance = 0.5f;
+        private const float EasyUltMisuse = 0.02f;
+        private const float EasyTrickChance = 0.5f;
+        private const float EasyTrickMisuse = 0.01f;
+        private const float EasyBushShot = 0.03f;
+        private const float EasyRetreatJitter = 0.06f;
+
+        // PROTO (D-058): ult at 2+ enemies (GDD §7); "focused" = hit by 2+ enemies within 1.5 s (GDD §7); escape roll with an
+        // enemy within 5 cells; "close" = 2.5 cells; heal below 60 %; mine within 1.5 cells of the objective; memory of a lost
+        // enemy 3 s, extrapolated by its last velocity for ≤ 0.5 s, bush within 1 cell of that point; hide in a bush within
+        // 6 cells when retreating; 8 random cells tried for an empty-bush shot; carrier of 8+ acorns (GDD §7) retreats below
+        // 60 % and keeps 1.5 cells behind the allies; scores: hide 1.05 (> retreat 1), check bush / stay with team 0.55
+        // (> objective 0.5, < attack 0.6).
+        private const int BotUltMinEnemies = 2;
+        private const int BotFocusMinEnemies = 2;
+        private const float BotFocusWindow = 1.5f;
+        private const float BotEscapeDistance = 5f;
+        private const float BotEnemyCloseDistance = 2.5f;
+        private const float BotHealAllyHealth = 0.6f;
+        private const float BotObjectivePlaceDistance = 1.5f;
+        private const float BotMemorySeconds = 3f;
+        private const float BotMemoryPredictSeconds = 0.5f;
+        private const int BotBushNearCells = 1;
+        private const int BotHideBushRadius = 6;
+        private const int BotEmptyBushShotAttempts = 8;
+        private const int BotCarrierAcorns = 8;
+        private const float BotCarrierRetreatHealth = 0.6f;
+        private const float BotCarrierBehind = 1.5f;
+        private const float BotHideInBushScore = 1.05f;
+        private const float BotCheckBushScore = 0.55f;
+        private const float BotStayWithTeamScore = 0.55f;
         private const bool RandomBotFighters = true;
 
         // Acorns mode (GDD §5.4): acorn every 6 s, golden every 60 s worth 3, 12 to hold for 12 s, 2:30 match.
@@ -278,8 +320,10 @@ namespace Arena.Editor.Data
             db.Strings = SeedStrings();
             if (db.BotDifficulties == null) db.BotDifficulties = new System.Collections.Generic.List<BotDifficultyConfig>();
             db.BotDifficulties.Clear();
-            db.BotDifficulties.Add(SeedBotDifficulty(BotNovicePath, BotDifficulty.Novice, NoviceSpread, NoviceReaction));
-            db.BotDifficulties.Add(SeedBotDifficulty(BotEasyPath, BotDifficulty.Easy, EasySpread, EasyReaction));
+            db.BotDifficulties.Add(SeedBotDifficulty(BotNovicePath, BotDifficulty.Novice, NoviceSpread, NoviceReaction,
+                NoviceUltChance, NoviceUltMisuse, NoviceTrickChance, NoviceTrickMisuse, NoviceBushShot, NoviceRetreatJitter));
+            db.BotDifficulties.Add(SeedBotDifficulty(BotEasyPath, BotDifficulty.Easy, EasySpread, EasyReaction,
+                EasyUltChance, EasyUltMisuse, EasyTrickChance, EasyTrickMisuse, EasyBushShot, EasyRetreatJitter));
             db.BotBehaviour = SeedBotBehaviour();
             EditorUtility.SetDirty(db);
 
@@ -374,12 +418,19 @@ namespace Arena.Editor.Data
             return c;
         }
 
-        private static BotDifficultyConfig SeedBotDifficulty(string path, BotDifficulty difficulty, float spread, float reaction)
+        private static BotDifficultyConfig SeedBotDifficulty(string path, BotDifficulty difficulty, float spread, float reaction,
+            float ultChance, float ultMisuse, float trickChance, float trickMisuse, float bushShot, float retreatJitter)
         {
             BotDifficultyConfig c = LoadOrCreate<BotDifficultyConfig>(path);
             c.Difficulty = difficulty;
             c.AimSpreadDegrees = spread;
             c.ReactionSeconds = reaction;
+            c.UltUseChance = ultChance;
+            c.UltMisuseChance = ultMisuse;
+            c.TrickUseChance = trickChance;
+            c.TrickMisuseChance = trickMisuse;
+            c.EmptyBushShotChance = bushShot;
+            c.RetreatThresholdJitter = retreatJitter;
             EditorUtility.SetDirty(c);
             return c;
         }
@@ -406,6 +457,24 @@ namespace Arena.Editor.Data
             c.WanderScore = BotWanderScore;
             c.PathNodeLimit = BotPathNodeLimit;
             c.MaxPathLength = BotMaxPathLength;
+            c.UltMinEnemies = BotUltMinEnemies;
+            c.FocusMinEnemies = BotFocusMinEnemies;
+            c.FocusWindowSeconds = BotFocusWindow;
+            c.EscapeEnemyDistance = BotEscapeDistance;
+            c.EnemyCloseDistance = BotEnemyCloseDistance;
+            c.HealAllyHealthFraction = BotHealAllyHealth;
+            c.ObjectivePlaceDistance = BotObjectivePlaceDistance;
+            c.MemorySeconds = BotMemorySeconds;
+            c.MemoryPredictSeconds = BotMemoryPredictSeconds;
+            c.BushNearCells = BotBushNearCells;
+            c.HideBushRadiusCells = BotHideBushRadius;
+            c.EmptyBushShotAttempts = BotEmptyBushShotAttempts;
+            c.CarrierAcorns = BotCarrierAcorns;
+            c.CarrierRetreatHealthFraction = BotCarrierRetreatHealth;
+            c.CarrierBehindDistance = BotCarrierBehind;
+            c.HideInBushScore = BotHideInBushScore;
+            c.CheckBushScore = BotCheckBushScore;
+            c.StayWithTeamScore = BotStayWithTeamScore;
             EditorUtility.SetDirty(c);
             return c;
         }
@@ -465,6 +534,7 @@ namespace Arena.Editor.Data
             {
                 Condition = TalentCondition.UltCharged, Modifier = TalentModifier.MoveSpeedMul, ValuePercent = PixTalentSpeedPercent
             };
+            c.BotTrickHint = BotTrickHint.Escape; // roll away when retreating (GDD §7)
             EditorUtility.SetDirty(c);
         }
 
@@ -492,6 +562,7 @@ namespace Arena.Editor.Data
                 Condition = TalentCondition.HealthBelow, Param = BrunoTalentHealthPercent,
                 Modifier = TalentModifier.DamageMul, ValuePercent = BrunoTalentDamagePercent
             };
+            c.BotTrickHint = BotTrickHint.WhenFocused; // helmet under fire of 2+ enemies (GDD §7)
             EditorUtility.SetDirty(c);
         }
 
@@ -538,6 +609,7 @@ namespace Arena.Editor.Data
             c.Ult = None();
             c.Trick = None();
             c.Talent = new TalentConfig();
+            c.BotTrickHint = BotTrickHint.None;
             EditorUtility.SetDirty(c);
             return c;
         }

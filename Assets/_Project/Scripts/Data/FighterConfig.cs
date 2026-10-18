@@ -40,5 +40,9 @@ namespace Arena.Data
         public AbilityConfig Trick = new AbilityConfig { Delivery = Arena.Core.Defs.DeliveryKind.None };
 
         public TalentConfig Talent = new TalentConfig();
+
+        [Header("Bots")]
+        [Tooltip("When bots use the trick (GDD §7): helmet when focused, roll to escape, etc.")]
+        public Arena.Core.Defs.BotTrickHint BotTrickHint;
     }
 }
