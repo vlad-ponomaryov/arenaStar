@@ -1,0 +1,17 @@
+{
+    "name": "Arena.Data",
+    "rootNamespace": "Arena.Data",
+    "references": [
+        "Arena.Core",
+        "Arena.Bots"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

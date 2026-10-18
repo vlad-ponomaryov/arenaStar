@@ -1,0 +1,32 @@
+{
+    "name": "Arena.Tests.EditMode",
+    "rootNamespace": "Arena.Tests.EditMode",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Arena.Core",
+        "Arena.Bots",
+        "Arena.Data",
+        "Arena.Gameplay",
+        "Arena.Modes",
+        "Arena.UI",
+        "Arena.Editor",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

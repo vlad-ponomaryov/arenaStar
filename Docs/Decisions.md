@@ -179,3 +179,8 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   `%LOCALAPPDATA%\Unity\licenses\`. Файл скопирован оркестратором; `Sync-ArenaUnityLicense` в `Tools/UnityCommon.ps1` перед
   каждым запуском копирует его снова, если в реальной папке файла нет или он старее (Hub обновил лицензию). (Оркестратор просил
   номер D-042, но он уже занят — записано как D-043.) Причина: без этого `No valid Unity Editor license` (Q-009).
+- D-044 (S1.2, 10:20) — Пространства имён — по папкам внутри asmdef (`Arena.Core.Sim.SimLimits`, `Arena.Gameplay.Flow.BootLoader`,
+  `Arena.UI.Menu.MenuScreen`); имена сцен — константы `Arena.Gameplay.Flow.SceneNames`. URP-флаги (HDR, MSAA, тени, доп. свет)
+  ставятся через `SerializedObject` по именам полей (`m_SupportsHDR` и т.д.; часть свойств URP 17 без публичного сеттера),
+  отсутствие поля — исключение. Временные размеры/цвета меню — `[SerializeField]` в `MenuScreen` до `UiStyle` (S2.7).
+  `Arena.Editor` и тестовая сборка ссылаются на `Unity.RenderPipelines.Universal.Runtime`. Причина: проверяемо и без YAML.
