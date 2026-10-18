@@ -43,6 +43,9 @@ namespace Arena.Core.State
         /// <summary>Bit per team that sees it (hidden mines: own team + enemies closer than the reveal distance; else all).</summary>
         public uint VisibleToTeams;
 
+        /// <summary>Damage in percent of the effect values (100 + the shot boost of a lobbed attack).</summary>
+        public int DamagePercent;
+
         public bool IsVisibleTo(int team) => (uint)team < 32u && (VisibleToTeams & (1u << team)) != 0;
 
         public bool Equals(AreaState o)
@@ -50,7 +53,8 @@ namespace Arena.Core.State
             return Active == o.Active && Triggered == o.Triggered && Kind == o.Kind && Owner == o.Owner && Team == o.Team
                 && Position == o.Position && Origin == o.Origin && SpawnTick == o.SpawnTick && Radius == o.Radius
                 && ActivateTick == o.ActivateTick && ExpireTick == o.ExpireTick && AbilityRef == o.AbilityRef
-                && NextPulseTick == o.NextPulseTick && PulseIndex == o.PulseIndex && VisibleToTeams == o.VisibleToTeams;
+                && NextPulseTick == o.NextPulseTick && PulseIndex == o.PulseIndex && VisibleToTeams == o.VisibleToTeams
+                && DamagePercent == o.DamagePercent;
         }
 
         public override bool Equals(object obj) => obj is AreaState other && Equals(other);

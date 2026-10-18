@@ -1,6 +1,7 @@
 using Arena.Core.Defs;
 using Arena.Core.Input;
 using Arena.Core.Math;
+using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 
@@ -11,6 +12,7 @@ namespace Arena.Core.Sim.Systems
     /// <see cref="InputButtons.Attack"/> with a charge left (and not dashing), spends one charge, resolves the aim
     /// (<see cref="TargetingSystem"/>) and fires the first shot; the rest of a burst (<see cref="AbilityDef.BurstCount"/>)
     /// follows every <see cref="AbilityDef.BurstIntervalTicks"/> in the same direction. A press during a burst is ignored.
+    /// A shot boost (<see cref="EffectKind.BoostShots"/>) is spent at the press and applies to the whole burst.
     /// Shots are delivered by <see cref="AbilitySystem.Activate"/> (shared with ult and trick).
     /// </summary>
     public static class AttackSystem
@@ -28,7 +30,8 @@ namespace Arena.Core.Sim.Systems
                 {
                     f.BurstShotsLeft--;
                     f.NextBurstTick = tick + attack.BurstIntervalTicks;
-                    AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, f.BurstDir);
+                    AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, f.BurstDir, -1f,
+                        EffectContext.FullDamagePercent + f.ShotBonusPercent);
                 }
                 return;
             }
@@ -41,8 +44,14 @@ namespace Arena.Core.Sim.Systems
             f.BurstDir = dir;
             f.BurstShotsLeft = attack.BurstCount - 1;
             f.NextBurstTick = tick + attack.BurstIntervalTicks;
+            f.ShotBonusPercent = 0;
+            if (f.BoostedShotsLeft > 0)
+            {
+                f.BoostedShotsLeft--;
+                f.ShotBonusPercent = f.BoostPercent;
+            }
             AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, dir,
-                AbilitySystem.ResolveDistance(state, slot, in input, attack));
+                AbilitySystem.ResolveDistance(state, slot, in input, attack), EffectContext.FullDamagePercent + f.ShotBonusPercent);
         }
     }
 }

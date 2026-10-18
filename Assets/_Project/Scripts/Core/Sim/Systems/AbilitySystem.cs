@@ -73,9 +73,10 @@ namespace Arena.Core.Sim.Systems
         }
 
         /// <summary>Delivers one shot of <paramref name="ability"/> from the fighter in <paramref name="slot"/> along the unit
-        /// <paramref name="dir"/>; <paramref name="distance"/> is the throw distance of a lob (negative = full range).</summary>
+        /// <paramref name="dir"/>; <paramref name="distance"/> is the throw distance of a lob (negative = full range);
+        /// <paramref name="damagePercent"/> scales its damage (a boosted attack shot). Dashes ignore the percent.</summary>
         public static void Activate(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, AbilityDef ability,
-            int abilityRef, Vec2 dir, float distance = -1f)
+            int abilityRef, Vec2 dir, float distance = -1f, int damagePercent = EffectContext.FullDamagePercent)
         {
             ref FighterState f = ref state.Fighters[slot];
             int tick = state.Globals.Tick;
@@ -90,28 +91,31 @@ namespace Arena.Core.Sim.Systems
             switch (ability.Delivery)
             {
                 case DeliveryKind.Projectile:
-                    FireProjectiles(state, slot, f.Team, f.Position, dir, ability, abilityRef);
+                    FireProjectiles(state, slot, f.Team, f.Position, dir, ability, abilityRef, damagePercent);
+                    break;
+                case DeliveryKind.Hook:
+                    ProjectileSystem.TrySpawn(state, slot, f.Team, f.Position, dir, ability, abilityRef, damagePercent);
                     break;
                 case DeliveryKind.MeleeCone:
-                    HitCone(state, defs, events, slot, f.Team, f.Position, dir, ability, abilityRef);
+                    HitCone(state, defs, events, slot, f.Team, f.Position, dir, ability, abilityRef, damagePercent);
                     break;
                 case DeliveryKind.Dash:
                     DashSystem.Start(state, slot, ability, abilityRef, dir);
                     break;
                 case DeliveryKind.SelfArea:
-                    HitSelfArea(state, defs, events, slot, f.Team, f.Position, ability, abilityRef);
+                    HitSelfArea(state, defs, events, slot, f.Team, f.Position, ability, abilityRef, damagePercent);
                     break;
                 case DeliveryKind.SelfBuff:
-                    var ctx = new EffectContext(ability, abilityRef, slot, f.Team, f.Position, dir);
+                    var ctx = new EffectContext(ability, abilityRef, slot, f.Team, f.Position, dir, damagePercent);
                     EffectSystem.ApplyAbility(state, defs, events, in ctx, slot);
                     break;
                 case DeliveryKind.Lob:
                     float d = distance < 0f || distance > ability.Range ? ability.Range : distance;
                     Vec2 point = GridCollision.ClampToMap(f.Position + dir * d, MathUtil.DistanceEpsilon, state.Globals.MapWidth, state.Globals.MapHeight);
-                    SpawnArea(state, defs, slot, f.Position, point, ability, abilityRef);
+                    SpawnArea(state, defs, slot, f.Position, point, ability, abilityRef, damagePercent);
                     break;
                 case DeliveryKind.PlaceArea:
-                    SpawnArea(state, defs, slot, f.Position, f.Position, ability, abilityRef);
+                    SpawnArea(state, defs, slot, f.Position, f.Position, ability, abilityRef, damagePercent);
                     break;
             }
         }
@@ -121,7 +125,8 @@ namespace Arena.Core.Sim.Systems
         /// <see cref="AbilityDef.AreaDelayTicks"/>; a mine / field lasts <see cref="AbilityDef.AreaDurationTicks"/> more.
         /// Returns the area slot, or −1 if all slots are busy (counted).
         /// </summary>
-        public static int SpawnArea(MatchState state, MatchDefs defs, int slot, Vec2 origin, Vec2 point, AbilityDef ability, int abilityRef)
+        public static int SpawnArea(MatchState state, MatchDefs defs, int slot, Vec2 origin, Vec2 point, AbilityDef ability, int abilityRef,
+            int damagePercent = EffectContext.FullDamagePercent)
         {
             ref FighterState f = ref state.Fighters[slot];
             int tick = state.Globals.Tick;
@@ -131,6 +136,7 @@ namespace Arena.Core.Sim.Systems
             int expire = kind == AreaKind.Burst ? activate : activate + ability.AreaDurationTicks;
             int area = AreaSystem.TrySpawn(state, slot, f.Team, point, radius, activate, expire, abilityRef, kind, origin);
             if (area >= 0 && kind == AreaKind.Field) state.Areas[area].NextPulseTick = activate + ability.AreaPulseTicks;
+            if (area >= 0) state.Areas[area].DamagePercent = damagePercent;
             return area;
         }
 
@@ -138,18 +144,20 @@ namespace Arena.Core.Sim.Systems
         /// One projectile, or a fan of <see cref="AbilityDef.ProjectileCount"/> spread evenly from −spread/2 to +spread/2
         /// around <paramref name="dir"/> (each projectile hits independently).
         /// </summary>
-        public static void FireProjectiles(MatchState state, int slot, int team, Vec2 origin, Vec2 dir, AbilityDef ability, int abilityRef)
+        public static void FireProjectiles(MatchState state, int slot, int team, Vec2 origin, Vec2 dir, AbilityDef ability, int abilityRef,
+            int damagePercent = EffectContext.FullDamagePercent)
         {
             int n = ability.ProjectileCount < 1 ? 1 : ability.ProjectileCount;
             if (n == 1)
             {
-                ProjectileSystem.TrySpawn(state, slot, team, origin, dir, ability, abilityRef);
+                ProjectileSystem.TrySpawn(state, slot, team, origin, dir, ability, abilityRef, damagePercent);
                 return;
             }
             float spread = ability.SpreadDegrees;
             float step = spread / (n - 1);
             for (int k = 0; k < n; k++)
-                ProjectileSystem.TrySpawn(state, slot, team, origin, MathUtil.Rotate(dir, -spread * 0.5f + step * k), ability, abilityRef);
+                ProjectileSystem.TrySpawn(state, slot, team, origin, MathUtil.Rotate(dir, -spread * 0.5f + step * k), ability, abilityRef,
+                    damagePercent);
         }
 
         /// <summary>
@@ -158,10 +166,10 @@ namespace Arena.Core.Sim.Systems
         /// Knockback pushes away from the origin.
         /// </summary>
         public static void HitCone(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, int team, Vec2 origin,
-            Vec2 dir, AbilityDef ability, int abilityRef)
+            Vec2 dir, AbilityDef ability, int abilityRef, int damagePercent = EffectContext.FullDamagePercent)
         {
             float cosHalf = MathF.Cos(ability.ConeAngleDegrees * 0.5f * MathUtil.DegToRad);
-            var ctx = new EffectContext(ability, abilityRef, slot, team, origin, Vec2.Zero);
+            var ctx = new EffectContext(ability, abilityRef, slot, team, origin, Vec2.Zero, damagePercent);
             int count = state.Globals.FighterCount;
             TileGrid grid = state.Grid;
             for (int j = 0; j < count; j++)
@@ -182,9 +190,9 @@ namespace Arena.Core.Sim.Systems
         /// (the caster itself if an effect has the Self filter). Knockback pushes away from the caster.
         /// </summary>
         public static void HitSelfArea(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, int team, Vec2 origin,
-            AbilityDef ability, int abilityRef)
+            AbilityDef ability, int abilityRef, int damagePercent = EffectContext.FullDamagePercent)
         {
-            var ctx = new EffectContext(ability, abilityRef, slot, team, origin, Vec2.Zero);
+            var ctx = new EffectContext(ability, abilityRef, slot, team, origin, Vec2.Zero, damagePercent);
             int count = state.Globals.FighterCount;
             for (int j = 0; j < count; j++)
             {

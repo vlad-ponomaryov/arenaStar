@@ -14,7 +14,8 @@ namespace Arena.Bots.Utility
     /// <see cref="BotDifficultyDef.UltMisuseChance"/> ("rarely and off the mark"). Zones by delivery: a fan / single projectile
     /// (range and angle, the body counts), a dash (a strip of the caster's width), a cone, a circle around the caster, a lob
     /// (the blast circle at the target — any enemy that close to the target, within the throw range), a placed area (its
-    /// circle around the caster).
+    /// circle around the caster), a hook (a single projectile line). Engage ults (<see cref="IsEngageUlt"/>) are worth it with the
+    /// target in reach.
     /// Pure functions.
     /// </summary>
     public static class UltDecision
@@ -27,10 +28,11 @@ namespace Arena.Bots.Utility
             switch (ult.Delivery)
             {
                 case DeliveryKind.Projectile:
+                case DeliveryKind.Hook:
                 {
                     if (distance > ult.Range + targetRadius) return false;
                     if (distance <= targetRadius) return true;
-                    float half = ult.ProjectileCount > 1 ? ult.SpreadDegrees * 0.5f : 0f;
+                    float half = ult.Delivery == DeliveryKind.Projectile && ult.ProjectileCount > 1 ? ult.SpreadDegrees * 0.5f : 0f;
                     float tolerance = MathF.Atan2(targetRadius + ult.ProjectileRadius, distance) * MathUtil.RadToDeg;
                     return MathUtil.AngleBetween(dir, to) <= half + tolerance;
                 }
@@ -93,6 +95,13 @@ namespace Arena.Bots.Utility
             int hits = 1 + (int)MathF.Floor(covered / step);
             return perHit * MathUtil.Min(hits, drops);
         }
+
+        /// <summary>
+        /// A single-target "engage" ult — a hook (Vex pulls himself in) or a self buff (Nova's eye: reveal + boosted shots) —
+        /// is worth using whenever the target is in its reach (the hook's line, the attack range for a buff).
+        /// </summary>
+        public static bool IsEngageUlt(AbilityDef ult) =>
+            ult != null && (ult.Delivery == DeliveryKind.Hook || ult.Delivery == DeliveryKind.SelfBuff);
 
         /// <summary>The ult is worth using: enough enemies in the zone, or it finishes the target.</summary>
         public static bool IsWorthIt(int enemiesInZone, int targetHealth, int damageOnTarget, BotBehaviourDef b) =>

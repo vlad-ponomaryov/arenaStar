@@ -2,8 +2,8 @@ namespace Arena.Core.Defs
 {
     /// <summary>
     /// How an ability reaches its targets (D-011). Implemented: projectile (single or fan, pierce, bounce), melee cone, dash,
-    /// self area, self buff, lob, placed area (S2.11). Reserved (rejected by <see cref="AbilityDef.Validate"/> until S2.12):
-    /// hook. Append new kinds at the end — the value is serialized in configs.
+    /// self area, self buff, lob, placed area (S2.11), hook (S2.12). Append new kinds at the end — the value is serialized
+    /// in configs.
     /// </summary>
     public enum DeliveryKind : byte
     {
@@ -35,7 +35,9 @@ namespace Arena.Core.Defs
         /// <summary>An area of <see cref="AbilityDef.PlacedArea"/> kind placed at the caster position (mine, dome).</summary>
         PlaceArea = 7,
 
-        /// <summary>Reserved (S2.12): hook that pulls the caster to a wall or a target.</summary>
+        /// <summary>A projectile (as <see cref="Projectile"/>, single, no pierce/bounce) that pulls its caster at
+        /// <see cref="AbilityDef.DashSpeed"/>: hitting a wall — to the wall; hitting an enemy — to the enemy (next to its body),
+        /// the effects apply to the enemy at the hit. A miss does nothing (Vex's "Hook").</summary>
         Hook = 8
     }
 }

@@ -74,6 +74,17 @@ namespace Arena.Core.State
         /// <summary>Acorns carried (Acorns mode); dropped on defeat (<c>AcornsRules.OnDefeat</c>).</summary>
         public int CarriedAcorns;
 
+        // --- Shot boost (EffectKind.BoostShots; lost on defeat). ---
+
+        /// <summary>Attack activations still boosted by <see cref="BoostPercent"/>.</summary>
+        public int BoostedShotsLeft;
+
+        /// <summary>Damage bonus of the boosted activations, percent.</summary>
+        public int BoostPercent;
+
+        /// <summary>Damage bonus of the current attack activation (all shots of its burst), percent; 0 = none.</summary>
+        public int ShotBonusPercent;
+
         // --- Aggregates of the active statuses (StatusSystem recomputes them; neutral = 1 / false / 0). ---
 
         /// <summary>Movement speed multiplier from slows (1 = normal).</summary>
@@ -140,6 +151,7 @@ namespace Arena.Core.State
                 && BurstDir == o.BurstDir && UltCharge == o.UltCharge
                 && TrickUsesLeft == o.TrickUsesLeft && TrickReadyTick == o.TrickReadyTick
                 && TrickUnlocked == o.TrickUnlocked && TalentUnlocked == o.TalentUnlocked && CarriedAcorns == o.CarriedAcorns
+                && BoostedShotsLeft == o.BoostedShotsLeft && BoostPercent == o.BoostPercent && ShotBonusPercent == o.ShotBonusPercent
                 && SpeedMul == o.SpeedMul && DamageTakenMul == o.DamageTakenMul && Stunned == o.Stunned
                 && Invisible == o.Invisible && MarkedByTeamMask == o.MarkedByTeamMask
                 && InBush == o.InBush && VisibleToTeams == o.VisibleToTeams && RevealedUntilTick == o.RevealedUntilTick

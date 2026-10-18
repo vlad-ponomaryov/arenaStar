@@ -2,7 +2,7 @@ namespace Arena.Core.Defs
 {
     /// <summary>
     /// What a talent changes while its condition holds (D-011); <see cref="TalentDef.Value"/> is in percent.
-    /// Reserved kinds are rejected by <see cref="TalentDef.Validate"/> until S2.11–S2.12. Append new kinds at the end.
+    /// Append new kinds at the end.
     /// </summary>
     public enum TalentModifier : byte
     {
@@ -22,7 +22,7 @@ namespace Arena.Core.Defs
         /// <see cref="TalentCondition.AllyAura"/> only).</summary>
         RegenDelay = 4,
 
-        /// <summary>Reserved (Vex, S2.12): refill all attack charges.</summary>
+        /// <summary>Refill all attack charges at once (Vex; with <see cref="TalentCondition.OnKill"/> only).</summary>
         RefillCharges = 5
     }
 }

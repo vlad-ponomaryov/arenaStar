@@ -297,9 +297,12 @@ namespace Arena.Bots
             if (dir.IsZero) return;
             if (NeedsClearShot(ult) && !Perception.HasClearShot(state.Grid, f.Position, t.Position)) return;
             float targetRadius = defs.Fighters[t.DefIndex].Radius;
-            bool inZone = UltDecision.IsInZone(ult, f.Position, dir, def.Radius, t.Position, targetRadius);
+            bool inZone = ult.Delivery == DeliveryKind.SelfBuff
+                ? distance <= def.AttackRange * _behaviour.FireRangeFraction
+                : UltDecision.IsInZone(ult, f.Position, dir, def.Radius, t.Position, targetRadius);
             bool worth = false;
-            if (inZone)
+            if (inZone && UltDecision.IsEngageUlt(ult)) worth = true;
+            else if (inZone)
             {
                 int enemies = UltDecision.CountInZone(state, defs, slot, ult, dir, PerceivedMask(slot, state.Globals.FighterCount));
                 int damage = UltDecision.EstimateDamageOnTarget(ult, f.Level, defs.Rules, distance, targetRadius);

@@ -207,7 +207,8 @@ namespace Arena.Data.Conversion
                     Filter = e.Filter,
                     Value = e.Value,
                     DurationTicks = SimTime.SecondsToTicks(e.DurationSeconds),
-                    Distance = e.Distance
+                    Distance = e.Distance,
+                    Count = e.Count
                 };
             }
             return new AbilityDef
@@ -219,6 +220,7 @@ namespace Arena.Data.Conversion
                 ProjectileCount = c.ProjectileCount,
                 SpreadDegrees = c.SpreadDegrees,
                 PierceCount = c.PierceCount,
+                PierceFalloffPercent = c.PierceFalloffPercent,
                 PierceAll = c.PierceAll,
                 BounceCount = c.BounceCount,
                 BounceRange = c.BounceRange,

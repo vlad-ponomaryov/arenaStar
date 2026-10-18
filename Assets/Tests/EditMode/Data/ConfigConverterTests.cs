@@ -99,15 +99,66 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(15, bruno.Talent.Value);
         }
 
-        [TestCase("nova")]
-        [TestCase("vex")]
-        public void OtherFighters_HaveNoUltTrickTalentYet(string id)
+        [Test]
+        public void Nova_FromAsset_HasGddSet()
         {
             MatchDefs defs = LoadDefs();
-            FighterDef f = defs.Fighters[defs.IndexOfFighter(id)];
-            Assert.IsNull(f.Ult, "S2.12");
-            Assert.IsNull(f.Trick);
-            Assert.IsNull(f.Talent);
+            FighterDef nova = defs.Fighters[defs.IndexOfFighter("nova")];
+            Assert.AreEqual(2600, nova.MaxHealth);
+            Assert.AreEqual(60, nova.AttackRechargeTicks, "2.0 s");
+            Assert.AreEqual(DeliveryKind.Projectile, nova.Attack.Delivery);
+            Assert.AreEqual(10f, nova.Attack.Range, 1e-5f);
+            Assert.AreEqual(1, nova.Attack.PierceCount, "pierces the first enemy");
+            Assert.AreEqual(50, nova.Attack.PierceFalloffPercent, "the second takes 50 %");
+            Assert.AreEqual(1500, nova.Attack.Effects[0].Value);
+            Assert.AreEqual(EffectKind.Mark, nova.Attack.Effects[1].Kind);
+            Assert.AreEqual(120, nova.Attack.Effects[1].DurationTicks, "4 s");
+
+            Assert.AreEqual(DeliveryKind.SelfBuff, nova.Ult.Delivery);
+            Assert.AreEqual(EffectKind.TeamReveal, nova.Ult.Effects[0].Kind);
+            Assert.AreEqual(150, nova.Ult.Effects[0].DurationTicks, "5 s");
+            Assert.AreEqual(EffectKind.BoostShots, nova.Ult.Effects[1].Kind);
+            Assert.AreEqual(30, nova.Ult.Effects[1].Value);
+            Assert.AreEqual(3, nova.Ult.Effects[1].Count);
+
+            Assert.AreEqual(DeliveryKind.SelfArea, nova.Trick.Delivery);
+            Assert.AreEqual(2f, nova.Trick.Range, 1e-5f);
+            Assert.AreEqual(EffectKind.Knockback, nova.Trick.Effects[0].Kind);
+            Assert.AreEqual(3f, nova.Trick.Effects[0].Distance, 1e-5f);
+
+            Assert.AreEqual(TalentCondition.TargetMarked, nova.Talent.Condition);
+            Assert.AreEqual(TalentModifier.DamageMul, nova.Talent.Modifier);
+            Assert.AreEqual(20, nova.Talent.Value);
+            Assert.AreEqual(BotTrickHint.WhenEnemiesClose, nova.BotTrickHint);
+        }
+
+        [Test]
+        public void Vex_FromAsset_HasGddSet()
+        {
+            MatchDefs defs = LoadDefs();
+            FighterDef vex = defs.Fighters[defs.IndexOfFighter("vex")];
+            Assert.AreEqual(3600, vex.MaxHealth);
+            Assert.AreEqual(27, vex.AttackRechargeTicks, "0.9 s");
+            Assert.AreEqual(DeliveryKind.MeleeCone, vex.Attack.Delivery);
+            Assert.AreEqual(1.8f, vex.Attack.Range, 1e-5f);
+            Assert.AreEqual(2, vex.Attack.BurstCount, "two strikes");
+            Assert.AreEqual(520, vex.Attack.Effects[0].Value);
+
+            Assert.AreEqual(DeliveryKind.Hook, vex.Ult.Delivery);
+            Assert.AreEqual(7f, vex.Ult.Range, 1e-5f);
+            Assert.Greater(vex.Ult.DashSpeed, 0f, "pull speed");
+            Assert.AreEqual(800, vex.Ult.Effects[0].Value);
+            Assert.AreEqual(EffectKind.Slow, vex.Ult.Effects[1].Kind);
+            Assert.AreEqual(30, vex.Ult.Effects[1].Value);
+            Assert.AreEqual(30, vex.Ult.Effects[1].DurationTicks, "1 s");
+
+            Assert.AreEqual(DeliveryKind.SelfBuff, vex.Trick.Delivery);
+            Assert.AreEqual(EffectKind.Invisibility, vex.Trick.Effects[0].Kind);
+            Assert.AreEqual(45, vex.Trick.Effects[0].DurationTicks, "1.5 s");
+
+            Assert.AreEqual(TalentCondition.OnKill, vex.Talent.Condition);
+            Assert.AreEqual(TalentModifier.RefillCharges, vex.Talent.Modifier);
+            Assert.AreEqual(BotTrickHint.Engage, vex.BotTrickHint);
         }
 
         [Test]

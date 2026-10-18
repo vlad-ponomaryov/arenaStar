@@ -7,7 +7,8 @@ using Arena.Core.State;
 namespace Arena.Core.Sim.Effects
 {
     /// <summary>
-    /// <see cref="EffectKind.Damage"/>: value scaled by the source level (GDD §6) and the source talent; the target's
+    /// <see cref="EffectKind.Damage"/>: value scaled by the source level (GDD §6), the source talent (also against this target:
+    /// marked targets) and the context's damage percent (shot boost, pierce falloff); the target's
     /// damage reduction is applied inside <see cref="DamageSystem"/> (the single point of health changes).
     /// </summary>
     public static class DamageEffect
@@ -16,9 +17,9 @@ namespace Arena.Core.Sim.Effects
         {
             int level = ctx.Source >= 0 ? state.Fighters[ctx.Source].Level : 1;
             int amount = defs.Rules.ScaleByLevel(effect.Value, level);
-            float mul = TalentSystem.DamageMultiplier(state, defs, ctx.Source);
+            float mul = TalentSystem.DamageMultiplier(state, defs, ctx.Source, target);
             if (mul != 1f) amount = MathUtil.RoundToInt(amount * mul);
-            amount = ctx.Portion(amount);
+            amount = ctx.Portion(ctx.ScaleDamage(amount));
             DamageSystem.ApplyDamage(state, defs, events, ctx.Source, target, amount, ctx.ChargesUlt, ctx.AbilityRef);
         }
     }

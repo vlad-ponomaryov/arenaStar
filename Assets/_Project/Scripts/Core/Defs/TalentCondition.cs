@@ -2,7 +2,6 @@ namespace Arena.Core.Defs
 {
     /// <summary>
     /// When a talent modifier is active (D-011), evaluated on demand from the current state (no stored talent state).
-    /// Reserved kinds are rejected by <see cref="TalentDef.Validate"/> until their fighters' steps (S2.11–S2.12).
     /// Append new kinds at the end.
     /// </summary>
     public enum TalentCondition : byte
@@ -16,10 +15,11 @@ namespace Arena.Core.Defs
         /// <summary>While health is below <see cref="TalentDef.Param"/> % of max (Bruno).</summary>
         HealthBelow = 2,
 
-        /// <summary>Reserved (Nova, S2.12): against targets marked by the fighter team.</summary>
+        /// <summary>Against targets marked by the fighter's team (<see cref="EffectKind.Mark"/>; Nova, with
+        /// <see cref="TalentModifier.DamageMul"/> only).</summary>
         TargetMarked = 3,
 
-        /// <summary>Reserved (Vex, S2.12): triggered by defeating an enemy.</summary>
+        /// <summary>Triggered when the fighter defeats an enemy (Vex, with <see cref="TalentModifier.RefillCharges"/> only).</summary>
         OnKill = 4,
 
         /// <summary>Aura (Kora): affects allies (not the owner) within <see cref="TalentDef.Param"/> cells of the owner.</summary>

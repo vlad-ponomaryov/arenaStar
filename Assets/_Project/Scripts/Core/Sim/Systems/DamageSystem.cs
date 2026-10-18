@@ -11,7 +11,7 @@ namespace Arena.Core.Sim.Systems
     /// <see cref="FighterState.DamageTakenMul"/>), healing, defeat, statistics and events. Effects call it; nothing else
     /// writes <see cref="FighterState.Health"/> during a tick (except regen). Damage of the main attack charges the
     /// attacker's ult (<see cref="UltSystem.AddCharge"/>). Defeat costs part of the ult charge and clears statuses,
-    /// dash and knockback.
+    /// dash, knockback and the shot boost; the winner's on-kill talent fires (<see cref="TalentSystem.OnKill"/>).
     /// </summary>
     public static class DamageSystem
     {
@@ -74,9 +74,14 @@ namespace Arena.Core.Sim.Systems
             UltSystem.OnDefeat(ref t, defs.Rules);
             AcornsRules.OnDefeat(state, defs, events, target);
 
+            t.BoostedShotsLeft = 0;
+            t.BoostPercent = 0;
+            t.ShotBonusPercent = 0;
+
             state.Stats[target].Deaths++;
             if (source >= 0 && source != target) state.Stats[source].Kills++;
             events.Add(new SimEvent(SimEventType.FighterDefeated, tick, source, target, t.RespawnTick, t.Position, Vec2.Zero));
+            if (source >= 0 && source != target) TalentSystem.OnKill(state, defs, events, source);
         }
     }
 }

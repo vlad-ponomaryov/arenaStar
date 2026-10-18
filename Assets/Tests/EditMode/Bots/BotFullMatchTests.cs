@@ -14,7 +14,8 @@ using UnityEditor;
 namespace Arena.Tests.EditMode.Bots
 {
     /// <summary>
-    /// A full 2:30 Acorns match of 6 bots on the seeded data (map "Glade", seeded fighters and bots): it ends with a result,
+    /// A full 2:30 Acorns match of 6 bots on the seeded data (map "Glade", seeded fighters and bots; random fighters per seed,
+    /// or the seeded line-up of all six): it ends with a result,
     /// throws nothing, allocates nothing in the steady state, and simulation + bots stay well under the tick budget.
     /// </summary>
     public sealed class BotFullMatchTests
@@ -22,14 +23,15 @@ namespace Arena.Tests.EditMode.Bots
         private const int WarmupTicks = 300;
         private const double SoftBudgetMs = 2.0;
 
-        [TestCase(1)]
-        [TestCase(42)]
-        public void SixBots_FullMatch_EndsWithResult_NoAllocations_FastTicks(int seed)
+        [TestCase(1, true)]
+        [TestCase(42, true)]
+        [TestCase(7, false)] // the seeded line-up: all six fighters (S2.12)
+        public void SixBots_FullMatch_EndsWithResult_NoAllocations_FastTicks(int seed, bool randomFighters)
         {
             DataSeeder.SeedAll();
             var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
             MatchDefs defs = ConfigConverter.ToMatchDefs(db);
-            MatchSetup setup = MatchSetupFactory.Create(db.MatchRunner, defs, null, seed, true);
+            MatchSetup setup = MatchSetupFactory.Create(db.MatchRunner, defs, null, seed, randomFighters);
             var sim = new MatchSimulation(defs, setup);
             var bots = new BotController(ConfigConverter.ToBotBehaviourDef(db.BotBehaviour));
             BotDifficultyDef novice = ConfigConverter.ToBotDifficultyDef(db.FindBotDifficulty(BotDifficulty.Novice));

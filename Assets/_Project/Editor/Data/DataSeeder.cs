@@ -229,8 +229,7 @@ namespace Arena.Editor.Data
         private const float RadiusLarge = 0.55f;
         private const float RadiusMedium = 0.5f;
 
-        // PROTO (D-013): attack delivery. Pix, Bruno (S2.3), Chomp, Kora (S2.11) are final; Nova and Vex are placeholders
-        // until their own deliveries (pierce falloff, double strike) arrive in S2.12.
+        // PROTO (D-013): attack delivery (projectile speeds/radii, the pause between Vex's two strikes).
         private const float PixDropSpeed = 12f;
         private const float PixDropRadius = 0.2f;
         private const int PixBurstCount = 4;
@@ -240,7 +239,6 @@ namespace Arena.Editor.Data
         private const float KoraCupRadius = 0.25f;
         private const float NovaConeSpeed = 18f;
         private const float NovaConeRadius = 0.15f;
-        private const int NovaPierce = 1;
         private const float VexClawAngle = 90f;
         private const int VexClawHits = 2;
         private const float VexClawInterval = 0.15f;
@@ -309,6 +307,36 @@ namespace Arena.Editor.Data
         private const int KoraBrewHeal = 1200;
         private const int KoraAuraRadius = 3;
         private const float KoraAuraRegenDelay = 2f;
+
+        // Nova full set (GDD §6): attack — slingshot cone 10 cells, 1500, pierces the first enemy, the second takes 50 %, the
+        // pierced (hit) targets are marked for 4 s; ult "Owl Eye" — the team sees every enemy for 5 s, the next 3 shots +30 %;
+        // trick "Wing Flap" — enemies within 2 cells are pushed 3 cells; talent "Sharp Eye" — +20 % damage to marked targets.
+        // PROTO: push time, ult charge (D-061).
+        private const int NovaPierce = 1;
+        private const int NovaPierceFalloff = 50;
+        private const int NovaConeDamage = 1500;
+        private const float NovaMarkSeconds = 4f;
+        private const int NovaUltCharge = 9000;      // PROTO ≈ 1.6 ults in 30 s at 50 % hits (BalanceProbe, D-061)
+        private const float NovaRevealSeconds = 5f;
+        private const int NovaBoostPercent = 30;
+        private const int NovaBoostShots = 3;
+        private const float NovaFlapRadius = 2f;
+        private const float NovaFlapPush = 3f;
+        private const float NovaFlapPushTime = 0.3f; // PROTO: 3 cells in 0.3 s
+        private const int NovaTalentDamagePercent = 20;
+
+        // Vex full set (GDD §6): attack — two claw strikes of 520 (1.8 cells); ult "Hook" — 7 cells, wall: pulls Vex to it,
+        // enemy: pulls Vex to it, 800 and −30 % speed for 1 s; trick "Smoke" — 1.5 s invisible; talent "Agility" — a defeat
+        // refills all attack charges. PROTO: hook flight / pull speed, hook radius, ult charge (D-061).
+        private const float VexHookRange = 7f;
+        private const float VexHookSpeed = 20f;      // PROTO: 7 cells in 0.35 s
+        private const float VexHookRadius = 0.3f;    // PROTO
+        private const float VexPullSpeed = 20f;      // PROTO
+        private const int VexHookDamage = 800;
+        private const int VexHookSlowPercent = 30;
+        private const float VexHookSlowSeconds = 1f;
+        private const int VexUltCharge = 10400;      // PROTO ≈ 1.7 ults in 30 s at 50 % hits (BalanceProbe, D-061)
+        private const float VexSmokeSeconds = 1.5f;
 
         // Camera (GDD §5.5: ~55°); the rest PROTO (D-013).
         private const float CameraPitch = 55f;
@@ -387,7 +415,7 @@ namespace Arena.Editor.Data
                 SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   1.1f, Cone(2.5f, BrunoConeAngle, 1, 0f, 1200)),
                 SeedFighter("chomp", 3000, SpeedClass.Normal, RadiusDefault, 1.6f, ChompBomb()),
                 SeedFighter("kora",  4200, SpeedClass.Slow,   RadiusMedium,  1.5f, KoraCup()),
-                SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 2.0f, Projectile(10f, NovaConeSpeed, NovaConeRadius, NovaPierce, 1, 0f, 1500)),
+                SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 2.0f, NovaCone()),
                 SeedFighter("vex",   3600, SpeedClass.Fast,   RadiusDefault, 0.9f, Cone(1.8f, VexClawAngle, VexClawHits, VexClawInterval, 520))
             };
 
@@ -395,6 +423,8 @@ namespace Arena.Editor.Data
             SeedBrunoAbilities(fighters[1]);
             SeedChompAbilities(fighters[2]);
             SeedKoraAbilities(fighters[3]);
+            SeedNovaAbilities(fighters[4]);
+            SeedVexAbilities(fighters[5]);
 
             GameDatabase db = LoadOrCreate<GameDatabase>(GameDatabasePath);
             db.CombatRules = rules;
@@ -764,6 +794,65 @@ namespace Arena.Editor.Data
             EditorUtility.SetDirty(c);
         }
 
+        private static AbilityConfig NovaCone() => new AbilityConfig
+        {
+            Delivery = DeliveryKind.Projectile, Range = 10f, ProjectileSpeed = NovaConeSpeed, ProjectileRadius = NovaConeRadius,
+            PierceCount = NovaPierce, PierceFalloffPercent = NovaPierceFalloff,
+            Effects = new[]
+            {
+                Effect(EffectKind.Damage, TargetFilter.Enemy, NovaConeDamage),
+                Effect(EffectKind.Mark, TargetFilter.Enemy, 0, NovaMarkSeconds)
+            }
+        };
+
+        private static void SeedNovaAbilities(FighterConfig c)
+        {
+            c.UltChargeRequired = NovaUltCharge;
+            c.Ult = new AbilityConfig
+            {
+                Delivery = DeliveryKind.SelfBuff,
+                Effects = new[]
+                {
+                    Effect(EffectKind.TeamReveal, TargetFilter.Self, 0, NovaRevealSeconds),
+                    new EffectConfig { Kind = EffectKind.BoostShots, Filter = TargetFilter.Self, Value = NovaBoostPercent, Count = NovaBoostShots }
+                }
+            };
+            c.Trick = new AbilityConfig
+            {
+                Delivery = DeliveryKind.SelfArea, Range = NovaFlapRadius,
+                Effects = new[] { Effect(EffectKind.Knockback, TargetFilter.Enemy, 0, NovaFlapPushTime, NovaFlapPush) }
+            };
+            c.Talent = new TalentConfig
+            {
+                Condition = TalentCondition.TargetMarked, Modifier = TalentModifier.DamageMul, ValuePercent = NovaTalentDamagePercent
+            };
+            c.BotTrickHint = BotTrickHint.WhenEnemiesClose; // flap when an enemy is on top of the sniper (GDD §7)
+            EditorUtility.SetDirty(c);
+        }
+
+        private static void SeedVexAbilities(FighterConfig c)
+        {
+            c.UltChargeRequired = VexUltCharge;
+            c.Ult = new AbilityConfig
+            {
+                Delivery = DeliveryKind.Hook, Range = VexHookRange, ProjectileSpeed = VexHookSpeed, ProjectileRadius = VexHookRadius,
+                DashSpeed = VexPullSpeed,
+                Effects = new[]
+                {
+                    Effect(EffectKind.Damage, TargetFilter.Enemy, VexHookDamage),
+                    Effect(EffectKind.Slow, TargetFilter.Enemy, VexHookSlowPercent, VexHookSlowSeconds)
+                }
+            };
+            c.Trick = new AbilityConfig
+            {
+                Delivery = DeliveryKind.SelfBuff,
+                Effects = new[] { Effect(EffectKind.Invisibility, TargetFilter.Self, 0, VexSmokeSeconds) }
+            };
+            c.Talent = new TalentConfig { Condition = TalentCondition.OnKill, Modifier = TalentModifier.RefillCharges };
+            c.BotTrickHint = BotTrickHint.Engage; // smoke on the way into a fight (GDD §7)
+            EditorUtility.SetDirty(c);
+        }
+
         private static EffectConfig Effect(EffectKind kind, TargetFilter filter, int value, float durationSeconds = 0f, float distance = 0f) =>
             new EffectConfig { Kind = kind, Filter = filter, Value = value, DurationSeconds = durationSeconds, Distance = distance };
 
@@ -802,7 +891,7 @@ namespace Arena.Editor.Data
             c.Radius = radius;
             c.AttackRechargeSeconds = attackRechargeSeconds;
             c.Attack = attack;
-            // Ult, trick and talent: set per fighter after this (Pix, Bruno, Chomp, Kora); Nova and Vex get theirs in S2.12.
+            // Ult, trick and talent: set per fighter after this (Seed<Fighter>Abilities).
             c.UltChargeRequired = 0;
             c.Ult = None();
             c.Trick = None();

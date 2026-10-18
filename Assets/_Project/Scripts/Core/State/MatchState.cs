@@ -22,6 +22,9 @@ namespace Arena.Core.State
         /// <summary>Items on the map (acorns of the Acorns mode).</summary>
         public readonly PickupState[] Pickups = new PickupState[SimLimits.MaxPickups];
 
+        /// <summary>Per team: the team sees every enemy until this tick (exclusive) — Nova's "Owl Eye" (<c>EffectKind.TeamReveal</c>).</summary>
+        public readonly int[] TeamRevealUntilTick = new int[SimLimits.MaxTeams];
+
         /// <summary>Mode rules state (phase, timers, countdown, winner).</summary>
         public ModeState Mode;
 
@@ -46,6 +49,7 @@ namespace Arena.Core.State
             Array.Copy(other.Areas, Areas, Areas.Length);
             Array.Copy(other.Statuses, Statuses, Statuses.Length);
             Array.Copy(other.Pickups, Pickups, Pickups.Length);
+            Array.Copy(other.TeamRevealUntilTick, TeamRevealUntilTick, TeamRevealUntilTick.Length);
             Mode = other.Mode;
             Array.Copy(other.Tiles, Tiles, Tiles.Length);
         }
@@ -67,6 +71,8 @@ namespace Arena.Core.State
                 if (!Pickups[i].Equals(other.Pickups[i])) return false;
             for (int i = 0; i < Tiles.Length; i++)
                 if (Tiles[i] != other.Tiles[i]) return false;
+            for (int i = 0; i < TeamRevealUntilTick.Length; i++)
+                if (TeamRevealUntilTick[i] != other.TeamRevealUntilTick[i]) return false;
             return true;
         }
 
@@ -80,6 +86,7 @@ namespace Arena.Core.State
             Array.Clear(Areas, 0, Areas.Length);
             Array.Clear(Statuses, 0, Statuses.Length);
             Array.Clear(Pickups, 0, Pickups.Length);
+            Array.Clear(TeamRevealUntilTick, 0, TeamRevealUntilTick.Length);
             Mode = default;
             Array.Clear(Tiles, 0, Tiles.Length);
         }

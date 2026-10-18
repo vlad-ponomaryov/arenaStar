@@ -32,6 +32,27 @@ namespace Arena.Core.Sim.Systems
             f.KnockbackVelocity = Vec2.Zero;
         }
 
+        /// <summary>
+        /// Pull of a hook (<see cref="DeliveryKind.Hook"/>): the fighter moves <paramref name="distance"/> cells along
+        /// <paramref name="direction"/> at <paramref name="speed"/> like an effect-less dash (walls and water stop it; stun,
+        /// knockback, defeat cancel it). Nothing happens if the fighter cannot move now (defeated, stunned) or the distance is ~0.
+        /// </summary>
+        public static void StartPull(MatchState state, int slot, Vec2 direction, float distance, float speed)
+        {
+            ref FighterState f = ref state.Fighters[slot];
+            if (!f.Active || !f.Alive || f.Stunned || speed <= 0f || distance <= MathUtil.DistanceEpsilon) return;
+            Vec2 dir = direction.Normalized;
+            if (dir.IsZero) return;
+            int ticks = MathUtil.Max(1, MathUtil.RoundToInt(distance / speed * SimLimits.TickRate));
+            f.DashVelocity = dir * (distance / (ticks * SimTime.Dt));
+            f.DashTicksLeft = ticks;
+            f.DashAbilityRef = -1;
+            f.DashHitMask = 1u << slot;
+            f.Facing = dir;
+            f.KnockbackTicks = 0;
+            f.KnockbackVelocity = Vec2.Zero;
+        }
+
         public static void Cancel(ref FighterState f)
         {
             f.DashTicksLeft = 0;

@@ -32,14 +32,19 @@ namespace Arena.Core.Sim.Effects
         /// <summary>Number of pulses the amount is split over (1 = the whole amount at once).</summary>
         public readonly int PulseCount;
 
-        public EffectContext(AbilityDef ability, int abilityRef, int source, int sourceTeam, Vec2 origin, Vec2 direction)
-            : this(ability, abilityRef, source, sourceTeam, origin, direction, 0, 1)
+        /// <summary>Damage in percent of the effect values: shot boost (Nova's ult), pierce falloff (Nova's cone); 100 = as in data.</summary>
+        public readonly int DamagePercent;
+
+        public EffectContext(AbilityDef ability, int abilityRef, int source, int sourceTeam, Vec2 origin, Vec2 direction,
+            int damagePercent = FullDamagePercent)
+            : this(ability, abilityRef, source, sourceTeam, origin, direction, 0, 1, damagePercent)
         {
         }
 
         public EffectContext(AbilityDef ability, int abilityRef, int source, int sourceTeam, Vec2 origin, Vec2 direction,
-            int pulseIndex, int pulseCount)
+            int pulseIndex, int pulseCount, int damagePercent = FullDamagePercent)
         {
+            DamagePercent = damagePercent;
             Ability = ability;
             AbilityRef = abilityRef;
             Source = source;
@@ -60,6 +65,16 @@ namespace Arena.Core.Sim.Effects
             long next = (long)amount * (PulseIndex + 1) / PulseCount;
             long prev = (long)amount * PulseIndex / PulseCount;
             return (int)(next - prev);
+        }
+
+        /// <summary><see cref="DamagePercent"/> of the values in data.</summary>
+        public const int FullDamagePercent = 100;
+
+        /// <summary><paramref name="amount"/> × <see cref="DamagePercent"/> / 100, rounded half away from zero.</summary>
+        public int ScaleDamage(int amount)
+        {
+            if (DamagePercent == FullDamagePercent) return amount;
+            return MathUtil.RoundToInt(amount * (DamagePercent / (float)FullDamagePercent));
         }
 
         /// <summary>True if damage of this ability charges the source's ult (only the main attack does, D-052).</summary>

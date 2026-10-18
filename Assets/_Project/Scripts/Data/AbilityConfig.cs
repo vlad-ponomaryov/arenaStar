@@ -33,6 +33,9 @@ namespace Arena.Data
         [Tooltip("Extra targets passed through after the first hit.")]
         [Min(0)] public int PierceCount;
 
+        [Tooltip("Percent less damage to every pierced target after the first (50 = the second takes half).")]
+        [Range(0, 99)] public int PierceFalloffPercent;
+
         [Tooltip("Passes through every target (ignores PierceCount).")]
         public bool PierceAll;
 
@@ -60,7 +63,7 @@ namespace Arena.Data
         [Tooltip("Dash length in cells.")]
         [Min(0f)] public float DashDistance;
 
-        [Tooltip("Dash speed, cells per second (PROTO).")]
+        [Tooltip("Dash speed, cells per second; for a Hook — the pull speed (PROTO).")]
         [Min(0f)] public float DashSpeed;
 
         [Header("Flags")]

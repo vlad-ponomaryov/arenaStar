@@ -11,9 +11,9 @@ namespace Arena.Core.Sim.Systems
     /// team T if T is its own team, or any of:
     ///   - it attacked recently (<see cref="FighterState.RevealedUntilTick"/>, attack reveals for 1 s);
     ///   - it is marked by T (<see cref="FighterState.MarkedByTeamMask"/>);
+    ///   - T has an active team reveal (<see cref="MatchState.TeamRevealUntilTick"/>, Nova's ult) — everyone, anywhere;
     ///   - it is not invisible, and either not in a bush or an alive fighter of T is closer than
     ///     <see cref="CombatRules.BushRevealDistance"/>.
-    /// The team-wide reveal (Nova's ult) is added with Nova in S2.12.
     /// Areas (<see cref="AreaState.VisibleToTeams"/>): visible to all, except <see cref="AbilityDef.HiddenFromEnemies"/> ones
     /// (Chomp's mine, D-030) — own team, plus teams with an alive fighter strictly closer than the reveal distance.
     /// </summary>
@@ -34,6 +34,11 @@ namespace Arena.Core.Sim.Systems
                 f.InBush = TileRules.IsBush(grid.Get(GridCell.Of(f.Position)));
             }
 
+            uint revealing = 0u;
+            int[] teamReveal = state.TeamRevealUntilTick;
+            for (int t = 0; t < teamReveal.Length; t++)
+                if (tick < teamReveal[t]) revealing |= TeamBit(t);
+
             for (int i = 0; i < count; i++)
             {
                 ref FighterState f = ref state.Fighters[i];
@@ -43,7 +48,7 @@ namespace Arena.Core.Sim.Systems
                     continue;
                 }
 
-                uint mask = TeamBit(f.Team) | f.MarkedByTeamMask;
+                uint mask = TeamBit(f.Team) | f.MarkedByTeamMask | revealing;
                 if (tick < f.RevealedUntilTick) mask = ~0u;
                 else if (!f.Invisible)
                 {

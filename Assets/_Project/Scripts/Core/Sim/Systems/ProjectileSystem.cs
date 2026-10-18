@@ -19,12 +19,15 @@ namespace Arena.Core.Sim.Systems
     /// fired inside flies out freely. <see cref="AbilityDef.PierceAll"/> passes every target; with
     /// <see cref="AbilityDef.BounceCount"/> a projectile that would stop jumps from the hit point to the nearest not-yet-hit
     /// fighter it may affect (visible to its team) within <see cref="AbilityDef.BounceRange"/> and flies on towards it (the rest
-    /// of that tick's step is dropped).
+    /// of that tick's step is dropped). With <see cref="AbilityDef.PierceFalloffPercent"/> every target after the first takes
+    /// that much less damage (Nova). A <see cref="DeliveryKind.Hook"/> projectile pulls its owner (<see cref="DashSystem.StartPull"/>)
+    /// to the wall face it hits, or next to the enemy it hits (after the effects); a miss or an enemy dome does nothing.
     /// </summary>
     public static class ProjectileSystem
     {
         /// <summary>Fires a projectile. Returns its slot, or −1 if all slots are busy (counted, no exception).</summary>
-        public static int TrySpawn(MatchState state, int owner, int team, Vec2 position, Vec2 dir, AbilityDef ability, int abilityRef)
+        public static int TrySpawn(MatchState state, int owner, int team, Vec2 position, Vec2 dir, AbilityDef ability, int abilityRef,
+            int damagePercent = EffectContext.FullDamagePercent)
         {
             ProjectileState[] items = state.Projectiles;
             for (int i = 0; i < items.Length; i++)
@@ -45,6 +48,7 @@ namespace Arena.Core.Sim.Systems
                 p.PierceLeft = ability.PierceAll ? SimLimits.MaxFighters : ability.PierceCount;
                 p.BounceLeft = ability.BounceCount;
                 p.HitMask = owner >= 0 ? 1u << owner : 0u;
+                p.DamagePercent = damagePercent;
                 return i;
             }
             state.Globals.DroppedProjectiles++;
@@ -64,11 +68,17 @@ namespace Arena.Core.Sim.Systems
                 float step = p.Speed * SimTime.Dt;
                 if (step > p.RemainingDistance) step = p.RemainingDistance;
                 Vec2 start = p.Position;
-                bool wallHit = ability != null && !ability.IgnoresWalls && ClipByWalls(state, events, ability, in p, start, ref step);
-                if (ClipByFields(state, defs, in p, start, ref step)) wallHit = true;
+                bool tileHit = ability != null && !ability.IgnoresWalls && ClipByWalls(state, events, ability, in p, start, ref step);
+                bool wallHit = tileHit;
+                if (ClipByFields(state, defs, in p, start, ref step))
+                {
+                    wallHit = true;
+                    tileHit = false; // stopped by a dome before the wall
+                }
 
                 bool stopped = false;
                 bool bounced = false;
+                int stoppedBy = -1;
                 while (ability != null)
                 {
                     int hit = FindHit(state, defs, ability, in p, start, step, out float along);
@@ -77,7 +87,10 @@ namespace Arena.Core.Sim.Systems
                     p.HitMask |= 1u << hit;
                     Vec2 hitPoint = start + p.Dir * along;
                     events.Add(new SimEvent(SimEventType.ProjectileHit, tick, p.Owner, hit, i, hitPoint, p.Dir));
-                    var ctx = new EffectContext(ability, p.AbilityRef, p.Owner, p.Team, hitPoint, p.Dir);
+                    int percent = p.DamagePercent;
+                    if (p.Hits > 0 && ability.PierceFalloffPercent > 0) percent = percent * (100 - ability.PierceFalloffPercent) / 100;
+                    p.Hits++;
+                    var ctx = new EffectContext(ability, p.AbilityRef, p.Owner, p.Team, hitPoint, p.Dir, percent);
                     EffectSystem.ApplyAbility(state, defs, events, in ctx, hit);
                     if (p.PierceLeft > 0)
                     {
@@ -92,6 +105,7 @@ namespace Arena.Core.Sim.Systems
                         break;
                     }
                     stopped = true;
+                    stoppedBy = hit;
                     break;
                 }
                 if (bounced) continue;
@@ -104,7 +118,34 @@ namespace Arena.Core.Sim.Systems
                 }
                 p.Active = false;
                 events.Add(new SimEvent(SimEventType.ProjectileEnded, tick, p.Owner, -1, i, p.Position, p.Dir));
+                if (ability != null && ability.Delivery == DeliveryKind.Hook)
+                {
+                    if (stoppedBy >= 0) PullToFighter(state, defs, ability, p.Owner, stoppedBy);
+                    else if (tileHit && !stopped) PullToPoint(state, defs, ability, p.Owner, p.Position);
+                }
             }
+        }
+
+        /// <summary>Hook into an enemy: the owner is pulled until the bodies touch.</summary>
+        private static void PullToFighter(MatchState state, MatchDefs defs, AbilityDef ability, int owner, int target)
+        {
+            if (owner < 0) return;
+            ref FighterState o = ref state.Fighters[owner];
+            ref FighterState t = ref state.Fighters[target];
+            float gap = defs.Fighters[o.DefIndex].Radius + defs.Fighters[t.DefIndex].Radius;
+            Vec2 to = t.Position - o.Position;
+            float distance = to.Length - gap;
+            DashSystem.StartPull(state, owner, to, distance, ability.DashSpeed);
+        }
+
+        /// <summary>Hook into a wall: the owner is pulled until its body touches the wall face at <paramref name="point"/>.</summary>
+        private static void PullToPoint(MatchState state, MatchDefs defs, AbilityDef ability, int owner, Vec2 point)
+        {
+            if (owner < 0) return;
+            ref FighterState o = ref state.Fighters[owner];
+            Vec2 to = point - o.Position;
+            float distance = to.Length - defs.Fighters[o.DefIndex].Radius;
+            DashSystem.StartPull(state, owner, to, distance, ability.DashSpeed);
         }
 
         /// <summary>

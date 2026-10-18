@@ -46,6 +46,7 @@ namespace Arena.Core.Sim.Systems
                 a.ExpireTick = expireTick < activateTick ? activateTick : expireTick;
                 a.AbilityRef = abilityRef;
                 a.VisibleToTeams = ~0u;
+                a.DamagePercent = EffectContext.FullDamagePercent;
                 return i;
             }
             state.Globals.DroppedAreas++;
@@ -99,7 +100,7 @@ namespace Arena.Core.Sim.Systems
             a.Triggered = true;
             events.Add(new SimEvent(SimEventType.AreaTriggered, state.Globals.Tick, a.Owner, -1, slot, a.Position, Vec2.Zero));
             if (ability == null) return;
-            var ctx = new EffectContext(ability, a.AbilityRef, a.Owner, a.Team, a.Position, Vec2.Zero);
+            var ctx = new EffectContext(ability, a.AbilityRef, a.Owner, a.Team, a.Position, Vec2.Zero, a.DamagePercent);
             ApplyInside(state, defs, events, in a, ability, in ctx);
         }
 
@@ -108,7 +109,7 @@ namespace Arena.Core.Sim.Systems
             if (ability == null || ability.AreaPulseTicks <= 0) return;
             int pulses = PulseCount(ability);
             if (a.PulseIndex >= pulses || tick < a.NextPulseTick) return;
-            var ctx = new EffectContext(ability, a.AbilityRef, a.Owner, a.Team, a.Position, Vec2.Zero, a.PulseIndex, pulses);
+            var ctx = new EffectContext(ability, a.AbilityRef, a.Owner, a.Team, a.Position, Vec2.Zero, a.PulseIndex, pulses, a.DamagePercent);
             ApplyInside(state, defs, events, in a, ability, in ctx);
             a.PulseIndex++;
             a.NextPulseTick += ability.AreaPulseTicks;

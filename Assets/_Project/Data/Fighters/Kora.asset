@@ -26,6 +26,7 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceFalloffPercent: 0
     PierceAll: 0
     BounceCount: 2
     BounceRange: 3
@@ -51,11 +52,13 @@ MonoBehaviour:
       Value: 600
       DurationSeconds: 0
       Distance: 0
+      Count: 0
     - Kind: 2
       Filter: 2
       Value: 500
       DurationSeconds: 0
       Distance: 0
+      Count: 0
   UltChargeRequired: 4800
   Ult:
     Delivery: 7
@@ -65,6 +68,7 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceFalloffPercent: 0
     PierceAll: 0
     BounceCount: 0
     BounceRange: 0
@@ -90,6 +94,7 @@ MonoBehaviour:
       Value: 1000
       DurationSeconds: 0
       Distance: 0
+      Count: 0
   Trick:
     Delivery: 4
     Range: 3
@@ -98,6 +103,7 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceFalloffPercent: 0
     PierceAll: 0
     BounceCount: 0
     BounceRange: 0
@@ -123,6 +129,7 @@ MonoBehaviour:
       Value: 1200
       DurationSeconds: 0
       Distance: 0
+      Count: 0
   Talent:
     Condition: 5
     Modifier: 4

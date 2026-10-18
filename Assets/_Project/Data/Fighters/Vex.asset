@@ -26,6 +26,7 @@ MonoBehaviour:
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceFalloffPercent: 0
     PierceAll: 0
     BounceCount: 0
     BounceRange: 0
@@ -51,15 +52,17 @@ MonoBehaviour:
       Value: 520
       DurationSeconds: 0
       Distance: 0
-  UltChargeRequired: 0
+      Count: 0
+  UltChargeRequired: 10400
   Ult:
-    Delivery: 0
-    Range: 0
-    ProjectileSpeed: 0
-    ProjectileRadius: 0
+    Delivery: 8
+    Range: 7
+    ProjectileSpeed: 20
+    ProjectileRadius: 0.3
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceFalloffPercent: 0
     PierceAll: 0
     BounceCount: 0
     BounceRange: 0
@@ -68,7 +71,7 @@ MonoBehaviour:
     BurstCount: 1
     BurstIntervalSeconds: 0
     DashDistance: 0
-    DashSpeed: 0
+    DashSpeed: 20
     BreaksWalls: 0
     IgnoresWalls: 0
     UsesMoveDirection: 0
@@ -79,15 +82,28 @@ MonoBehaviour:
     PlacedArea: 0
     BlocksEnemyProjectiles: 0
     HiddenFromEnemies: 0
-    Effects: []
+    Effects:
+    - Kind: 1
+      Filter: 1
+      Value: 800
+      DurationSeconds: 0
+      Distance: 0
+      Count: 0
+    - Kind: 5
+      Filter: 1
+      Value: 30
+      DurationSeconds: 1
+      Distance: 0
+      Count: 0
   Trick:
-    Delivery: 0
+    Delivery: 5
     Range: 0
     ProjectileSpeed: 0
     ProjectileRadius: 0
     ProjectileCount: 1
     SpreadDegrees: 0
     PierceCount: 0
+    PierceFalloffPercent: 0
     PierceAll: 0
     BounceCount: 0
     BounceRange: 0
@@ -107,11 +123,17 @@ MonoBehaviour:
     PlacedArea: 0
     BlocksEnemyProjectiles: 0
     HiddenFromEnemies: 0
-    Effects: []
+    Effects:
+    - Kind: 7
+      Filter: 4
+      Value: 0
+      DurationSeconds: 1.5
+      Distance: 0
+      Count: 0
   Talent:
-    Condition: 0
-    Modifier: 0
+    Condition: 4
+    Modifier: 5
     ValuePercent: 0
     Param: 0
     Seconds: 0
-  BotTrickHint: 0
+  BotTrickHint: 3

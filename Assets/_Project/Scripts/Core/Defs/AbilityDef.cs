@@ -30,6 +30,10 @@ namespace Arena.Core.Defs
         /// <summary>Extra targets a projectile passes through after the first hit (0 = stops at the first target).</summary>
         public int PierceCount;
 
+        /// <summary>Damage to every target after the first one of a piercing projectile is reduced by this percent (Nova's
+        /// cone: 50 = the second target takes half); 0 = full damage to all.</summary>
+        public int PierceFalloffPercent;
+
         /// <summary>The projectile passes through every target on its way (Chomp's log); <see cref="PierceCount"/> is ignored.</summary>
         public bool PierceAll;
 
@@ -53,7 +57,7 @@ namespace Arena.Core.Defs
         /// <summary>Dash length in cells (<see cref="DeliveryKind.Dash"/>).</summary>
         public float DashDistance;
 
-        /// <summary>Dash speed, cells per second.</summary>
+        /// <summary>Dash speed, cells per second; for a <see cref="DeliveryKind.Hook"/> — the speed of the pull.</summary>
         public float DashSpeed;
 
         /// <summary>Breaks breakable walls on its way (Bruno's ram; walls arrive in S2.5).</summary>
@@ -95,6 +99,11 @@ namespace Arena.Core.Defs
         {
             switch (Delivery)
             {
+                case DeliveryKind.Hook:
+                    if (ProjectileCount != 1 || PierceCount != 0 || PierceAll || BounceCount != 0)
+                        throw new ArgumentException(owner + ": a hook is one projectile without pierce or bounce");
+                    if (DashSpeed <= 0f) throw new ArgumentException(owner + ": a hook needs DashSpeed (pull speed) > 0");
+                    goto case DeliveryKind.Projectile;
                 case DeliveryKind.Projectile:
                     if (ProjectileSpeed <= 0f) throw new ArgumentException(owner + ": ProjectileSpeed must be > 0");
                     if (ProjectileRadius < 0f) throw new ArgumentException(owner + ": ProjectileRadius must be ≥ 0");
@@ -144,6 +153,7 @@ namespace Arena.Core.Defs
             if (Range < 0f) throw new ArgumentException(owner + ": Range must be ≥ 0");
             if (PierceCount < 0) throw new ArgumentException(owner + ": PierceCount must be ≥ 0");
             if (BounceCount < 0) throw new ArgumentException(owner + ": BounceCount must be ≥ 0");
+            if (PierceFalloffPercent < 0 || PierceFalloffPercent >= 100) throw new ArgumentException(owner + ": PierceFalloffPercent must be in [0, 100)");
             if (BounceCount > 0 && (Delivery != DeliveryKind.Projectile || BounceRange <= 0f))
                 throw new ArgumentException(owner + ": a bounce needs a projectile and BounceRange > 0");
             if (AreaDelayTicks < 0 || AreaDurationTicks < 0 || AreaPulseTicks < 0)

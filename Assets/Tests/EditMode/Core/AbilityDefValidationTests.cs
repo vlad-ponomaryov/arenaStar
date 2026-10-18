@@ -14,13 +14,49 @@ namespace Arena.Tests.EditMode.Core
             Assert.DoesNotThrow(() => A.CreateDefs().Validate());
         }
 
-        [TestCase(DeliveryKind.Hook)]
-        [TestCase(DeliveryKind.None)]
-        public void ReservedDeliveries_AreRejected(DeliveryKind kind)
+        [Test]
+        public void NoneDelivery_IsRejected()
         {
             FighterDef pix = A.CreatePix();
-            pix.Ult.Delivery = kind;
+            pix.Ult.Delivery = DeliveryKind.None;
             Assert.Throws<ArgumentException>(() => pix.Validate());
+        }
+
+        [Test]
+        public void NovaAndVexSets_AreValid()
+        {
+            Assert.DoesNotThrow(() => ScoutFighterTestFactory.CreateDefs().Validate());
+        }
+
+        [Test]
+        public void Hook_NeedsSingleProjectileAndPullSpeed()
+        {
+            FighterDef pix = A.CreatePix();
+            pix.Ult.Delivery = DeliveryKind.Hook;
+            pix.Ult.DashSpeed = 20f;
+            Assert.Throws<ArgumentException>(() => pix.Validate(), "a fan cannot be a hook");
+
+            FighterDef vex = ScoutFighterTestFactory.CreateVex();
+            vex.Ult.DashSpeed = 0f;
+            Assert.Throws<ArgumentException>(() => vex.Validate(), "no pull speed");
+
+            vex = ScoutFighterTestFactory.CreateVex();
+            vex.Ult.PierceCount = 1;
+            Assert.Throws<ArgumentException>(() => vex.Validate(), "a hook stops at the first target");
+        }
+
+        [Test]
+        public void NewEffects_NeedTheirParameters()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new EffectDef { Kind = EffectKind.BoostShots, Filter = TargetFilter.Self, Value = 30, Count = 0 }.Validate("test"));
+            Assert.Throws<ArgumentException>(() =>
+                new EffectDef { Kind = EffectKind.TeamReveal, Filter = TargetFilter.Enemy, DurationTicks = 150 }.Validate("test"));
+            Assert.Throws<ArgumentException>(() =>
+                new EffectDef { Kind = EffectKind.TeamReveal, Filter = TargetFilter.Self }.Validate("test"));
+            FighterDef nova = ScoutFighterTestFactory.CreateNova();
+            nova.Attack.PierceFalloffPercent = 100;
+            Assert.Throws<ArgumentException>(() => nova.Validate(), "falloff must leave some damage");
         }
 
         [Test]
@@ -67,11 +103,13 @@ namespace Arena.Tests.EditMode.Core
             Assert.Throws<ArgumentException>(() => e.Validate("test"));
         }
 
-        [TestCase(TalentCondition.TargetMarked)]
-        [TestCase(TalentCondition.OnKill)]
-        public void ReservedTalentConditions_AreRejected(TalentCondition condition)
+        [TestCase(TalentCondition.TargetMarked, TalentModifier.MoveSpeedMul)]
+        [TestCase(TalentCondition.TargetMarked, TalentModifier.RefillCharges)]
+        [TestCase(TalentCondition.OnKill, TalentModifier.DamageMul)]
+        [TestCase(TalentCondition.Always, TalentModifier.RefillCharges)]
+        public void MismatchedTalentPairs_AreRejected(TalentCondition condition, TalentModifier modifier)
         {
-            var t = new TalentDef { Condition = condition, Modifier = TalentModifier.DamageMul, Value = 10 };
+            var t = new TalentDef { Condition = condition, Modifier = modifier, Value = 10 };
             Assert.Throws<ArgumentException>(() => t.Validate("test"));
         }
 

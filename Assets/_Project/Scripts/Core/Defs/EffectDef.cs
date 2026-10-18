@@ -11,8 +11,8 @@ namespace Arena.Core.Defs
         public EffectKind Kind;
         public TargetFilter Filter;
 
-        /// <summary>Damage/heal in health points at level 1; percent for <see cref="EffectKind.Slow"/> and
-        /// <see cref="EffectKind.DamageReduction"/>; unused otherwise.</summary>
+        /// <summary>Damage/heal in health points at level 1; percent for <see cref="EffectKind.Slow"/>,
+        /// <see cref="EffectKind.DamageReduction"/> and <see cref="EffectKind.BoostShots"/>; unused otherwise.</summary>
         public int Value;
 
         /// <summary>Duration of timed effects (stun, slow, …) and the push time of a knockback; 0 for instant effects.</summary>
@@ -21,6 +21,9 @@ namespace Arena.Core.Defs
         /// <summary>Distance in cells for <see cref="EffectKind.Knockback"/>; 0 otherwise.</summary>
         public float Distance;
 
+        /// <summary>Number of boosted attack activations for <see cref="EffectKind.BoostShots"/>; 0 otherwise.</summary>
+        public int Count;
+
         public void Validate(string owner)
         {
             if (Kind == EffectKind.None) throw new ArgumentException(owner + ": effect kind is None");
@@ -28,6 +31,7 @@ namespace Arena.Core.Defs
             if (Value < 0) throw new ArgumentException(owner + ": effect " + Kind + " value must be ≥ 0");
             if (DurationTicks < 0) throw new ArgumentException(owner + ": effect " + Kind + " duration must be ≥ 0");
             if (Distance < 0f) throw new ArgumentException(owner + ": effect " + Kind + " distance must be ≥ 0");
+            if (Count < 0) throw new ArgumentException(owner + ": effect " + Kind + " count must be ≥ 0");
             switch (Kind)
             {
                 case EffectKind.Damage:
@@ -45,6 +49,14 @@ namespace Arena.Core.Defs
                 case EffectKind.Invisibility:
                 case EffectKind.Mark:
                     RequireDuration(owner);
+                    break;
+                case EffectKind.TeamReveal:
+                    RequireDuration(owner);
+                    if (Filter != TargetFilter.Self) throw new ArgumentException(owner + ": a team reveal is applied to Self");
+                    break;
+                case EffectKind.BoostShots:
+                    if (Value < 1) throw new ArgumentException(owner + ": a shot boost needs Value ≥ 1 %");
+                    if (Count < 1) throw new ArgumentException(owner + ": a shot boost needs Count ≥ 1");
                     break;
                 default:
                     throw new ArgumentException(owner + ": unsupported effect kind " + Kind);

@@ -44,9 +44,17 @@ namespace Arena.Core.Sim.Systems
                     break;
                 case EffectKind.Slow:
                 case EffectKind.DamageReduction:
-                case EffectKind.Invisibility:
                 case EffectKind.Mark:
                     StatusEffect.Apply(state, events, in ctx, e, target);
+                    break;
+                case EffectKind.Invisibility:
+                    InvisibilityEffect.Apply(state, events, in ctx, e, target);
+                    break;
+                case EffectKind.TeamReveal:
+                    TeamRevealEffect.Apply(state, events, in ctx, e, target);
+                    break;
+                case EffectKind.BoostShots:
+                    BoostShotsEffect.Apply(state, events, in ctx, e, target);
                     break;
             }
         }

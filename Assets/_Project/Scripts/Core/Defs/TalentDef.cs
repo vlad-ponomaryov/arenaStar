@@ -29,6 +29,12 @@ namespace Arena.Core.Defs
                 case TalentModifier.DamageMul:
                 case TalentModifier.AreaRadiusMul:
                     if (Condition == TalentCondition.AllyAura) throw new ArgumentException(owner + ": an ally aura only changes the regen delay");
+                    if (Condition == TalentCondition.OnKill) throw new ArgumentException(owner + ": OnKill only refills charges");
+                    if (Condition == TalentCondition.TargetMarked && Modifier != TalentModifier.DamageMul)
+                        throw new ArgumentException(owner + ": TargetMarked only changes the damage");
+                    break;
+                case TalentModifier.RefillCharges:
+                    if (Condition != TalentCondition.OnKill) throw new ArgumentException(owner + ": RefillCharges is an OnKill talent");
                     break;
                 case TalentModifier.RegenDelay:
                     if (Condition != TalentCondition.AllyAura) throw new ArgumentException(owner + ": RegenDelay is an ally aura talent");
@@ -41,6 +47,8 @@ namespace Arena.Core.Defs
             {
                 case TalentCondition.Always:
                 case TalentCondition.UltCharged:
+                case TalentCondition.TargetMarked:
+                case TalentCondition.OnKill:
                     break;
                 case TalentCondition.HealthBelow:
                     if (Param < 1 || Param > 100) throw new ArgumentException(owner + ": HealthBelow threshold must be in [1, 100] %");

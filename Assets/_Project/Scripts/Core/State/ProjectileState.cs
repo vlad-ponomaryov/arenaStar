@@ -44,12 +44,18 @@ namespace Arena.Core.State
         /// <summary>Bit per fighter slot already hit (the owner's bit is set at spawn): no repeated hits.</summary>
         public uint HitMask;
 
+        /// <summary>Targets hit so far (pierce falloff: <c>AbilityDef.PierceFalloffPercent</c> after the first).</summary>
+        public int Hits;
+
+        /// <summary>Damage of the shot in percent of the effect values (100 + shot boost, <c>FighterState.ShotBonusPercent</c>).</summary>
+        public int DamagePercent;
+
         public bool Equals(ProjectileState o)
         {
             return Active == o.Active && Owner == o.Owner && Team == o.Team && SpawnTick == o.SpawnTick
                 && Position == o.Position && Dir == o.Dir && Speed == o.Speed && Radius == o.Radius
                 && RemainingDistance == o.RemainingDistance && AbilityRef == o.AbilityRef && PierceLeft == o.PierceLeft && BounceLeft == o.BounceLeft
-                && HitMask == o.HitMask;
+                && HitMask == o.HitMask && Hits == o.Hits && DamagePercent == o.DamagePercent;
         }
 
         public override bool Equals(object obj) => obj is ProjectileState other && Equals(other);
