@@ -11,3 +11,4 @@
 
 - 00:30 — план — CLAUDE.md, Plan-Stage1/2, Decisions, Questions, AssetLicenses, NightLog — (коммит документов)
 - 09:41 — S1.1 — частично: Tools/*.ps1 и PackageInstaller готовы; проект не создан, compile/test не запускались — нет лицензии Unity (Q-009), ночь остановлена — c1d3f98
+- 09:47 — S1.1 — ок: проект создан, пакеты (URP, Input System, Test Framework, uGUI/TMP, Cinemachine), compile 0 CS, тесты 0/0 (none found) — 1e5d901
