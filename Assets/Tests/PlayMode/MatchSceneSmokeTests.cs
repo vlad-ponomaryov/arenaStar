@@ -13,19 +13,20 @@ using UnityEngine.TestTools;
 namespace Arena.Tests.PlayMode
 {
     /// <summary>
-    /// Smoke test of the real Match scene in play mode: it loads, the match starts from the seeded data, runs ~3 s without a
+    /// Smoke test of the real Match scene in play mode: it loads, the match starts from the seeded data, runs ~10 s (S2.13) without a
     /// single error or exception in the log (the Test Framework fails the test on any logged error), fighters and the map
-    /// exist, the bots of the other 5 slots move. Run: Tools/test.ps1 -Platform PlayMode.
+    /// exist, the bots of the other 5 slots move; mobile setup (S2.13): blob shadows under fighters, static-batched map,
+    /// frame rate from the data with vSync off. Run: Tools/test.ps1 -Platform PlayMode.
     /// </summary>
     public sealed class MatchSceneSmokeTests
     {
-        private const float RunSeconds = 3f;
+        private const float RunSeconds = 10f;
         private const int ExpectedFighters = 6;
         private const float EnemyDistance = 1.5f;
         private const float UltWaitSeconds = 2f;
 
         [UnityTest]
-        public IEnumerator MatchScene_RunsThreeSeconds_WithoutErrors()
+        public IEnumerator MatchScene_RunsTenSeconds_WithoutErrors()
         {
             SceneFlow.ClearLaunchParams();
             yield return SceneManager.LoadSceneAsync(SceneNames.Match, LoadSceneMode.Single);
@@ -63,6 +64,11 @@ namespace Arena.Tests.PlayMode
             Assert.IsNotNull(runner.MapView, "map view built");
             Assert.Greater(runner.MapView.BushCount, 0);
             Assert.Greater(runner.MapView.BreakableCount, 0);
+            Assert.IsTrue(runner.MapView.IsStaticBatched, "map cubes static-batched (S2.13)");
+            for (int i = 0; i < views.Length; i++) Assert.IsNotNull(views[i].Shadow, "blob shadow under fighter (D-027)");
+            Assert.AreEqual(0, QualitySettings.vSyncCount, "vSync off");
+            Assert.AreEqual(Arena.Gameplay.Settings.FrameRateApplier.FrameRateFor(runner.Settings, runner.Database.Feel),
+                Application.targetFrameRate, "frame rate from FeelConfig");
 
             Assert.IsNotNull(runner.Feedback, "hit feedback created (S2.10)");
             Assert.Greater(runner.DamageNumbers.Capacity, 0, "damage number pool prewarmed");

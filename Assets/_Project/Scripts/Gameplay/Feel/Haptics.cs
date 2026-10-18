@@ -21,6 +21,7 @@ namespace Arena.Gameplay.Feel
         private AndroidJavaClass _effectClass;
         private readonly System.Collections.Generic.Dictionary<int, AndroidJavaObject> _effects =
             new System.Collections.Generic.Dictionary<int, AndroidJavaObject>();
+        private readonly object[] _vibrateArgs = new object[1];
         private bool _failed;
 #endif
 
@@ -76,7 +77,8 @@ namespace Arena.Gameplay.Feel
                     effect = _effectClass.CallStatic<AndroidJavaObject>("createOneShot", (long)milliseconds, amplitude);
                     _effects[milliseconds] = effect;
                 }
-                _vibrator.Call("vibrate", effect);
+                _vibrateArgs[0] = effect;
+                _vibrator.Call("vibrate", _vibrateArgs);
             }
             catch (System.Exception e)
             {

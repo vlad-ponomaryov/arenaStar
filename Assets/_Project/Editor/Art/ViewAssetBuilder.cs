@@ -22,6 +22,8 @@ namespace Arena.Editor.Art
         public const string MaterialsFolder = ArtRoot + "/Materials";
         public const string PrefabsFolder = ArtRoot + "/Prefabs";
         public const string UiFolder = ArtRoot + "/UI";
+        public const string TexturesFolder = ArtRoot + "/Textures";
+        public const string BlobShadowTexturePath = TexturesFolder + "/BlobShadow.png";
         public const string ViewCatalogPath = ArtRoot + "/ViewCatalog.asset";
         public const string UiStylePath = UiFolder + "/UiStyle.asset";
         public const string FighterViewPrefabPath = PrefabsFolder + "/FighterView.prefab";
@@ -43,6 +45,8 @@ namespace Arena.Editor.Art
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
         private const string BaseColorProperty = "_BaseColor";
+        private const string BaseMapProperty = "_BaseMap";
+        private const string MainTexProperty = "_MainTex";
         private const string CircleSpritePath = "UI/Skin/Knob.psd";
 
         // Team palette (D-029): blue allies, red enemies with a clear brightness difference.
@@ -138,6 +142,13 @@ namespace Arena.Editor.Art
         private const float NoseForward = 0.45f;
         private const float NoseHeightFraction = 0.75f;
 
+        // Blob shadow under a fighter (D-027, S2.13): code-generated radial texture on a flat quad just above the floor.
+        private const int BlobShadowTextureSize = 64;
+        private const float BlobShadowSoftStart = 0.55f; // fraction of the radius where the edge starts to fade
+        private const float BlobShadowDiameter = 1.15f;
+        private const float BlobShadowHeight = 0.01f;
+        private static readonly Color BlobShadowColor = new Color(0f, 0f, 0f, 0.45f);
+
         // Aim line: 1 unit long along +Z from the pivot (root Z scale = range).
         private const float AimLineWidth = 0.15f;
         private const float AimLineThickness = 0.02f;
@@ -148,6 +159,7 @@ namespace Arena.Editor.Art
             ProjectConfigurator.EnsureFolder(MaterialsFolder);
             ProjectConfigurator.EnsureFolder(PrefabsFolder);
             ProjectConfigurator.EnsureFolder(UiFolder);
+            ProjectConfigurator.EnsureFolder(TexturesFolder);
 
             Material ally = SaveMaterial("TeamAlly", UnlitShader, AllyColor);
             Material enemy = SaveMaterial("TeamEnemy", UnlitShader, EnemyColor);
@@ -176,7 +188,12 @@ namespace Arena.Editor.Art
             Material telegraphEnemyAltFill = SaveMaterial("TelegraphEnemyAltFill", UnlitShader, WithAlpha(EnemyAltColor, TelegraphFillAlpha), true);
             TelegraphView telegraph = BuildTelegraphPrefab(telegraphEnemyZone, telegraphEnemyFill);
 
-            FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine);
+            Material blobShadow = SaveMaterial("BlobShadow", UnlitShader, BlobShadowColor, true);
+            Texture2D blobTexture = BuildBlobShadowTexture();
+            blobShadow.SetTexture(BaseMapProperty, blobTexture);
+            blobShadow.SetTexture(MainTexProperty, blobTexture);
+            EditorUtility.SetDirty(blobShadow);
+            FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine, blobShadow);
             AimIndicatorView aimIndicator = BuildAimIndicatorPrefab(aimLine);
             GameObject floorPrefab = BuildFloorPrefab(floor);
             GameObject projectilePrefab = BuildProjectilePrefab(projectile);
@@ -367,11 +384,58 @@ namespace Arena.Editor.Art
 
         private static Color WithAlpha(Color c, float alpha) => new Color(c.r, c.g, c.b, alpha);
 
-        private static FighterView BuildFighterViewPrefab(Material body, Material ring, Material nose)
+        /// <summary>Radial white texture with a soft alpha edge (tinted by the material colour), saved as PNG and imported.</summary>
+        private static Texture2D BuildBlobShadowTexture()
+        {
+            int n = BlobShadowTextureSize;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            try
+            {
+                var pixels = new Color32[n * n];
+                float half = n * 0.5f;
+                for (int y = 0; y < n; y++)
+                {
+                    for (int x = 0; x < n; x++)
+                    {
+                        float dx = (x + 0.5f - half) / half, dy = (y + 0.5f - half) / half;
+                        float r = Mathf.Sqrt(dx * dx + dy * dy);
+                        float t = Mathf.Clamp01((r - BlobShadowSoftStart) / (1f - BlobShadowSoftStart));
+                        float a = r >= 1f ? 0f : 1f - t * t * (3f - 2f * t);
+                        pixels[y * n + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+                    }
+                }
+                tex.SetPixels32(pixels);
+                tex.Apply();
+                System.IO.File.WriteAllBytes(BlobShadowTexturePath, tex.EncodeToPNG());
+            }
+            finally
+            {
+                Object.DestroyImmediate(tex);
+            }
+            AssetDatabase.ImportAsset(BlobShadowTexturePath, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(BlobShadowTexturePath);
+            importer.textureType = TextureImporterType.Default;
+            importer.alphaIsTransparency = true;
+            importer.alphaSource = TextureImporterAlphaSource.FromInput;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.mipmapEnabled = false;
+            importer.sRGBTexture = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(BlobShadowTexturePath);
+        }
+
+        private static FighterView BuildFighterViewPrefab(Material body, Material ring, Material nose, Material shadow)
         {
             var root = new GameObject("FighterView");
             try
             {
+                // Blob shadow (D-027): Unity quad faces −Z, turned to lie on the ground.
+                GameObject shadowGo = CreatePart(PrimitiveType.Quad, "Shadow", root.transform, shadow);
+                shadowGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                shadowGo.transform.localScale = new Vector3(BlobShadowDiameter, BlobShadowDiameter, 1f);
+                shadowGo.transform.localPosition = new Vector3(0f, BlobShadowHeight, 0f);
+
                 GameObject capsule = CreatePart(PrimitiveType.Capsule, "Body", root.transform, body);
                 // Unity capsule: height 2, diameter 1.
                 capsule.transform.localScale = new Vector3(BodyDiameter, BodyHeight * 0.5f, BodyDiameter);
@@ -390,6 +454,7 @@ namespace Arena.Editor.Art
                 var so = new SerializedObject(view);
                 SetRef(so, "_body", capsule.transform);
                 SetRef(so, "_ring", ringGo.GetComponent<Renderer>());
+                SetRef(so, "_shadow", shadowGo.GetComponent<Renderer>());
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 return SavePrefab(root, FighterViewPrefabPath).GetComponent<FighterView>();

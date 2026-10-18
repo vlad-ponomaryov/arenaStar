@@ -3,19 +3,23 @@ using UnityEngine;
 namespace Arena.Gameplay.View
 {
     /// <summary>
-    /// Thin view of one fighter (capsule + team ring, D-014): placed by the runner with interpolated positions (D-015).
+    /// Thin view of one fighter (capsule + team ring + blob shadow, D-014, D-027): placed by the runner with interpolated positions (D-015).
     /// The ring colour is ally/enemy relative to the local player's team; materials are shared, not instanced.
     /// </summary>
     public sealed class FighterView : MonoBehaviour
     {
         [SerializeField] private Transform _body;
         [SerializeField] private Renderer _ring;
+        [SerializeField] private Renderer _shadow;
 
         private Renderer _bodyRenderer;
         private Material _bodyMaterial;
 
         public Transform Body => _body;
         public Renderer Ring => _ring;
+
+        /// <summary>Blob shadow quad under the fighter (D-027); hidden together with the view.</summary>
+        public Renderer Shadow => _shadow;
 
         /// <summary>Swaps the shared body material (normal / hidden in a bush); no-op if unchanged.</summary>
         public void SetBodyMaterial(Material material)

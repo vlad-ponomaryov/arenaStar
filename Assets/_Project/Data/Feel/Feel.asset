@@ -64,3 +64,10 @@ MonoBehaviour:
   UltGlowScale: 0.08
   FpsUpdateSeconds: 0.5
   AimMagnetDegrees: 5
+  DefaultMirroredLayout: 0
+  DefaultVibrationPercent: 100
+  DefaultAimMagnet: 1
+  DefaultColorblindPalette: 0
+  DefaultBatterySaver: 0
+  TargetFrameRate: 60
+  BatterySaverFrameRate: 30

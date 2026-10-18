@@ -50,6 +50,7 @@ namespace Arena.UI.Menu
                 return;
             }
             if (_database.Strings != null) Loc.Init(_database.Strings);
+            FrameRateApplier.Apply(PlayerSettingsStore.SharedFor(_database.Feel).Current, _database.Feel);
             MatchLaunchParams last = SceneFlow.Current;
             _fighterId = last != null ? last.FighterId : DefaultFighterId();
             _bots = last != null ? last.Bots : BotChoices[0];
@@ -138,7 +139,7 @@ namespace Arena.UI.Menu
                 Loc.Get(LocKeys.MenuPlay), Play, out _);
             SettingsButton = UiFactory.CreateButton("SettingsButton", column, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
                 Loc.Get(LocKeys.MenuSettings), OpenSettings, out _);
-            Settings = SettingsPanel.Create(transform, s, _database.Feel, PlayerSettingsStore.Shared, null);
+            Settings = SettingsPanel.Create(transform, s, _database.Feel, PlayerSettingsStore.SharedFor(_database.Feel), null);
 
             Text version = UiFactory.CreateText("Version", _canvas.transform, s, s.SmallFontSize, TextAnchor.LowerLeft,
                 Loc.Get(LocKeys.MenuVersion) + " " + Application.version);

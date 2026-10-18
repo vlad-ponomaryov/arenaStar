@@ -34,6 +34,7 @@ namespace Arena.Data.Localization
         public const string SettingsVibration = "settings.vibration";
         public const string SettingsAimMagnet = "settings.aim_magnet";
         public const string SettingsColorblind = "settings.colorblind";
+        public const string SettingsBatterySaver = "settings.battery_saver";
         public const string SettingsOn = "settings.on";
         public const string SettingsOff = "settings.off";
         public const string SettingsClose = "settings.close";
@@ -44,7 +45,7 @@ namespace Arena.Data.Localization
             MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, LanguageEn, LanguageRu, ModeAcorns,
             HudHoldAlly, HudHoldEnemy, ResultsVictory, ResultsDefeat, ResultsDraw, ResultsMvp, ResultsAgain, ResultsMenu,
             ResultsKills, ResultsDeaths, ResultsDamage, ResultsAcorns, MenuSettings, SettingsTitle, SettingsMirror, SettingsVibration,
-            SettingsAimMagnet, SettingsColorblind, SettingsOn, SettingsOff, SettingsClose, HudFps
+            SettingsAimMagnet, SettingsColorblind, SettingsBatterySaver, SettingsOn, SettingsOff, SettingsClose, HudFps
         };
     }
 }

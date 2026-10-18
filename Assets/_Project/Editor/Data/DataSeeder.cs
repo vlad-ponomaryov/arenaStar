@@ -161,6 +161,7 @@ namespace Arena.Editor.Data
             new[] { LocKeys.SettingsVibration, "Vibration", "Вибрация" },
             new[] { LocKeys.SettingsAimMagnet, "Aim assist", "Примагничивание прицела" },
             new[] { LocKeys.SettingsColorblind, "Colour-blind palette", "Палитра для дальтоников" },
+            new[] { LocKeys.SettingsBatterySaver, "Battery saver (30 FPS)", "Экономия батареи (30 FPS)" },
             new[] { LocKeys.SettingsOn, "On", "Вкл" },
             new[] { LocKeys.SettingsOff, "Off", "Выкл" },
             new[] { LocKeys.SettingsClose, "Close", "Закрыть" },
@@ -385,6 +386,15 @@ namespace Arena.Editor.Data
         private const float FeelFpsUpdateSeconds = 0.5f;
         private const float FeelAimMagnetDegrees = 5f;
 
+        // Settings defaults of a first start (GDD §5.1: aim magnet on; full vibration) and frame rate (S2.13, D-062).
+        private const bool FeelDefaultMirroredLayout = false;
+        private const int FeelDefaultVibrationPercent = 100;
+        private const bool FeelDefaultAimMagnet = true;
+        private const bool FeelDefaultColorblindPalette = false;
+        private const bool FeelDefaultBatterySaver = false;
+        private const int FeelTargetFrameRate = 60;
+        private const int FeelBatterySaverFrameRate = 30;
+
         // Match runner: technical limit + prototype setup (3×3: the local player in slot 0, bots in the others; the line-up is
         // the fallback when bots do not pick random fighters).
         private const int MaxTicksPerFrame = 4;
@@ -543,6 +553,13 @@ namespace Arena.Editor.Data
             c.UltGlowScale = FeelUltGlowScale;
             c.FpsUpdateSeconds = FeelFpsUpdateSeconds;
             c.AimMagnetDegrees = FeelAimMagnetDegrees;
+            c.DefaultMirroredLayout = FeelDefaultMirroredLayout;
+            c.DefaultVibrationPercent = FeelDefaultVibrationPercent;
+            c.DefaultAimMagnet = FeelDefaultAimMagnet;
+            c.DefaultColorblindPalette = FeelDefaultColorblindPalette;
+            c.DefaultBatterySaver = FeelDefaultBatterySaver;
+            c.TargetFrameRate = FeelTargetFrameRate;
+            c.BatterySaverFrameRate = FeelBatterySaverFrameRate;
             EditorUtility.SetDirty(c);
             return c;
         }

@@ -107,5 +107,28 @@ namespace Arena.Data
         [Header("Aim magnet (GDD §5.1)")]
         [Tooltip("A manual aim turns to a visible enemy if it is off by at most this many degrees (5).")]
         [Min(0f)] public float AimMagnetDegrees;
+
+        [Header("Settings defaults (first start, GDD §5.1 — D-062)")]
+        [Tooltip("Mirrored control layout (movement stick on the right).")]
+        public bool DefaultMirroredLayout;
+
+        [Tooltip("Vibration strength, percent (0 = off).")]
+        [Range(0, 100)] public int DefaultVibrationPercent;
+
+        [Tooltip("Aim magnet (GDD §5.1: on).")]
+        public bool DefaultAimMagnet;
+
+        [Tooltip("Colour-blind palette (enemies orange).")]
+        public bool DefaultColorblindPalette;
+
+        [Tooltip("Battery saver: frame rate capped at BatterySaverFrameRate.")]
+        public bool DefaultBatterySaver;
+
+        [Header("Frame rate (GDD §8.4, S2.13)")]
+        [Tooltip("Application.targetFrameRate (vSync off).")]
+        [Min(15)] public int TargetFrameRate;
+
+        [Tooltip("Frame rate with the battery saver setting.")]
+        [Min(15)] public int BatterySaverFrameRate;
     }
 }

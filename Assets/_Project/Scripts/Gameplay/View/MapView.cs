@@ -8,7 +8,9 @@ namespace Arena.Gameplay.View
     /// Thin view of the map (D-014): the floor is one scaled quad, walls one combined mesh, water one combined sheet;
     /// breakable walls are separate cubes (switched off when the simulation reports <c>TileBroken</c>), bushes are low
     /// cubes whose material turns see-through around the local fighter while it hides in a bush.
-    /// Built once at match start from the state's tiles; no allocations per frame.
+    /// Built once at match start from the state's tiles; no allocations per frame. All map renderers sit under one "Static"
+    /// child that is static-batched at runtime (<see cref="StaticBatchingUtility.Combine(GameObject)"/>, S2.13): the many
+    /// bush and breakable cubes become a few draw calls; switching a breakable off and swapping a bush material still work.
     /// </summary>
     public sealed class MapView : MonoBehaviour
     {
@@ -21,6 +23,9 @@ namespace Arena.Gameplay.View
 
         public int BreakableCount { get; private set; }
         public int BushCount => _bushCount;
+
+        /// <summary>True if the bush and breakable cubes are static-batched (tests).</summary>
+        public bool IsStaticBatched { get; private set; }
 
         public static MapView Create(Transform parent, ViewCatalog catalog, in TileGrid grid)
         {
@@ -63,19 +68,22 @@ namespace Arena.Gameplay.View
         private void Build(ViewCatalog catalog, in TileGrid grid)
         {
             _catalog = catalog;
+            var staticRoot = new GameObject("Static");
+            staticRoot.transform.SetParent(transform, false);
+            Transform root = staticRoot.transform;
             int cells = grid.Width * grid.Height;
             _breakables = new GameObject[cells];
 
             if (catalog.FloorPrefab != null)
             {
-                GameObject floor = Instantiate(catalog.FloorPrefab, transform);
+                GameObject floor = Instantiate(catalog.FloorPrefab, root);
                 floor.name = "Floor";
                 floor.transform.position = new Vector3(grid.Width * 0.5f, 0f, grid.Height * 0.5f);
                 floor.transform.localScale = new Vector3(grid.Width, 1f, grid.Height);
             }
 
-            CreateMeshObject("Walls", MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, "Walls"), catalog.Wall);
-            CreateMeshObject("Water", MapMeshBuilder.BuildSheet(in grid, TileType.Water, catalog.WaterHeight, "Water"), catalog.Water);
+            CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, "Walls"), catalog.Wall);
+            CreateMeshObject("Water", root, MapMeshBuilder.BuildSheet(in grid, TileType.Water, catalog.WaterHeight, "Water"), catalog.Water);
 
             int bushCount = 0;
             for (int i = 0; i < cells; i++)
@@ -93,14 +101,14 @@ namespace Arena.Gameplay.View
                     Vector3 centre = WorldCoords.ToWorld(cell.Center);
                     if (t == TileType.BreakableWall && catalog.BreakableWallPrefab != null)
                     {
-                        GameObject go = Instantiate(catalog.BreakableWallPrefab, centre, Quaternion.identity, transform);
+                        GameObject go = Instantiate(catalog.BreakableWallPrefab, centre, Quaternion.identity, root);
                         go.name = "Breakable_" + c + "_" + r;
                         _breakables[grid.IndexOf(c, r)] = go;
                         BreakableCount++;
                     }
                     else if (t == TileType.Bush && catalog.BushPrefab != null)
                     {
-                        GameObject go = Instantiate(catalog.BushPrefab, centre, Quaternion.identity, transform);
+                        GameObject go = Instantiate(catalog.BushPrefab, centre, Quaternion.identity, root);
                         go.name = "Bush_" + c + "_" + r;
                         _bushes[_bushCount] = go.GetComponentInChildren<Renderer>();
                         _bushCentres[_bushCount] = cell.Center;
@@ -108,13 +116,16 @@ namespace Arena.Gameplay.View
                     }
                 }
             }
+
+            StaticBatchingUtility.Combine(staticRoot);
+            IsStaticBatched = _bushCount > 0 ? _bushes[0].isPartOfStaticBatch : BreakableCount > 0;
         }
 
-        private void CreateMeshObject(string name, Mesh mesh, Material material)
+        private static void CreateMeshObject(string name, Transform parent, Mesh mesh, Material material)
         {
             if (mesh.vertexCount == 0) return;
             var go = new GameObject(name);
-            go.transform.SetParent(transform, false);
+            go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = go.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;

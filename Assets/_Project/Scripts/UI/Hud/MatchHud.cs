@@ -52,7 +52,7 @@ namespace Arena.UI.Hud
             }
             if (_runner.Database != null && _runner.Database.Strings != null) Loc.Init(_runner.Database.Strings);
             _feel = _runner.Database != null ? _runner.Database.Feel : null;
-            _controls = MatchHudBuilder.Build(transform, _style, PlayerSettingsStore.Shared.Current.MirroredLayout);
+            _controls = MatchHudBuilder.Build(transform, _style, PlayerSettingsStore.SharedFor(_feel).Current.MirroredLayout);
             _abilityView = new AbilityHudView(_controls, _style);
             _scoreBar = ScoreBarView.Build(_controls.Canvas.transform, _style);
             _results = ResultsScreen.Build(transform, _style, SceneFlow.Restart, SceneFlow.ToMenu);

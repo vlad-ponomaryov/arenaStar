@@ -29,7 +29,8 @@ namespace Arena.Gameplay.Match
     /// Feel (S2.10, GDD §5.3, D-059): <see cref="HitFeedback"/> turns tick events into flashes, damage numbers, sounds,
     /// vibration, ult hit stop (views freeze, the simulation keeps going — D-015) and camera shake; area telegraphs, the own
     /// health number; the local manual aim gets the <see cref="AimMagnet"/> if the setting is on; the colour-blind palette
-    /// swaps the enemy materials. Settings are read from <see cref="PlayerSettingsStore.Shared"/> at match start.
+    /// swaps the enemy materials. Settings are read from <see cref="PlayerSettingsStore.Shared"/> at match start (defaults from
+    /// <see cref="FeelConfig"/>), the frame rate is applied then (<see cref="FrameRateApplier"/>, S2.13).
     /// </summary>
     public sealed class MatchRunner : MonoBehaviour
     {
@@ -124,7 +125,8 @@ namespace Arena.Gameplay.Match
             if (_database.BotBehaviour == null) throw new InvalidOperationException("MatchRunner: GameDatabase.BotBehaviour is not set");
             if (_database.Feel == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Feel is not set");
             _feel = _database.Feel;
-            _settings = PlayerSettingsStore.Shared.Current.Clone();
+            _settings = PlayerSettingsStore.SharedFor(_feel).Current.Clone();
+            FrameRateApplier.Apply(_settings, _feel);
 
             MatchDefs defs = ConfigConverter.ToMatchDefs(_database);
             LaunchParams = SceneFlow.Current;

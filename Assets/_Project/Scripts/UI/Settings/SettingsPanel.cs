@@ -13,8 +13,8 @@ namespace Arena.UI.Settings
     /// <summary>
     /// Settings screen over the menu (GDD §5.1, §5.3, D-029, D-059), built in code from <see cref="UiStyle"/>: mirrored layout
     /// (Off/On), vibration strength (the steps of <see cref="FeelConfig.VibrationSteps"/>), aim magnet (Off/On), colour-blind
-    /// palette (Off/On), "Close". Every choice is saved at once through <see cref="PlayerSettingsStore"/> (local PlayerPrefs);
-    /// the match reads the settings when it starts. No text input. All texts through localization keys.
+    /// palette (Off/On), battery saver (Off/On, 30 FPS — S2.13), "Close". Every choice is saved at once through <see cref="PlayerSettingsStore"/> (local PlayerPrefs);
+    /// the match reads the settings when it starts; the frame rate is applied at once (<see cref="FrameRateApplier"/>). No text input. All texts through localization keys.
     /// </summary>
     public sealed class SettingsPanel : MonoBehaviour
     {
@@ -23,9 +23,10 @@ namespace Arena.UI.Settings
 
         private PlayerSettingsStore _store;
         private UiStyle _style;
+        private FeelConfig _feel;
         private int[] _vibrationSteps = new int[0];
         private Action _onClose;
-        private Button _mirrorOff, _mirrorOn, _magnetOff, _magnetOn, _colorOff, _colorOn;
+        private Button _mirrorOff, _mirrorOn, _magnetOff, _magnetOn, _colorOff, _colorOn, _batteryOff, _batteryOn;
         private Button[] _vibrationButtons = new Button[0];
 
         public bool IsShown => gameObject.activeSelf;
@@ -41,6 +42,7 @@ namespace Arena.UI.Settings
             SettingsPanel panel = canvas.gameObject.AddComponent<SettingsPanel>();
             panel._store = store;
             panel._style = style;
+            panel._feel = feel;
             panel._onClose = onClose;
             panel._vibrationSteps = feel != null && feel.VibrationSteps != null && feel.VibrationSteps.Length > 0
                 ? feel.VibrationSteps
@@ -66,12 +68,14 @@ namespace Arena.UI.Settings
         public void SetVibration(int percent) => Change(s => s.VibrationPercent = percent);
         public void SetAimMagnet(bool on) => Change(s => s.AimMagnet = on);
         public void SetColorblind(bool on) => Change(s => s.ColorblindPalette = on);
+        public void SetBatterySaver(bool on) => Change(s => s.BatterySaver = on);
 
         private void Change(Action<GameSettings> edit)
         {
             GameSettings copy = _store.Current.Clone();
             edit(copy);
             _store.Save(copy);
+            FrameRateApplier.Apply(_store.Current, _feel);
             Refresh();
         }
 
@@ -107,6 +111,10 @@ namespace Arena.UI.Settings
             _colorOff = Choice(color, "ColorblindOff", Loc.Get(LocKeys.SettingsOff), () => SetColorblind(false));
             _colorOn = Choice(color, "ColorblindOn", Loc.Get(LocKeys.SettingsOn), () => SetColorblind(true));
 
+            RectTransform battery = CreateRow(column, LocKeys.SettingsBatterySaver);
+            _batteryOff = Choice(battery, "BatterySaverOff", Loc.Get(LocKeys.SettingsOff), () => SetBatterySaver(false));
+            _batteryOn = Choice(battery, "BatterySaverOn", Loc.Get(LocKeys.SettingsOn), () => SetBatterySaver(true));
+
             CloseButton = UiFactory.CreateButton("CloseButton", column, s, s.MenuButtonSize, s.PrimaryButtonColor,
                 s.MediumFontSize, Loc.Get(LocKeys.SettingsClose), Hide, out _);
         }
@@ -133,6 +141,8 @@ namespace Arena.UI.Settings
             Highlight(_magnetOn, g.AimMagnet);
             Highlight(_colorOff, !g.ColorblindPalette);
             Highlight(_colorOn, g.ColorblindPalette);
+            Highlight(_batteryOff, !g.BatterySaver);
+            Highlight(_batteryOn, g.BatterySaver);
             int nearest = NearestStep(g.VibrationPercent);
             for (int i = 0; i < _vibrationButtons.Length; i++) Highlight(_vibrationButtons[i], i == nearest);
         }
