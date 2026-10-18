@@ -85,7 +85,8 @@ namespace Arena.Editor.MapEditor
         }
 
         public static bool IsMarker(char value) =>
-            value == MapConverter.Team0SpawnChar || value == MapConverter.Team1SpawnChar || value == MapConverter.HollowChar;
+            value == MapConverter.Team0SpawnChar || value == MapConverter.Team1SpawnChar || value == MapConverter.HollowChar
+            || value == MapConverter.SharedSpawnChar;
 
         /// <summary>Text rows (top first), the format of <c>MapConfig.Rows</c>.</summary>
         public static string[] ToRows(MapGrid grid)

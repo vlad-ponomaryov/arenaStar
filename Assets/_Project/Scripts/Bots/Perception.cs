@@ -46,7 +46,8 @@ namespace Arena.Bots
         }
 
         /// <summary>
-        /// Objective point of the mode: Acorns — the nearest acorn on the map, otherwise the hollow; no mode — the map centre.
+        /// Objective point of the mode: Acorns — the nearest acorn on the map, otherwise the hollow; Last Beast — the nearest
+        /// berry that is not in the fog, otherwise the map centre (the safe zone); no mode — the map centre.
         /// False once the match has ended.
         /// </summary>
         public static bool FindObjective(MatchState state, MatchDefs defs, Vec2 from, out Vec2 point)
@@ -75,6 +76,24 @@ namespace Arena.Bots
                     point = defs.Map.Hollow.Center;
                     return true;
                 }
+            }
+            if (defs.Mode == ModeKind.LastBeast)
+            {
+                float bestSq = float.PositiveInfinity;
+                bool found = false;
+                for (int i = 0; i < state.Pickups.Length; i++)
+                {
+                    ref PickupState pickup = ref state.Pickups[i];
+                    if (!pickup.Active || pickup.Kind != PickupKind.Berry || LastBeastRules.IsInFog(state, pickup.Position)) continue;
+                    float d = Vec2.SqrDistance(pickup.Position, from);
+                    if (d < bestSq)
+                    {
+                        bestSq = d;
+                        point = pickup.Position;
+                        found = true;
+                    }
+                }
+                if (found) return true;
             }
             point = defs.Map.Center;
             return true;

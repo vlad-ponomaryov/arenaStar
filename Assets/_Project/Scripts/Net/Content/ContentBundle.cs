@@ -27,6 +27,9 @@ namespace Arena.Net.Content
         /// <summary>Acorns mode rules, or null if the content has no Acorns mode.</summary>
         public AcornsModeDef Acorns;
 
+        /// <summary>«Last Beast» mode rules, or null if the content has no Last Beast mode.</summary>
+        public LastBeastModeDef LastBeast;
+
         /// <summary>Maps per mode; a mode without an entry is not offered online.</summary>
         public ContentModeMaps[] ModeMaps = new ContentModeMaps[0];
 
@@ -69,6 +72,11 @@ namespace Arena.Net.Content
                 case ModeKind.Acorns:
                     if (Acorns == null) throw new ArgumentException("ContentBundle: no Acorns mode in the content");
                     defs.Acorns = Acorns;
+                    break;
+                case ModeKind.LastBeast:
+                    if (LastBeast == null) throw new ArgumentException("ContentBundle: no Last Beast mode in the content");
+                    defs.LastBeast = LastBeast;
+                    defs.NoRespawn = true;
                     break;
                 default:
                     throw new ArgumentException("ContentBundle: unsupported mode " + mode);

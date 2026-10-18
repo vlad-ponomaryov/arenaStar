@@ -4,6 +4,7 @@ using Arena.Bots;
 using Arena.Bots.Defs;
 using Arena.Core.Defs;
 using Arena.Core.Input;
+using Arena.Core.Map;
 using Arena.Core.Sim;
 using Arena.Net.Content;
 
@@ -18,12 +19,21 @@ namespace Arena.Net.Diagnostics
     public static class HeadlessMatch
     {
         /// <summary>
-        /// Setup with every spawn of the map filled (team size = spawns of team 0), fighter of slot i = i mod fighter count,
-        /// level and unlock flag from the pack's policy.
+        /// Setup with every spawn of the map filled (team size = spawns of team 0; a free-for-all map — every shared spawn up to
+        /// <see cref="SimLimits.MaxFighters"/>, one team per slot), fighter of slot i = i mod fighter count, level and unlock
+        /// flag from the pack's policy.
         /// </summary>
         public static MatchSetup CreateBotSetup(MatchDefs defs, ContentMatchPolicy policy, int seed)
         {
             if (defs == null) throw new ArgumentNullException(nameof(defs));
+            int shared = defs.Map.SpawnCount(MapSpawn.SharedTeam);
+            if (shared > 0)
+            {
+                int n = shared < SimLimits.MaxFighters ? shared : SimLimits.MaxFighters;
+                var ffa = new int[n];
+                for (int i = 0; i < n; i++) ffa[i] = i % defs.Fighters.Length;
+                return MatchSetupBuilder.CreateFreeForAll(defs, policy, ffa, seed);
+            }
             int teamSize = defs.Map.SpawnCount(0);
             int slots = teamSize + defs.Map.SpawnCount(1);
             if (teamSize == 0 || slots > SimLimits.MaxFighters) throw new ArgumentException("HeadlessMatch: map '" + defs.Map.Id + "' spawns do not fit");

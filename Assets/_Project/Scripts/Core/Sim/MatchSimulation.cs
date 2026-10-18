@@ -25,7 +25,8 @@ namespace Arena.Core.Sim
     ///   7. areas (lobbed bursts, mines, pulsing fields);
     ///      effects, damage, healing, ult charge and defeat happen inside 4–7 (DamageSystem is the single health point);
     ///   8. respawn;
-    ///   8a. mode rules (Acorns: acorns from the hollow, pickup, hold countdown, time limit — AcornsRules);
+    ///   8a. mode rules (Acorns: acorns from the hollow, pickup, hold countdown, time limit — AcornsRules; Last Beast: fog,
+    ///       berries, places, end — LastBeastRules);
     ///   9. attack charges;
     ///  10. regeneration;
     ///  11. visibility (bushes, reveal, invisibility, marks; read by views, bots and next tick's auto-aim);
@@ -76,6 +77,7 @@ namespace Arena.Core.Sim
             for (int i = 0; i < Setup.SlotCount; i++)
                 SpawnSystem.SpawnFighter(State, Defs, Setup, i, Events);
             AcornsRules.Reset(State, Defs);
+            LastBeastRules.Reset(State, Defs);
             VisibilitySystem.Run(State, Defs);
         }
 
@@ -100,6 +102,7 @@ namespace Arena.Core.Sim
             AreaSystem.Run(State, Defs, Events);
             RespawnSystem.Run(State, Defs, Setup, Events);
             AcornsRules.Run(State, Defs, Events);
+            LastBeastRules.Run(State, Defs, Events);
             ChargeSystem.Run(State, Defs, Events);
             RegenSystem.Run(State, Defs);
             VisibilitySystem.Run(State, Defs);

@@ -20,9 +20,12 @@ namespace Arena.Core.State
         /// <summary>Acorns picked up (a golden one counts by its value), Acorns mode.</summary>
         public int AcornsCollected;
 
+        /// <summary>Final place in a free-for-all match (Last Beast): 1 = winner; 0 = still playing or no places in the mode.</summary>
+        public int Place;
+
         public bool Equals(FighterStats o) =>
             DamageDealt == o.DamageDealt && HealingDone == o.HealingDone && Kills == o.Kills && Deaths == o.Deaths
-            && AcornsCollected == o.AcornsCollected;
+            && AcornsCollected == o.AcornsCollected && Place == o.Place;
 
         public override bool Equals(object obj) => obj is FighterStats other && Equals(other);
         public override int GetHashCode() => (DamageDealt * 397) ^ (Kills * 31) ^ Deaths ^ HealingDone;

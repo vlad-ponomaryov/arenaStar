@@ -74,6 +74,9 @@ namespace Arena.Core.State
         /// <summary>Acorns carried (Acorns mode); dropped on defeat (<c>AcornsRules.OnDefeat</c>).</summary>
         public int CarriedAcorns;
 
+        /// <summary>Power berries collected (Last Beast): +damage and +max health each; dropped on defeat (<c>LastBeastRules</c>).</summary>
+        public int Berries;
+
         // --- Shot boost (EffectKind.BoostShots; lost on defeat). ---
 
         /// <summary>Attack activations still boosted by <see cref="BoostPercent"/>.</summary>
@@ -150,7 +153,7 @@ namespace Arena.Core.State
                 && RespawnTick == o.RespawnTick && BurstShotsLeft == o.BurstShotsLeft && NextBurstTick == o.NextBurstTick
                 && BurstDir == o.BurstDir && UltCharge == o.UltCharge
                 && TrickUsesLeft == o.TrickUsesLeft && TrickReadyTick == o.TrickReadyTick
-                && TrickUnlocked == o.TrickUnlocked && TalentUnlocked == o.TalentUnlocked && CarriedAcorns == o.CarriedAcorns
+                && TrickUnlocked == o.TrickUnlocked && TalentUnlocked == o.TalentUnlocked && CarriedAcorns == o.CarriedAcorns && Berries == o.Berries
                 && BoostedShotsLeft == o.BoostedShotsLeft && BoostPercent == o.BoostPercent && ShotBonusPercent == o.ShotBonusPercent
                 && SpeedMul == o.SpeedMul && DamageTakenMul == o.DamageTakenMul && Stunned == o.Stunned
                 && Invisible == o.Invisible && MarkedByTeamMask == o.MarkedByTeamMask

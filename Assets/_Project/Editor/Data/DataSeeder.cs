@@ -29,6 +29,8 @@ namespace Arena.Editor.Data
         public const string GameDatabasePath = DataRoot + "/GameDatabase.asset";
         public const string ModesFolder = DataRoot + "/Modes";
         public const string AcornsModePath = ModesFolder + "/Acorns.asset";
+        public const string LastBeastModePath = ModesFolder + "/LastBeast.asset";
+        public const string RoyaleThicketPath = MapsFolder + "/Royale_Thicket.asset";
         public const string LocalizationFolder = DataRoot + "/Localization";
         public const string StringsPath = LocalizationFolder + "/Strings.asset";
         public const string BotsFolder = DataRoot + "/Bots";
@@ -131,6 +133,33 @@ namespace Arena.Editor.Data
         private const float MvpAcornWeight = 400f;
         private const float MvpDeathWeight = 500f;
 
+        // Last Beast (GDD §5.4): fog from 0:40, every 20 s 2 cells from each side, 500 per second; berry +8 % damage and max
+        // health (additive); a defeated fighter drops its berries + 1.
+        private const float FogStartSeconds = 40f;
+        private const float FogStepSeconds = 20f;
+        private const float FogShrinkCells = 2f;
+        private const int FogDamagePerSecond = 500;
+        private const int BerryDamagePercent = 8;
+        private const int BerryHealthPercent = 8;
+        private const int ExtraBerriesOnDefeat = 1;
+
+        // PROTO (D-089): box durability ≈ 2.5 Pix bursts, 1 berry per box, fog +250 per second per step in pulses of 0.5 s,
+        // smallest safe square 5×5 cells, 6 min safety limit; berry radius / scatter / pickup delay as acorns (D-025).
+        private const int BoxHealth = 3600;
+        private const int BerriesPerBox = 1;
+        private const int FogDamageGrowthPerStep = 250;
+        private const float FogPulseSeconds = 0.5f;
+        private const float FogMinHalfSize = 2.5f;
+        private const float LastBeastMaxSeconds = 360f;
+        private const float BerryPickupRadius = 0.3f;
+        private const float BerryDropScatter = 1.2f;
+        private const float BerryPickupDelaySeconds = 0.5f;
+        private const int BerryScatterAttempts = 8;
+
+        // PROTO (S3.3): bots flee the fog above everything else (retreat 1, hide 1.05) and 3 s before a step that covers them.
+        private const float BotFleeFogScore = 1.2f;
+        private const float BotFogWarnSeconds = 3f;
+
         // UI strings EN / RU (D-019). Fighter names are original (GDD §6).
         private static readonly string[][] Strings =
         {
@@ -225,6 +254,39 @@ namespace Arena.Editor.Data
             "....................." // row 0
         };
         private const string AcornsGladeMiddleRow = "~~...#...\"H\"...#...~~"; // row 15, its own mirror
+
+        // Last Beast map "Thicket" (original layout, 45×45, GDD §5.4): open ground with cover clusters, ponds, bush patches and
+        // berry boxes spread evenly; 10 shared spawns along the edges; the last 5×5 safe square in the centre is open floor.
+        // Only the top-left quarter (23×23, text rows top first; its last column and last row are the mirror axes) is written
+        // here; the map is mirrored left↔right and top↔bottom (MirrorQuarter), so it is fair by construction.
+        private const string RoyaleThicketId = "royale_thicket";
+        private const int RoyaleSharedSpawns = 10;
+        private static readonly string[] RoyaleThicketQuarter =
+        {
+            ".......................", // text row 0 (top edge)
+            "..........\"\"\"..........",
+            "..S.......\"\"\".........S",
+            ".......................",
+            "....##.......$.........",
+            "....#......~~~.....%%..",
+            "...........~~~.........",
+            ".....$.................",
+            "\"\"............###......",
+            "\"\"\"...%%.........$.....",
+            "\"\"\"....................",
+            "..........$.....\"\"\"....",
+            ".......................",
+            "..S....##.......\"\"\".#..",
+            ".......#..$............",
+            ".......................",
+            "....~~......#..........",
+            "....~~......#....$.....",
+            ".........\"\"\"...........",
+            "...$.....\"\"\"......##...",
+            "...................#...",
+            ".............%.........",
+            "......\"\"..............." // text row 22: the middle row (its own mirror)
+        };
 
         // PROTO (D-013): body radii in cells.
         private const float RadiusDefault = 0.45f;
@@ -450,6 +512,10 @@ namespace Arena.Editor.Data
             db.Feel = SeedFeel();
             db.MatchRunner = SeedMatchRunner();
             db.AcornsMode = SeedAcornsMode();
+            db.LastBeastMode = SeedLastBeastMode();
+            if (db.LastBeastMaps == null) db.LastBeastMaps = new System.Collections.Generic.List<MapConfig>();
+            db.LastBeastMaps.Clear();
+            db.LastBeastMaps.Add(SeedRoyaleThicket());
             db.Strings = SeedStrings();
             if (db.BotDifficulties == null) db.BotDifficulties = new System.Collections.Generic.List<BotDifficultyConfig>();
             db.BotDifficulties.Clear();
@@ -659,6 +725,8 @@ namespace Arena.Editor.Data
             c.HideInBushScore = BotHideInBushScore;
             c.CheckBushScore = BotCheckBushScore;
             c.StayWithTeamScore = BotStayWithTeamScore;
+            c.FleeFogScore = BotFleeFogScore;
+            c.FogWarnSeconds = BotFogWarnSeconds;
             EditorUtility.SetDirty(c);
             return c;
         }
@@ -669,9 +737,75 @@ namespace Arena.Editor.Data
             c.Id = AcornsGladeId;
             c.Rows = MirrorBottomHalf(AcornsGladeBottomHalf, AcornsGladeMiddleRow);
             c.RequiredSpawnsPerTeam = SpawnsPerTeam;
+            c.RequiredSharedSpawns = 0;
             c.RequireCentralSymmetry = true;
             EditorUtility.SetDirty(c);
             return c;
+        }
+
+        private static MapConfig SeedRoyaleThicket()
+        {
+            MapConfig c = LoadOrCreate<MapConfig>(RoyaleThicketPath);
+            c.Id = RoyaleThicketId;
+            c.Rows = MirrorQuarter(RoyaleThicketQuarter);
+            c.RequiredSpawnsPerTeam = 0;
+            c.RequiredSharedSpawns = RoyaleSharedSpawns;
+            c.RequireCentralSymmetry = false;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static LastBeastModeConfig SeedLastBeastMode()
+        {
+            LastBeastModeConfig c = LoadOrCreate<LastBeastModeConfig>(LastBeastModePath);
+            c.FogStartSeconds = FogStartSeconds;
+            c.FogStepIntervalSeconds = FogStepSeconds;
+            c.FogShrinkCells = FogShrinkCells;
+            c.FogMinHalfSize = FogMinHalfSize;
+            c.FogDamagePerSecond = FogDamagePerSecond;
+            c.FogDamageGrowthPerStep = FogDamageGrowthPerStep;
+            c.FogPulseSeconds = FogPulseSeconds;
+            c.BoxHealth = BoxHealth;
+            c.BerriesPerBox = BerriesPerBox;
+            c.BerryDamagePercent = BerryDamagePercent;
+            c.BerryHealthPercent = BerryHealthPercent;
+            c.ExtraBerriesOnDefeat = ExtraBerriesOnDefeat;
+            c.BerryPickupRadius = BerryPickupRadius;
+            c.BerryDropScatterRadius = BerryDropScatter;
+            c.BerryPickupDelaySeconds = BerryPickupDelaySeconds;
+            c.ScatterAttempts = BerryScatterAttempts;
+            c.MaxDurationSeconds = LastBeastMaxSeconds;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        /// <summary>
+        /// Full rows (top first) from the top-left quarter (top first) whose last column and last row lie on the mirror axes:
+        /// each row is mirrored left↔right around its last character, then the rows top↔bottom around the last row
+        /// (an N×N quarter gives a (2N−1)×(2N−1) map).
+        /// </summary>
+        public static string[] MirrorQuarter(string[] quarterTopFirst)
+        {
+            int half = quarterTopFirst.Length;
+            var top = new string[half];
+            for (int i = 0; i < half; i++)
+            {
+                string row = quarterTopFirst[i];
+                char[] chars = new char[row.Length * 2 - 1];
+                for (int k = 0; k < row.Length; k++)
+                {
+                    chars[k] = row[k];
+                    chars[chars.Length - 1 - k] = row[k];
+                }
+                top[i] = new string(chars);
+            }
+            var rows = new string[half * 2 - 1];
+            for (int i = 0; i < half; i++)
+            {
+                rows[i] = top[i];
+                rows[rows.Length - 1 - i] = top[i];
+            }
+            return rows;
         }
 
         /// <summary>

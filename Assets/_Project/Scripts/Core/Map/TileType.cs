@@ -20,7 +20,7 @@ namespace Arena.Core.Map
         /// <summary>Blocks movement; projectiles fly over it.</summary>
         Water = 4,
 
-        /// <summary>Box with a power berry (royale only, stage 4+): blocks like a wall for now.</summary>
+        /// <summary>Box with power berries: blocks like a wall; in Last Beast it has durability and breaks into floor (<c>BoxSystem</c>).</summary>
         BerryBox = 5
     }
 }

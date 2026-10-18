@@ -49,10 +49,10 @@ namespace Arena.Core.Sim.Events
         /// Position = cell centre.</summary>
         TileBroken = 12,
 
-        /// <summary>Acorn appeared. Value = pickup slot, Position = where it lies.</summary>
+        /// <summary>Acorn or berry appeared. Value = pickup slot, Position = where it lies.</summary>
         PickupSpawned = 13,
 
-        /// <summary>Acorn picked up. Source = fighter, Value = acorns it was worth, Position = where it lay.</summary>
+        /// <summary>Acorn or berry picked up. Source = fighter, Value = acorns (berries) it was worth, Position = where it lay.</summary>
         PickupCollected = 14,
 
         /// <summary>A defeated fighter dropped its acorns. Source = fighter, Value = acorns dropped, Position = fighter.</summary>
@@ -65,6 +65,17 @@ namespace Arena.Core.Sim.Events
         CountdownReset = 17,
 
         /// <summary>Match over. Value = winning team, or −1 for a draw.</summary>
-        MatchEnded = 18
+        MatchEnded = 18,
+
+        /// <summary>Berry box hit (Last Beast). Source = attacker (or −1), Value = durability removed, Target = box slot,
+        /// Position = cell centre. At 0 durability <see cref="TileBroken"/> follows.</summary>
+        BoxDamaged = 19,
+
+        /// <summary>The fog moved in (Last Beast). Value = fog step (1 = first), Position = safe rectangle min corner,
+        /// Direction = its max corner.</summary>
+        FogAdvanced = 20,
+
+        /// <summary>A fighter is out of a free-for-all match (Last Beast). Source = fighter, Value = its place.</summary>
+        FighterPlaced = 21
     }
 }

@@ -34,7 +34,8 @@ namespace Arena.Editor.MapEditor
             new PaletteEntry(MapConverter.BerryBoxChar, "Berry box", new Color(0.75f, 0.3f, 0.55f)),
             new PaletteEntry(MapConverter.Team0SpawnChar, "Spawn A (team 0)", new Color(0.3f, 0.6f, 1f)),
             new PaletteEntry(MapConverter.Team1SpawnChar, "Spawn B (team 1)", new Color(1f, 0.35f, 0.3f)),
-            new PaletteEntry(MapConverter.HollowChar, "Hollow", new Color(0.95f, 0.8f, 0.2f))
+            new PaletteEntry(MapConverter.HollowChar, "Hollow", new Color(0.95f, 0.8f, 0.2f)),
+            new PaletteEntry(MapConverter.SharedSpawnChar, "Spawn S (shared)", new Color(0.85f, 0.85f, 0.85f))
         };
 
         private static readonly string[] BrushLabels = { "Brush 1×1", "Brush 3×3" };

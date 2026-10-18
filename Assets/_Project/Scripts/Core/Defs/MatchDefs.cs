@@ -1,6 +1,7 @@
 using System;
 using Arena.Core.Map;
 using Arena.Core.Modes;
+using Arena.Core.Sim;
 
 namespace Arena.Core.Defs
 {
@@ -21,6 +22,15 @@ namespace Arena.Core.Defs
 
         /// <summary>Acorns mode parameters (required when <see cref="Mode"/> is <see cref="ModeKind.Acorns"/>).</summary>
         public AcornsModeDef Acorns;
+
+        /// <summary>«Last Beast» parameters (required when <see cref="Mode"/> is <see cref="ModeKind.LastBeast"/>).</summary>
+        public LastBeastModeDef LastBeast;
+
+        /// <summary>
+        /// Defeated fighters stay out (Last Beast). Default false = respawn as before, so every existing def keeps its behaviour
+        /// (Server-Spec §1.3, D-080).
+        /// </summary>
+        public bool NoRespawn;
 
         /// <summary>Ability slots per fighter in an ability reference (<see cref="AbilitySlot"/>).</summary>
         public const int AbilitySlotsPerFighter = 3;
@@ -70,6 +80,16 @@ namespace Arena.Core.Defs
                 if (Acorns == null) throw new ArgumentException("MatchDefs.Acorns is null for the Acorns mode");
                 Acorns.Validate();
                 if (!Map.HasHollow) throw new ArgumentException("Map '" + Map.Id + "' has no hollow for the Acorns mode");
+            }
+            if (Mode == ModeKind.LastBeast)
+            {
+                if (LastBeast == null) throw new ArgumentException("MatchDefs.LastBeast is null for the Last Beast mode");
+                LastBeast.Validate();
+                if (Map.SpawnCount(MapSpawn.SharedTeam) == 0)
+                    throw new ArgumentException("Map '" + Map.Id + "' has no shared spawns for the Last Beast mode");
+                int boxes = Map.CountTiles(TileType.BerryBox);
+                if (boxes > SimLimits.MaxBoxes)
+                    throw new ArgumentException("Map '" + Map.Id + "' has " + boxes + " berry boxes > SimLimits.MaxBoxes " + SimLimits.MaxBoxes);
             }
         }
     }

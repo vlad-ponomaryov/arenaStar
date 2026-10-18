@@ -22,6 +22,7 @@ namespace Arena.Core.Sim.Systems
     /// of that tick's step is dropped). With <see cref="AbilityDef.PierceFalloffPercent"/> every target after the first takes
     /// that much less damage (Nova). A <see cref="DeliveryKind.Hook"/> projectile pulls its owner (<see cref="DashSystem.StartPull"/>)
     /// to the wall face it hits, or next to the enemy it hits (after the effects); a miss or an enemy dome does nothing.
+    /// A projectile stopped by a berry box cell damages the box (<see cref="BoxSystem.DamageCell"/>, Last Beast).
     /// </summary>
     public static class ProjectileSystem
     {
@@ -68,7 +69,8 @@ namespace Arena.Core.Sim.Systems
                 float step = p.Speed * SimTime.Dt;
                 if (step > p.RemainingDistance) step = p.RemainingDistance;
                 Vec2 start = p.Position;
-                bool tileHit = ability != null && !ability.IgnoresWalls && ClipByWalls(state, events, ability, in p, start, ref step);
+                GridCell wallCell = default;
+                bool tileHit = ability != null && !ability.IgnoresWalls && ClipByWalls(state, events, ability, in p, start, ref step, out wallCell);
                 bool wallHit = tileHit;
                 if (ClipByFields(state, defs, in p, start, ref step))
                 {
@@ -118,6 +120,11 @@ namespace Arena.Core.Sim.Systems
                 }
                 p.Active = false;
                 events.Add(new SimEvent(SimEventType.ProjectileEnded, tick, p.Owner, -1, i, p.Position, p.Dir));
+                if (tileHit && !stopped)
+                {
+                    var boxCtx = new EffectContext(ability, p.AbilityRef, p.Owner, p.Team, p.Position, p.Dir, p.DamagePercent);
+                    BoxSystem.DamageCell(state, defs, events, in boxCtx, wallCell.Column, wallCell.Row);
+                }
                 if (ability != null && ability.Delivery == DeliveryKind.Hook)
                 {
                     if (stoppedBy >= 0) PullToFighter(state, defs, ability, p.Owner, stoppedBy);
@@ -152,15 +159,18 @@ namespace Arena.Core.Sim.Systems
         /// Shortens <paramref name="step"/> to the first projectile-blocking cell on the way; returns true if a wall stops
         /// the projectile in this tick. Wall breakers break breakable cells and continue.
         /// </summary>
-        private static bool ClipByWalls(MatchState state, SimEventBuffer events, AbilityDef ability, in ProjectileState p, Vec2 start, ref float step)
+        private static bool ClipByWalls(MatchState state, SimEventBuffer events, AbilityDef ability, in ProjectileState p, Vec2 start,
+            ref float step, out GridCell hitCell)
         {
             TileGrid grid = state.Grid;
             while (GridCollision.Raycast(in grid, start, p.Dir, step, out float distance, out GridCell cell))
             {
                 if (ability.BreaksWalls && TileSystem.TryBreak(state, events, cell.Column, cell.Row, p.Owner)) continue;
                 step = distance;
+                hitCell = cell;
                 return true;
             }
+            hitCell = default;
             return false;
         }
 

@@ -32,5 +32,8 @@ namespace Arena.Bots.Utility
 
         /// <summary>An enemy vanished near a bush within the memory time.</summary>
         public bool HasBushMemory;
+
+        /// <summary>Last Beast: in the fog now, or covered by the next fog step that comes within <c>FogWarnTicks</c>.</summary>
+        public bool FogThreat;
     }
 }

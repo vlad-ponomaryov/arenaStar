@@ -21,6 +21,7 @@ namespace Arena.Tests.EditMode.Bots
         public const int FocusWindow = 45;
         public const int MemoryTicks = 90;
         public const int CarrierAcorns = 8;
+        public const int FogWarn = 90;
 
         public static BotBehaviourDef Behaviour() => new BotBehaviourDef
         {
@@ -60,7 +61,9 @@ namespace Arena.Tests.EditMode.Bots
             CarrierBehindDistance = 1.5f,
             HideInBushScore = 1.05f,
             CheckBushScore = 0.55f,
-            StayWithTeamScore = 0.55f
+            StayWithTeamScore = 0.55f,
+            FleeFogScore = 1.2f,
+            FogWarnTicks = FogWarn
         };
 
         public static BotDifficultyDef Novice() => new BotDifficultyDef

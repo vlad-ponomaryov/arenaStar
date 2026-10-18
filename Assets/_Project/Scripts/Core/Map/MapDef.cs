@@ -18,7 +18,7 @@ namespace Arena.Core.Map
         /// <summary>Row-major tiles, index = row × <see cref="Width"/> + column.</summary>
         public TileType[] Tiles;
 
-        /// <summary>Spawns of all teams; within a team in slot order (the k-th fighter of a team uses its k-th spawn).</summary>
+        /// <summary>Spawns of all teams (and shared spawns, <see cref="MapSpawn.SharedTeam"/>); within a team in slot order (the k-th fighter of a team uses its k-th spawn).</summary>
         public MapSpawn[] Spawns = new MapSpawn[0];
 
         public bool HasHollow;
@@ -37,7 +37,17 @@ namespace Arena.Core.Map
 
         public TileType Get(int column, int row) => InitialGrid.Get(column, row);
 
-        /// <summary>Number of spawns of <paramref name="team"/>.</summary>
+        /// <summary>Number of initial tiles of <paramref name="type"/>.</summary>
+        public int CountTiles(TileType type)
+        {
+            int n = 0;
+            if (Tiles == null) return 0;
+            for (int i = 0; i < Tiles.Length; i++)
+                if (Tiles[i] == type) n++;
+            return n;
+        }
+
+        /// <summary>Number of spawns of <paramref name="team"/> (<see cref="MapSpawn.SharedTeam"/> = shared spawns).</summary>
         public int SpawnCount(int team)
         {
             int n = 0;
@@ -88,7 +98,7 @@ namespace Arena.Core.Map
                 GridCell c = Spawns[i].Cell;
                 if (!grid.InBounds(c.Column, c.Row)) throw new ArgumentException(name + ": spawn " + c + " is outside the map");
                 if (grid.BlocksMovement(c.Column, c.Row)) throw new ArgumentException(name + ": spawn " + c + " is not walkable");
-                if (Spawns[i].Team < 0 || Spawns[i].Team >= SimLimits.MaxTeams)
+                if ((Spawns[i].Team < 0 && Spawns[i].Team != MapSpawn.SharedTeam) || Spawns[i].Team >= SimLimits.MaxTeams)
                     throw new ArgumentException(name + ": spawn " + c + " has team " + Spawns[i].Team + " out of range");
             }
             if (HasHollow && !grid.InBounds(Hollow.Column, Hollow.Row))

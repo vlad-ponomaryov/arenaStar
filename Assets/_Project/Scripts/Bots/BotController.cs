@@ -227,7 +227,8 @@ namespace Arena.Bots
                 TargetInFireRange = target >= 0 && distance <= fireRange,
                 RetreatShift = b.RetreatShift,
                 IsCarrier = defs.Mode == ModeKind.Acorns && f.CarriedAcorns >= _behaviour.CarrierAcorns,
-                HasBushMemory = memoryEnemy >= 0
+                HasBushMemory = memoryEnemy >= 0,
+                FogThreat = LastBeastRules.IsInFogSoon(state, defs, f.Position, _behaviour.FogWarnTicks)
             };
             Vec2 hideBush = Vec2.Zero;
             bool wantsRetreat = UtilityScorer.WantsRetreat(in situation, _behaviour);
@@ -268,6 +269,9 @@ namespace Arena.Bots
                     break;
                 case BotAction.StayWithTeam:
                     b.Goal = TeamSpot(state, defs, slot);
+                    break;
+                case BotAction.FleeFog:
+                    b.Goal = LastBeastRules.SafeCenter(state);
                     break;
                 default:
                     if (previous != BotAction.Wander || IsReached(f.Position, b.Goal)) b.Goal = PickWanderGoal(state.Grid, ref b, f.Position);

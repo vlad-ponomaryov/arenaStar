@@ -49,3 +49,5 @@ MonoBehaviour:
   HideInBushScore: 1.05
   CheckBushScore: 0.55
   StayWithTeamScore: 0.55
+  FleeFogScore: 1.2
+  FogWarnSeconds: 3

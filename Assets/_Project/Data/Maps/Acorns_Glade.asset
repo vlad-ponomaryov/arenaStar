@@ -46,4 +46,5 @@ MonoBehaviour:
   - .."".............""..
   - .....................
   RequiredSpawnsPerTeam: 3
+  RequiredSharedSpawns: 0
   RequireCentralSymmetry: 1

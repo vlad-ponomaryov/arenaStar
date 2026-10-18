@@ -64,6 +64,13 @@ namespace Arena.Data.Conversion
                 if (db.AcornsMaps == null || db.AcornsMaps.Count == 0) throw new ArgumentException("GameDatabase.AcornsMaps is empty");
                 modeMaps.Add(new ContentModeMaps { Mode = ModeKind.Acorns, MapIndices = MapIndices(db.AcornsMaps, mapConfigs, "AcornsMaps") });
             }
+            LastBeastModeDef lastBeast = null;
+            if (db.LastBeastMode != null)
+            {
+                if (db.LastBeastMaps == null || db.LastBeastMaps.Count == 0) throw new ArgumentException("GameDatabase.LastBeastMaps is empty");
+                lastBeast = ToLastBeastModeDef(db.LastBeastMode);
+                modeMaps.Add(new ContentModeMaps { Mode = ModeKind.LastBeast, MapIndices = MapIndices(db.LastBeastMaps, mapConfigs, "LastBeastMaps") });
+            }
             var maps = new MapDef[mapConfigs.Count];
             maps[0] = offline.Map;
             for (int i = 1; i < maps.Length; i++) maps[i] = MapConverter.ToMapDef(mapConfigs[i]);
@@ -78,6 +85,7 @@ namespace Arena.Data.Conversion
                 Maps = maps,
                 DefaultMapIndex = 0,
                 Acorns = offline.Acorns,
+                LastBeast = lastBeast,
                 ModeMaps = modeMaps.ToArray(),
                 BotBehaviour = ToBotBehaviourDef(db.BotBehaviour),
                 BotDifficulties = difficulties,
@@ -168,10 +176,58 @@ namespace Arena.Data.Conversion
                 CarrierBehindDistance = c.CarrierBehindDistance,
                 HideInBushScore = c.HideInBushScore,
                 CheckBushScore = c.CheckBushScore,
-                StayWithTeamScore = c.StayWithTeamScore
+                StayWithTeamScore = c.StayWithTeamScore,
+                FleeFogScore = c.FleeFogScore,
+                FogWarnTicks = SimTime.SecondsToTicks(c.FogWarnSeconds)
             };
             def.Validate();
             return def;
+        }
+
+        public static LastBeastModeDef ToLastBeastModeDef(LastBeastModeConfig c)
+        {
+            if (c == null) throw new ArgumentNullException(nameof(c));
+            var def = new LastBeastModeDef
+            {
+                FogStartTicks = SimTime.SecondsToTicks(c.FogStartSeconds),
+                FogStepIntervalTicks = SimTime.SecondsToTicks(c.FogStepIntervalSeconds),
+                FogShrinkCells = c.FogShrinkCells,
+                FogMinHalfSize = c.FogMinHalfSize,
+                FogDamagePerSecond = c.FogDamagePerSecond,
+                FogDamageGrowthPerStep = c.FogDamageGrowthPerStep,
+                FogPulseTicks = MathUtil.Max(1, SimTime.SecondsToTicks(c.FogPulseSeconds)),
+                BoxHealth = c.BoxHealth,
+                BerriesPerBox = c.BerriesPerBox,
+                BerryDamagePercent = c.BerryDamagePercent,
+                BerryHealthPercent = c.BerryHealthPercent,
+                ExtraBerriesOnDefeat = c.ExtraBerriesOnDefeat,
+                BerryPickupRadius = c.BerryPickupRadius,
+                BerryDropScatterRadius = c.BerryDropScatterRadius,
+                BerryPickupDelayTicks = SimTime.SecondsToTicks(c.BerryPickupDelaySeconds),
+                ScatterAttempts = c.ScatterAttempts,
+                MaxDurationTicks = SimTime.SecondsToTicks(c.MaxDurationSeconds)
+            };
+            def.Validate();
+            return def;
+        }
+
+        /// <summary>
+        /// Defs of a Last Beast match on <paramref name="map"/> (offline training, tests): the offline defs with the mode, its
+        /// rules and no respawn, as <c>ContentBundle.CreateMatchDefs</c> builds them online.
+        /// </summary>
+        public static MatchDefs ToLastBeastMatchDefs(GameDatabase db, MapConfig map)
+        {
+            if (db == null) throw new ArgumentNullException(nameof(db));
+            if (db.LastBeastMode == null) throw new ArgumentException("GameDatabase.LastBeastMode is not set");
+            if (map == null) throw new ArgumentNullException(nameof(map));
+            MatchDefs offline = ToMatchDefs(db);
+            var defs = new MatchDefs
+            {
+                Rules = offline.Rules, Fighters = offline.Fighters, Map = MapConverter.ToMapDef(map), Mode = ModeKind.LastBeast,
+                LastBeast = ToLastBeastModeDef(db.LastBeastMode), NoRespawn = true
+            };
+            defs.Validate();
+            return defs;
         }
 
         public static AcornsModeDef ToAcornsModeDef(AcornsModeConfig c)

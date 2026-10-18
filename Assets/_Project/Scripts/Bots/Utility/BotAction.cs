@@ -27,6 +27,9 @@ namespace Arena.Bots.Utility
         CheckBush = 6,
 
         /// <summary>Acorns carrier (8+): keep just behind the allies instead of running to the objective.</summary>
-        StayWithTeam = 7
+        StayWithTeam = 7,
+
+        /// <summary>Last Beast: the bot is in the fog, or the next fog step comes soon and will cover it — run to the safe centre.</summary>
+        FleeFog = 8
     }
 }

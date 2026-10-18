@@ -112,6 +112,14 @@ namespace Arena.Bots.Defs
         public float CheckBushScore;
         public float StayWithTeamScore;
 
+        // --- Last Beast (S3.3). ---
+
+        /// <summary>Score of fleeing the fog (above retreat and hiding: the fog kills).</summary>
+        public float FleeFogScore;
+
+        /// <summary>A bot flees when the next fog step within this many ticks would cover it.</summary>
+        public int FogWarnTicks;
+
         public void Validate()
         {
             if (DecisionIntervalTicks < 1) throw new ArgumentException("BotBehaviourDef.DecisionIntervalTicks must be ≥ 1");
@@ -144,6 +152,7 @@ namespace Arena.Bots.Defs
             if (CarrierRetreatHealthFraction < 0f || CarrierRetreatHealthFraction > 1f)
                 throw new ArgumentException("BotBehaviourDef.CarrierRetreatHealthFraction must be in [0, 1]");
             if (CarrierBehindDistance < 0f) throw new ArgumentException("BotBehaviourDef.CarrierBehindDistance must be ≥ 0");
+            if (FogWarnTicks < 0) throw new ArgumentException("BotBehaviourDef.FogWarnTicks must be ≥ 0");
         }
     }
 }

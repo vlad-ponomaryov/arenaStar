@@ -183,6 +183,7 @@ namespace Arena.Core.Sim.Systems
                 if (!ability.IgnoresWalls && !GridCollision.HasLineOfSight(in grid, origin, t.Position)) continue;
                 EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
             }
+            BoxSystem.DamageCone(state, defs, events, in ctx, origin, dir, ability.Range, cosHalf, ability.IgnoresWalls);
         }
 
         /// <summary>
@@ -202,6 +203,7 @@ namespace Arena.Core.Sim.Systems
                 if (Vec2.SqrDistance(t.Position, origin) > reach * reach) continue;
                 EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
             }
+            BoxSystem.DamageCircle(state, defs, events, in ctx, origin, ability.Range);
         }
     }
 }

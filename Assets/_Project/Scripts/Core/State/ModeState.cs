@@ -30,11 +30,33 @@ namespace Arena.Core.State
         /// <summary>Winning team, or −1 for a draw (valid when ended).</summary>
         public int WinnerTeam;
 
+        // --- Last Beast (Server-Spec §9.2); 0 in other modes. ---
+
+        /// <summary>Fog steps done so far (0 = no fog yet).</summary>
+        public int FogStep;
+
+        /// <summary>Time of the next fog step.</summary>
+        public int NextFogStepTick;
+
+        /// <summary>Time of the next fog damage pulse.</summary>
+        public int NextFogPulseTick;
+
+        /// <summary>Safe rectangle (cells): a fighter whose centre is outside it is in the fog.</summary>
+        public float SafeMinX;
+        public float SafeMinY;
+        public float SafeMaxX;
+        public float SafeMaxY;
+
+        /// <summary>Fighters alive after the last mode update (the place of a fighter defeated in a tick = this).</summary>
+        public int AliveCount;
+
         public bool IsEnded => Phase == ModePhase.Ended;
 
         public bool Equals(ModeState o) => Phase == o.Phase && NextSpawnTick == o.NextSpawnTick && NextGoldenTick == o.NextGoldenTick
             && CountdownTeam == o.CountdownTeam && CountdownEndTick == o.CountdownEndTick && EndTick == o.EndTick
-            && WinnerTeam == o.WinnerTeam;
+            && WinnerTeam == o.WinnerTeam && FogStep == o.FogStep && NextFogStepTick == o.NextFogStepTick
+            && NextFogPulseTick == o.NextFogPulseTick && SafeMinX == o.SafeMinX && SafeMinY == o.SafeMinY && SafeMaxX == o.SafeMaxX
+            && SafeMaxY == o.SafeMaxY && AliveCount == o.AliveCount;
 
         public override bool Equals(object obj) => obj is ModeState other && Equals(other);
         public override int GetHashCode() => ((int)Phase * 397) ^ NextSpawnTick ^ (CountdownTeam * 31) ^ WinnerTeam;

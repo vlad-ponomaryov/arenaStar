@@ -2,8 +2,8 @@ using System;
 using Arena.Core.Defs;
 using Arena.Core.Map;
 using Arena.Core.Math;
-using Arena.Core.Random;
 using Arena.Core.Sim.Events;
+using Arena.Core.Sim.Systems;
 using Arena.Core.State;
 
 namespace Arena.Core.Modes
@@ -45,12 +45,12 @@ namespace Arena.Core.Modes
 
             if (now >= m.NextSpawnTick)
             {
-                SpawnPickup(state, events, 1, hollow, a.SpawnScatterRadius, a.ScatterAttempts, now, now);
+                PickupSystem.Spawn(state, events, PickupKind.Acorn, 1, hollow, a.SpawnScatterRadius, a.ScatterAttempts, now, now);
                 m.NextSpawnTick += a.SpawnIntervalTicks;
             }
             if (now >= m.NextGoldenTick)
             {
-                SpawnPickup(state, events, a.GoldenValue, hollow, a.SpawnScatterRadius, a.ScatterAttempts, now, now);
+                PickupSystem.Spawn(state, events, PickupKind.Acorn, a.GoldenValue, hollow, a.SpawnScatterRadius, a.ScatterAttempts, now, now);
                 m.NextGoldenTick += a.GoldenIntervalTicks;
             }
 
@@ -69,7 +69,7 @@ namespace Arena.Core.Modes
             AcornsModeDef a = defs.Acorns;
             int now = state.Globals.Tick + 1;
             for (int i = 0; i < carried; i++)
-                SpawnPickup(state, events, 1, f.Position, a.DropScatterRadius, a.ScatterAttempts, now, now + a.PickupDelayTicks);
+                PickupSystem.Spawn(state, events, PickupKind.Acorn, 1, f.Position, a.DropScatterRadius, a.ScatterAttempts, now, now + a.PickupDelayTicks);
             events.Add(new SimEvent(SimEventType.AcornsDropped, state.Globals.Tick, target, -1, carried, f.Position, Vec2.Zero));
         }
 
@@ -112,7 +112,7 @@ namespace Arena.Core.Modes
             for (int p = 0; p < pickups.Length; p++)
             {
                 ref PickupState item = ref pickups[p];
-                if (!item.Active || now < item.PickableFromTick) continue;
+                if (!item.Active || item.Kind != PickupKind.Acorn || now < item.PickableFromTick) continue;
                 for (int i = 0; i < count; i++)
                 {
                     ref FighterState f = ref state.Fighters[i];
@@ -169,49 +169,6 @@ namespace Arena.Core.Modes
             m.EndTick = now;
             m.WinnerTeam = winner;
             events.Add(new SimEvent(SimEventType.MatchEnded, state.Globals.Tick, -1, -1, winner, Vec2.Zero, Vec2.Zero));
-        }
-
-        /// <summary>Puts an acorn on a free pickup slot at a random walkable point within <paramref name="radius"/>.</summary>
-        private static void SpawnPickup(MatchState state, SimEventBuffer events, int value, Vec2 centre, float radius, int attempts,
-            int now, int pickableFrom)
-        {
-            PickupState[] pickups = state.Pickups;
-            int slot = -1;
-            for (int i = 0; i < pickups.Length; i++)
-            {
-                if (pickups[i].Active) continue;
-                slot = i;
-                break;
-            }
-            if (slot < 0)
-            {
-                state.Globals.DroppedPickups++;
-                return;
-            }
-
-            Vec2 position = ScatterPoint(state, centre, radius, attempts);
-            pickups[slot] = new PickupState
-            {
-                Active = true, Value = value, Position = position, PickableFromTick = pickableFrom, SpawnTick = now
-            };
-            events.Add(new SimEvent(SimEventType.PickupSpawned, state.Globals.Tick, -1, -1, slot, position, Vec2.Zero));
-        }
-
-        /// <summary>Uniform random point of the disc that is on the map and not in a blocking tile; else the centre.</summary>
-        private static Vec2 ScatterPoint(MatchState state, Vec2 centre, float radius, int attempts)
-        {
-            if (radius <= 0f) return centre;
-            TileGrid grid = state.Grid;
-            ref DeterministicRng rng = ref state.Globals.Rng;
-            for (int i = 0; i < attempts; i++)
-            {
-                float angle = rng.Range(0f, 360f);
-                float r = radius * MathF.Sqrt(rng.NextFloat01());
-                Vec2 p = centre + MathUtil.AngleToDir(angle) * r;
-                GridCell cell = GridCell.Of(p);
-                if (grid.InBounds(cell.Column, cell.Row) && !grid.BlocksMovement(cell.Column, cell.Row)) return p;
-            }
-            return centre;
         }
     }
 }

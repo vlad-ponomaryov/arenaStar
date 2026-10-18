@@ -73,6 +73,7 @@ namespace Arena.Core.Sim.Systems
             StatusSystem.ClearTarget(state, target);
             UltSystem.OnDefeat(ref t, defs.Rules);
             AcornsRules.OnDefeat(state, defs, events, target);
+            LastBeastRules.OnDefeat(state, defs, events, target);
 
             t.BoostedShotsLeft = 0;
             t.BoostPercent = 0;

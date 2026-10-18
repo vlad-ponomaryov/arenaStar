@@ -114,5 +114,12 @@ namespace Arena.Data
         public float HideInBushScore;
         public float CheckBushScore;
         public float StayWithTeamScore;
+
+        [Header("Last Beast (S3.3)")]
+        [Tooltip("Score of fleeing the fog (above retreat and hiding).")]
+        public float FleeFogScore;
+
+        [Tooltip("Flee when the next fog step within … seconds would cover the bot.")]
+        [Min(0f)] public float FogWarnSeconds;
     }
 }

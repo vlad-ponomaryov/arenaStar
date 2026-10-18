@@ -31,6 +31,12 @@ namespace Arena.Data
         [Tooltip("Maps of the Acorns mode online (content pack, Server-Spec §5.4). The offline match uses DefaultMap.")]
         public List<MapConfig> AcornsMaps = new List<MapConfig>();
 
+        [Tooltip("Rules of the Last Beast mode (10 fighters, each on their own). Empty = the mode is not in the content pack.")]
+        public LastBeastModeConfig LastBeastMode;
+
+        [Tooltip("Maps of the Last Beast mode (content pack, Server-Spec §9).")]
+        public List<MapConfig> LastBeastMaps = new List<MapConfig>();
+
         [Tooltip("UI strings EN/RU (D-019).")]
         public LocTable Strings;
 

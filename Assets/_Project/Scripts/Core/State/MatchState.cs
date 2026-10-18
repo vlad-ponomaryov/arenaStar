@@ -22,6 +22,9 @@ namespace Arena.Core.State
         /// <summary>Items on the map (acorns of the Acorns mode).</summary>
         public readonly PickupState[] Pickups = new PickupState[SimLimits.MaxPickups];
 
+        /// <summary>Berry boxes (Last Beast); inactive in other modes.</summary>
+        public readonly BoxState[] Boxes = new BoxState[SimLimits.MaxBoxes];
+
         /// <summary>Per team: the team sees every enemy until this tick (exclusive) — Nova's "Owl Eye" (<c>EffectKind.TeamReveal</c>).</summary>
         public readonly int[] TeamRevealUntilTick = new int[SimLimits.MaxTeams];
 
@@ -49,6 +52,7 @@ namespace Arena.Core.State
             Array.Copy(other.Areas, Areas, Areas.Length);
             Array.Copy(other.Statuses, Statuses, Statuses.Length);
             Array.Copy(other.Pickups, Pickups, Pickups.Length);
+            Array.Copy(other.Boxes, Boxes, Boxes.Length);
             Array.Copy(other.TeamRevealUntilTick, TeamRevealUntilTick, TeamRevealUntilTick.Length);
             Mode = other.Mode;
             Array.Copy(other.Tiles, Tiles, Tiles.Length);
@@ -69,6 +73,8 @@ namespace Arena.Core.State
                 if (!Statuses[i].Equals(other.Statuses[i])) return false;
             for (int i = 0; i < Pickups.Length; i++)
                 if (!Pickups[i].Equals(other.Pickups[i])) return false;
+            for (int i = 0; i < Boxes.Length; i++)
+                if (!Boxes[i].Equals(other.Boxes[i])) return false;
             for (int i = 0; i < Tiles.Length; i++)
                 if (Tiles[i] != other.Tiles[i]) return false;
             for (int i = 0; i < TeamRevealUntilTick.Length; i++)
@@ -86,6 +92,7 @@ namespace Arena.Core.State
             Array.Clear(Areas, 0, Areas.Length);
             Array.Clear(Statuses, 0, Statuses.Length);
             Array.Clear(Pickups, 0, Pickups.Length);
+            Array.Clear(Boxes, 0, Boxes.Length);
             Array.Clear(TeamRevealUntilTick, 0, TeamRevealUntilTick.Length);
             Mode = default;
             Array.Clear(Tiles, 0, Tiles.Length);

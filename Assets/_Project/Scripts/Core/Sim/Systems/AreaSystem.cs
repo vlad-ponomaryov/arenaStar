@@ -127,6 +127,7 @@ namespace Arena.Core.Sim.Systems
                 if (Vec2.SqrDistance(t.Position, a.Position) > reach * reach) continue;
                 EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
             }
+            BoxSystem.DamageCircle(state, defs, events, in ctx, a.Position, a.Radius);
         }
 
         /// <summary>An alive enemy of the owner's team whose body touches the area.</summary>

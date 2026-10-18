@@ -20,7 +20,7 @@ namespace Arena.Server
     /// bit packing round trip, varint / zigzag edges, aim quantization, <c>MatchState.CopyFrom</c> / <c>ContentEquals</c>,
     /// zero allocations of the coder (<c>GC.GetAllocatedBytesForCurrentThread</c> is exact on CoreCLR); S3.2: the content
     /// pack re-encodes to the same bytes, headless Acorns match of bots by the pack (ms/tick, two runs give one
-    /// <c>StateHash</c>). Real UDP arrives in S3.9.
+    /// <c>StateHash</c>); S3.3: the same for a Last Beast match of 10 bots (one winner). Real UDP arrives in S3.9.
     /// </summary>
     public static class SelfTest
     {
@@ -49,6 +49,7 @@ namespace Arena.Server
             Check("coder allocates 0 bytes", CoderAllocations);
             Check("content pack re-encodes to the same bytes", ContentPackRoundTrip);
             Check("headless Acorns match of bots, two runs give one state hash", HeadlessAcornsMatch);
+            Check("headless Last Beast match of 10 bots, one winner, two runs give one state hash", HeadlessLastBeastMatch);
             _out.WriteLine("SELFTEST: " + (_failed == 0 ? "OK" : "FAILED") + ", passed " + _passed + ", failed " + _failed);
             return _failed == 0;
         }
@@ -236,15 +237,19 @@ namespace Arena.Server
             return null;
         }
 
-        private static string HeadlessAcornsMatch()
+        private static string HeadlessAcornsMatch() => HeadlessMatchOf(ModeKind.Acorns);
+
+        private static string HeadlessLastBeastMatch() => HeadlessMatchOf(ModeKind.LastBeast);
+
+        private static string HeadlessMatchOf(ModeKind mode)
         {
             ContentBundle bundle = _content.Bundle;
-            ContentModeMaps maps = bundle.MapsFor(ModeKind.Acorns);
-            if (maps == null) return "no Acorns maps in the content pack";
-            MatchDefs defs = bundle.CreateMatchDefs(maps.MapIndices[0], ModeKind.Acorns);
+            ContentModeMaps maps = bundle.MapsFor(mode);
+            if (maps == null) return "no " + mode + " maps in the content pack";
+            MatchDefs defs = bundle.CreateMatchDefs(maps.MapIndices[0], mode);
             BotDifficultyDef novice = bundle.FindBotDifficulty(BotDifficulty.Novice);
             if (novice == null) return "no Novice bots in the content pack";
-            int maxTicks = defs.Acorns.DurationTicks + 1;
+            int maxTicks = (mode == ModeKind.LastBeast ? defs.LastBeast.MaxDurationTicks : defs.Acorns.DurationTicks) + 1;
 
             HeadlessMatchResult first = HeadlessMatch.Run(defs, HeadlessMatch.CreateBotSetup(defs, bundle.Policy, HeadlessSeed),
                 bundle.BotBehaviour, novice, maxTicks);
@@ -255,6 +260,7 @@ namespace Arena.Server
                 "), state hash " + StateHash.Format(first.StateHash));
             if (!first.Ended) return "the match did not end within " + maxTicks + " ticks";
             if (first.TotalDamage <= 0) return "the bots did not fight";
+            if (mode == ModeKind.LastBeast && first.WinnerTeam < 0) return "the Last Beast match has no winner";
             if (first.StateHash != second.StateHash || first.Ticks != second.Ticks)
                 return "second run differs: " + second.Ticks + " ticks, hash " + StateHash.Format(second.StateHash);
             return null;

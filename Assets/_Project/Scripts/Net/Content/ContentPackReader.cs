@@ -65,6 +65,7 @@ namespace Arena.Net.Content
             for (int i = 0; i < n; i++) b.Maps[i] = r.ReadBool() ? ReadMap(r) : null;
             b.DefaultMapIndex = r.ReadVarInt();
             b.Acorns = r.ReadBool() ? ReadAcorns(r) : null;
+            b.LastBeast = r.ReadBool() ? ReadLastBeast(r) : null;
             n = ReadCount(r);
             b.ModeMaps = n < 0 ? null : new ContentModeMaps[n];
             for (int i = 0; i < n; i++) b.ModeMaps[i] = r.ReadBool() ? ReadModeMaps(r) : null;
@@ -220,6 +221,29 @@ namespace Arena.Net.Content
             return a;
         }
 
+        private static LastBeastModeDef ReadLastBeast(BitReader r)
+        {
+            var l = new LastBeastModeDef();
+            l.FogStartTicks = r.ReadVarInt();
+            l.FogStepIntervalTicks = r.ReadVarInt();
+            l.FogShrinkCells = r.ReadFloat();
+            l.FogMinHalfSize = r.ReadFloat();
+            l.FogDamagePerSecond = r.ReadVarInt();
+            l.FogDamageGrowthPerStep = r.ReadVarInt();
+            l.FogPulseTicks = r.ReadVarInt();
+            l.BoxHealth = r.ReadVarInt();
+            l.BerriesPerBox = r.ReadVarInt();
+            l.BerryDamagePercent = r.ReadVarInt();
+            l.BerryHealthPercent = r.ReadVarInt();
+            l.ExtraBerriesOnDefeat = r.ReadVarInt();
+            l.BerryPickupRadius = r.ReadFloat();
+            l.BerryDropScatterRadius = r.ReadFloat();
+            l.BerryPickupDelayTicks = r.ReadVarInt();
+            l.ScatterAttempts = r.ReadVarInt();
+            l.MaxDurationTicks = r.ReadVarInt();
+            return l;
+        }
+
         private static ContentModeMaps ReadModeMaps(BitReader r)
         {
             var m = new ContentModeMaps();
@@ -270,6 +294,8 @@ namespace Arena.Net.Content
             b.HideInBushScore = r.ReadFloat();
             b.CheckBushScore = r.ReadFloat();
             b.StayWithTeamScore = r.ReadFloat();
+            b.FleeFogScore = r.ReadFloat();
+            b.FogWarnTicks = r.ReadVarInt();
             return b;
         }
 

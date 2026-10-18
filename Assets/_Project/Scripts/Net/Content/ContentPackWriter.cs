@@ -78,6 +78,8 @@ namespace Arena.Net.Content
             w.WriteVarInt(b.DefaultMapIndex);
             WritePresence(w, b.Acorns);
             if (b.Acorns != null) WriteAcorns(w, b.Acorns);
+            WritePresence(w, b.LastBeast);
+            if (b.LastBeast != null) WriteLastBeast(w, b.LastBeast);
             WriteCount(w, b.ModeMaps);
             if (b.ModeMaps != null)
                 for (int i = 0; i < b.ModeMaps.Length; i++)
@@ -233,6 +235,27 @@ namespace Arena.Net.Content
             w.WriteFloat(a.MvpDeathWeight);
         }
 
+        private static void WriteLastBeast(BitWriter w, LastBeastModeDef l)
+        {
+            w.WriteVarInt(l.FogStartTicks);
+            w.WriteVarInt(l.FogStepIntervalTicks);
+            w.WriteFloat(l.FogShrinkCells);
+            w.WriteFloat(l.FogMinHalfSize);
+            w.WriteVarInt(l.FogDamagePerSecond);
+            w.WriteVarInt(l.FogDamageGrowthPerStep);
+            w.WriteVarInt(l.FogPulseTicks);
+            w.WriteVarInt(l.BoxHealth);
+            w.WriteVarInt(l.BerriesPerBox);
+            w.WriteVarInt(l.BerryDamagePercent);
+            w.WriteVarInt(l.BerryHealthPercent);
+            w.WriteVarInt(l.ExtraBerriesOnDefeat);
+            w.WriteFloat(l.BerryPickupRadius);
+            w.WriteFloat(l.BerryDropScatterRadius);
+            w.WriteVarInt(l.BerryPickupDelayTicks);
+            w.WriteVarInt(l.ScatterAttempts);
+            w.WriteVarInt(l.MaxDurationTicks);
+        }
+
         private static void WriteModeMaps(BitWriter w, ContentModeMaps m)
         {
             w.WriteVarInt((int)m.Mode);
@@ -280,6 +303,8 @@ namespace Arena.Net.Content
             w.WriteFloat(b.HideInBushScore);
             w.WriteFloat(b.CheckBushScore);
             w.WriteFloat(b.StayWithTeamScore);
+            w.WriteFloat(b.FleeFogScore);
+            w.WriteVarInt(b.FogWarnTicks);
         }
 
         private static void WriteBotDifficulty(BitWriter w, BotDifficultyDef d)

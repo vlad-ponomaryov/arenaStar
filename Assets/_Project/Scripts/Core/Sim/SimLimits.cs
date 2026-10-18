@@ -17,6 +17,9 @@ namespace Arena.Core.Sim
         public const int MaxAreas = 64;
         public const int MaxStatusEffects = 128;
         public const int MaxPickups = 64;
+
+        /// <summary>Berry boxes of a royale map (≈ 30 on the map, Server-Spec §9.2).</summary>
+        public const int MaxBoxes = 64;
         public const int MaxEvents = 256;
 
         /// <summary>Tiles of the largest map: 45×45 royale (GDD §5.4) = 2025 ≤ 2048.</summary>
