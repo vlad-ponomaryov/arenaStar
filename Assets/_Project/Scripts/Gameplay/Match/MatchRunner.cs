@@ -9,8 +9,10 @@ using Arena.Core.State;
 using Arena.Data;
 using Arena.Data.Conversion;
 using Arena.Gameplay.Cameras;
+using Arena.Gameplay.Feel;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Input;
+using Arena.Gameplay.Settings;
 using Arena.Gameplay.View;
 using UnityEngine;
 
@@ -24,6 +26,10 @@ namespace Arena.Gameplay.Match
     /// then interpolates the views (D-015): map (walls break on <c>TileBroken</c>), fighters (enemies the local team does not
     /// see are hidden, own fighters in bushes are translucent — D-024), projectiles (pooled), health bars; drives the
     /// camera within the map. Thin layer: no game logic here.
+    /// Feel (S2.10, GDD §5.3, D-059): <see cref="HitFeedback"/> turns tick events into flashes, damage numbers, sounds,
+    /// vibration, ult hit stop (views freeze, the simulation keeps going — D-015) and camera shake; area telegraphs, the own
+    /// health number; the local manual aim gets the <see cref="AimMagnet"/> if the setting is on; the colour-blind palette
+    /// swaps the enemy materials. Settings are read from <see cref="PlayerSettingsStore.Shared"/> at match start.
     /// </summary>
     public sealed class MatchRunner : MonoBehaviour
     {
@@ -46,6 +52,19 @@ namespace Arena.Gameplay.Match
         private int _maxTicksPerFrame;
         private float _accumulator;
 
+        private FeelConfig _feel;
+        private GameSettings _settings;
+        private readonly HitStop _hitStop = new HitStop();
+        private readonly CameraShake _shake = new CameraShake();
+        private Haptics _haptics;
+        private ProceduralSounds _sounds;
+        private FloatingTextLayer _floatingText;
+        private DamageNumberPool _damageNumbers;
+        private OwnHealthLabel _ownHealth;
+        private HitFeedback _feedback;
+        private TelegraphViewPool _telegraphs;
+        private int _telegraphTicks;
+
         public GameDatabase Database => _database;
         public ViewCatalog ViewCatalog => _viewCatalog;
         public MatchCameraController CameraController => _cameraController;
@@ -54,6 +73,16 @@ namespace Arena.Gameplay.Match
         public LocalInputCollector InputCollector => _inputCollector;
 
         public MatchSimulation Simulation => _simulation;
+
+        /// <summary>Feedback of the tick events (counters for tests).</summary>
+        public HitFeedback Feedback => _feedback;
+        public HitStop HitStop => _hitStop;
+        public CameraShake Shake => _shake;
+        public DamageNumberPool DamageNumbers => _damageNumbers;
+        public TelegraphViewPool Telegraphs => _telegraphs;
+
+        /// <summary>Settings this match was started with.</summary>
+        public GameSettings Settings => _settings;
 
         /// <summary>Bots of all non-local slots.</summary>
         public BotController Bots => _bots;
@@ -91,6 +120,9 @@ namespace Arena.Gameplay.Match
             if (_database.Camera == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Camera is not set");
 
             if (_database.BotBehaviour == null) throw new InvalidOperationException("MatchRunner: GameDatabase.BotBehaviour is not set");
+            if (_database.Feel == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Feel is not set");
+            _feel = _database.Feel;
+            _settings = PlayerSettingsStore.Shared.Current.Clone();
 
             MatchDefs defs = ConfigConverter.ToMatchDefs(_database);
             LaunchParams = SceneFlow.Current;
@@ -116,6 +148,9 @@ namespace Arena.Gameplay.Match
             _aimIndicator.Hide();
             _projectileViews = new ProjectileViewPool(_viewCatalog.ProjectilePrefab, transform, _viewCatalog.ProjectilePoolPrewarm,
                 _viewCatalog.ProjectileHeight);
+            _telegraphs = new TelegraphViewPool(_viewCatalog.TelegraphPrefab, transform);
+            _telegraphTicks = SimTime.SecondsToTicks(_feel.TelegraphSeconds);
+            CreateFeel(defs);
 
             _viewState.Reset(_simulation.State);
             _projectileViews.Capture(_simulation.State);
@@ -132,7 +167,7 @@ namespace Arena.Gameplay.Match
             ref FighterState local = ref _simulation.State.Fighters[LocalSlot];
             FighterDef localDef = _simulation.Defs.Fighters[local.DefIndex];
             UnityEngine.Camera cam = _cameraController != null ? _cameraController.Camera : null;
-            _keyboardMouse.Poll(_inputCollector, cam, local.Position, localDef.AttackRange);
+            _keyboardMouse.Poll(_inputCollector, cam, local.Position, localDef.AttackRange, UltRange(localDef));
 
             if (_simulation.IsEnded)
             {
@@ -155,9 +190,25 @@ namespace Arena.Gameplay.Match
             if (_accumulator >= SimTime.Dt) _accumulator %= SimTime.Dt;
 
             float alpha = _accumulator / SimTime.Dt;
-            RenderViews(alpha);
-            if (_cameraController != null) _cameraController.Follow(LocalWorldPosition(alpha), Time.deltaTime);
-            RenderHealthBars(alpha);
+            float dt = Time.unscaledDeltaTime;
+            // Hit stop (D-015): the views keep the pose of the moment of the hit; the simulation above keeps ticking.
+            if (!_hitStop.IsActive)
+            {
+                RenderViews(alpha);
+                RenderHealthBars(alpha);
+                _telegraphs.Render(_simulation.State, _telegraphTicks, alpha, LocalTeam, _viewCatalog.TelegraphAllyZone,
+                    _viewCatalog.TelegraphAllyFill, EnemyTelegraphZone, EnemyTelegraphFill);
+            }
+            _hitStop.Update(dt);
+            _shake.Update(dt);
+            if (_cameraController != null)
+            {
+                _cameraController.SetShakeOffset(_shake.Offset);
+                _cameraController.Follow(LocalWorldPosition(alpha), Time.deltaTime);
+            }
+            _damageNumbers.Update(cam, dt);
+            ref FighterState me = ref _simulation.State.Fighters[LocalSlot];
+            _ownHealth.Update(cam, LocalWorldPosition(alpha), me.Health, _viewState.Alive(LocalSlot));
         }
 
         private void RunTick()
@@ -165,9 +216,10 @@ namespace Arena.Gameplay.Match
             int count = _simulation.FighterCount;
             for (int i = 0; i < count; i++) _inputs[i] = default;
             _bots.Update(_simulation.State, _simulation.Defs, _simulation.Events, _inputs);
-            _inputs[LocalSlot] = _inputCollector.ConsumeForTick();
+            _inputs[LocalSlot] = ApplyAimMagnet(_inputCollector.ConsumeForTick());
             _simulation.Tick(_inputs);
             SimEventBuffer events = _simulation.Events;
+            _feedback.Process(events, _simulation.State, Time.unscaledTime);
             for (int i = 0; i < events.Count; i++)
                 if (events[i].Type == SimEventType.TileBroken) _mapView.OnTileBroken(events[i].Value);
             _viewState.Capture(_simulation.State);
@@ -187,7 +239,9 @@ namespace Arena.Gameplay.Match
                 ref FighterState f = ref _simulation.State.Fighters[i];
                 // Own team hidden in a bush: translucent body; a revealed enemy in a bush looks normal.
                 bool hiddenAlly = f.Team == LocalTeam && (f.InBush || f.Invisible) && !IsSeenByAnotherTeam(in f);
-                view.SetBodyMaterial(hiddenAlly ? _viewCatalog.FighterHidden : _viewCatalog.FighterBody);
+                Material body = hiddenAlly ? _viewCatalog.FighterHidden : _viewCatalog.FighterBody;
+                if (_feedback.IsFlashing(i, Time.unscaledTime) && _viewCatalog.FighterFlash != null) body = _viewCatalog.FighterFlash;
+                view.SetBodyMaterial(body);
                 view.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), WorldCoords.DirectionToWorld(_viewState.Facing(i)));
             }
 
@@ -202,7 +256,8 @@ namespace Arena.Gameplay.Match
                 _aimIndicator.Hide();
                 return;
             }
-            float range = _simulation.Defs.Fighters[_simulation.State.Fighters[LocalSlot].DefIndex].AttackRange;
+            FighterDef localDef = _simulation.Defs.Fighters[_simulation.State.Fighters[LocalSlot].DefIndex];
+            float range = _inputCollector.AimIsUlt ? UltRange(localDef) : localDef.AttackRange;
             _aimIndicator.Show(LocalWorldPosition(alpha), WorldCoords.DirectionToWorld(aim.Normalized), range);
         }
 
@@ -224,6 +279,46 @@ namespace Arena.Gameplay.Match
                 bar.SetValues(f.MaxHealth > 0 ? (float)f.Health / f.MaxHealth : 0f, f.Charges, maxCharges);
             }
         }
+
+        /// <summary>Feedback objects of the match (D-059): sounds on a 2D source of this object, vibration, floating texts.</summary>
+        private void CreateFeel(MatchDefs defs)
+        {
+            AudioSource source = GetComponent<AudioSource>();
+            if (source == null) source = gameObject.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.spatialBlend = 0f;
+            _sounds = new ProceduralSounds(source, _feel);
+            _haptics = new Haptics(_settings.VibrationStrength, _feel.VibrationMinInterval);
+            _floatingText = new FloatingTextLayer(transform, _feel);
+            _damageNumbers = new DamageNumberPool(_floatingText, _feel);
+            _ownHealth = new OwnHealthLabel(_floatingText, _feel);
+            _hitStop.Reset();
+            _shake.Reset();
+            _feedback = new HitFeedback(_feel, LocalSlot, LocalTeam, _hitStop, _shake, _haptics, _sounds, _damageNumbers);
+
+            // Damage and health numbers of this match do not allocate after the start.
+            int maxHealth = 0;
+            for (int i = 0; i < defs.Fighters.Length; i++)
+                if (defs.Fighters[i].MaxHealth > maxHealth) maxHealth = defs.Fighters[i].MaxHealth;
+            NumberStringCache.Prewarm(maxHealth);
+        }
+
+        /// <summary>Manual attack/ult aim of the local player turns to a visible enemy within a few degrees (setting, GDD §5.1).</summary>
+        private PlayerInput ApplyAimMagnet(PlayerInput input)
+        {
+            if (!_settings.AimMagnet || input.Has(InputButtons.AutoAim) || input.Aim.IsZero) return input;
+            bool attack = input.Has(InputButtons.Attack);
+            if (!attack && !input.Has(InputButtons.Ult)) return input;
+            FighterDef def = _simulation.Defs.Fighters[_simulation.State.Fighters[LocalSlot].DefIndex];
+            float range = attack ? def.AttackRange : UltRange(def);
+            input.Aim = AimMagnet.Apply(_simulation.State, LocalSlot, input.Aim, range, _feel.AimMagnetDegrees);
+            return input;
+        }
+
+        private static float UltRange(FighterDef def) => def.Ult != null && def.Ult.Range > 0f ? def.Ult.Range : def.AttackRange;
+
+        private Material EnemyTelegraphZone => _settings.ColorblindPalette ? _viewCatalog.TelegraphEnemyAltZone : _viewCatalog.TelegraphEnemyZone;
+        private Material EnemyTelegraphFill => _settings.ColorblindPalette ? _viewCatalog.TelegraphEnemyAltFill : _viewCatalog.TelegraphEnemyFill;
 
         private BotController CreateBots(MatchSetup setup, BotDifficulty difficulty)
         {
@@ -250,13 +345,15 @@ namespace Arena.Gameplay.Match
             {
                 FighterView view = Instantiate(_viewCatalog.FighterViewPrefab, transform);
                 view.name = "Fighter" + i + "_" + _simulation.Defs.Fighters[setup.Slots[i].FighterIndex].Id;
-                view.SetTeamMaterial(setup.Slots[i].Team == LocalTeam ? _viewCatalog.TeamAlly : _viewCatalog.TeamEnemy);
+                bool ally = setup.Slots[i].Team == LocalTeam;
+                bool alt = _settings.ColorblindPalette;
+                view.SetTeamMaterial(ally ? _viewCatalog.TeamAlly : alt ? _viewCatalog.TeamEnemyAlt : _viewCatalog.TeamEnemy);
                 _fighterViews[i] = view;
 
                 if (_viewCatalog.HealthBarPrefab == null) continue;
                 HealthBarView bar = Instantiate(_viewCatalog.HealthBarPrefab, transform);
                 bar.name = "HealthBar" + i;
-                bar.SetFillMaterial(setup.Slots[i].Team == LocalTeam ? _viewCatalog.BarAlly : _viewCatalog.BarEnemy);
+                bar.SetFillMaterial(ally ? _viewCatalog.BarAlly : alt ? _viewCatalog.BarEnemyAlt : _viewCatalog.BarEnemy);
                 _healthBars[i] = bar;
             }
         }

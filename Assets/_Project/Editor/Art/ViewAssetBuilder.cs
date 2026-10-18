@@ -34,6 +34,7 @@ namespace Arena.Editor.Art
         public const string AcornPrefabPath = PrefabsFolder + "/Acorn.prefab";
         public const string AcornGoldenPrefabPath = PrefabsFolder + "/AcornGolden.prefab";
         public const string HollowPrefabPath = PrefabsFolder + "/Hollow.prefab";
+        public const string TelegraphPrefabPath = PrefabsFolder + "/Telegraph.prefab";
 
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
@@ -44,6 +45,17 @@ namespace Arena.Editor.Art
         private static readonly Color AllyColor = new Color(0.20f, 0.52f, 1.00f, 1f);
         private static readonly Color EnemyColor = new Color(0.95f, 0.22f, 0.18f, 1f);
         private static readonly Color BodyColor = new Color(0.86f, 0.80f, 0.70f, 1f);
+
+        // Colour-blind palette (D-029): allies stay blue, enemies orange (blue/orange is told apart by all common types).
+        private static readonly Color EnemyAltColor = new Color(1.00f, 0.60f, 0.10f, 1f);
+
+        // Feel (S2.10, D-059): hit flash = bright unlit body; telegraph = translucent zone + stronger growing fill by team.
+        private static readonly Color FlashColor = new Color(1f, 1f, 1f, 1f);
+        private const float TelegraphZoneAlpha = 0.18f;
+        private const float TelegraphFillAlpha = 0.42f;
+        private const float TelegraphThickness = 0.01f;
+        private const float TelegraphZoneHeight = 0.03f;
+        private const float TelegraphFillHeight = 0.04f;
         private static readonly Color FloorColor = new Color(0.42f, 0.55f, 0.36f, 1f);
         private static readonly Color AimLineColor = new Color(1f, 1f, 1f, 1f);
         private static readonly Color ProjectileColor = new Color(0.55f, 0.88f, 1f, 1f);
@@ -139,6 +151,16 @@ namespace Arena.Editor.Art
             Material bushSeeThrough = SaveMaterial("BushSeeThrough", LitShader, BushSeeThroughColor, true);
             Material water = SaveMaterial("Water", LitShader, WaterColor);
             Material fighterHidden = SaveMaterial("FighterHidden", LitShader, FighterHiddenColor, true);
+            Material enemyAlt = SaveMaterial("TeamEnemyAlt", UnlitShader, EnemyAltColor);
+            Material barEnemyAlt = SaveMaterial("BarEnemyAlt", UnlitShader, EnemyAltColor);
+            Material flash = SaveMaterial("FighterFlash", UnlitShader, FlashColor);
+            Material telegraphAllyZone = SaveMaterial("TelegraphAllyZone", UnlitShader, WithAlpha(AllyColor, TelegraphZoneAlpha), true);
+            Material telegraphAllyFill = SaveMaterial("TelegraphAllyFill", UnlitShader, WithAlpha(AllyColor, TelegraphFillAlpha), true);
+            Material telegraphEnemyZone = SaveMaterial("TelegraphEnemyZone", UnlitShader, WithAlpha(EnemyColor, TelegraphZoneAlpha), true);
+            Material telegraphEnemyFill = SaveMaterial("TelegraphEnemyFill", UnlitShader, WithAlpha(EnemyColor, TelegraphFillAlpha), true);
+            Material telegraphEnemyAltZone = SaveMaterial("TelegraphEnemyAltZone", UnlitShader, WithAlpha(EnemyAltColor, TelegraphZoneAlpha), true);
+            Material telegraphEnemyAltFill = SaveMaterial("TelegraphEnemyAltFill", UnlitShader, WithAlpha(EnemyAltColor, TelegraphFillAlpha), true);
+            TelegraphView telegraph = BuildTelegraphPrefab(telegraphEnemyZone, telegraphEnemyFill);
 
             FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine);
             AimIndicatorView aimIndicator = BuildAimIndicatorPrefab(aimLine);
@@ -165,6 +187,16 @@ namespace Arena.Editor.Art
             catalog.AcornPrefab = acornPrefab;
             catalog.AcornGoldenPrefab = acornGoldenPrefab;
             catalog.HollowPrefab = hollowPrefab;
+            catalog.TelegraphPrefab = telegraph;
+            catalog.TeamEnemyAlt = enemyAlt;
+            catalog.BarEnemyAlt = barEnemyAlt;
+            catalog.FighterFlash = flash;
+            catalog.TelegraphAllyZone = telegraphAllyZone;
+            catalog.TelegraphAllyFill = telegraphAllyFill;
+            catalog.TelegraphEnemyZone = telegraphEnemyZone;
+            catalog.TelegraphEnemyFill = telegraphEnemyFill;
+            catalog.TelegraphEnemyAltZone = telegraphEnemyAltZone;
+            catalog.TelegraphEnemyAltFill = telegraphEnemyAltFill;
             catalog.AcornPoolPrewarm = AcornPoolPrewarm;
             catalog.AcornHeight = AcornHeight;
             catalog.AcornSpinSpeed = AcornSpinSpeed;
@@ -238,6 +270,14 @@ namespace Arena.Editor.Art
             s.Gesture = new StickGestureSettings(0.2f, 0.25f, 0.25f);
             s.AllyColor = AllyColor;
             s.EnemyColor = EnemyColor;
+            s.EnemyColorAlt = EnemyAltColor;
+
+            // S2.10 (PROTO): FPS counter in the top-left corner, settings panel rows.
+            s.FpsMargin = new Vector2(24f, 20f);
+            s.FpsBoxSize = new Vector2(220f, 44f);
+            s.SettingsPanelColor = new Color(0.08f, 0.09f, 0.13f, 0.97f);
+            s.SettingsLabelWidth = 560f;
+            s.SettingsChoiceSize = new Vector2(150f, 90f);
 
             // Menu, score bar, results (S2.7, PROTO sizes at 1920×1080 — check on the phone).
             s.TextColor = Color.white;
@@ -270,6 +310,35 @@ namespace Arena.Editor.Art
             s.ResultsButtonSize = new Vector2(400f, 120f);
             EditorUtility.SetDirty(s);
         }
+
+        private static TelegraphView BuildTelegraphPrefab(Material zone, Material fill)
+        {
+            var root = new GameObject("Telegraph");
+            try
+            {
+                // Unity cylinder: height 2, diameter 1 — flat discs of diameter 1 (root X/Z scale = zone diameter).
+                GameObject zoneGo = CreatePart(PrimitiveType.Cylinder, "Zone", root.transform, zone);
+                zoneGo.transform.localScale = new Vector3(1f, TelegraphThickness * 0.5f, 1f);
+                zoneGo.transform.localPosition = new Vector3(0f, TelegraphZoneHeight, 0f);
+                GameObject fillGo = CreatePart(PrimitiveType.Cylinder, "Fill", root.transform, fill);
+                fillGo.transform.localScale = new Vector3(0f, TelegraphThickness * 0.5f, 0f);
+                fillGo.transform.localPosition = new Vector3(0f, TelegraphFillHeight, 0f);
+
+                var view = root.AddComponent<TelegraphView>();
+                var so = new SerializedObject(view);
+                SetRef(so, "_zone", zoneGo.GetComponent<Renderer>());
+                SetRef(so, "_fill", fillGo.transform);
+                SetRef(so, "_fillRenderer", fillGo.GetComponent<Renderer>());
+                so.ApplyModifiedPropertiesWithoutUndo();
+                return SavePrefab(root, TelegraphPrefabPath).GetComponent<TelegraphView>();
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static Color WithAlpha(Color c, float alpha) => new Color(c.r, c.g, c.b, alpha);
 
         private static FighterView BuildFighterViewPrefab(Material body, Material ring, Material nose)
         {

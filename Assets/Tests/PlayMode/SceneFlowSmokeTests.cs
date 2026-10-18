@@ -33,6 +33,11 @@ namespace Arena.Tests.PlayMode
             MenuScreen menu = Object.FindFirstObjectByType<MenuScreen>();
             Assert.IsNotNull(menu, "MenuScreen in the Menu scene");
             Assert.IsNotNull(menu.PlayButton, "menu built");
+            Assert.IsNotNull(menu.SettingsButton, "settings button (S2.10)");
+            menu.SettingsButton.onClick.Invoke();
+            Assert.IsTrue(menu.Settings.IsShown, "settings panel opens");
+            menu.Settings.CloseButton.onClick.Invoke();
+            Assert.IsFalse(menu.Settings.IsShown, "settings panel closes");
             menu.SelectFighter("bruno");
             menu.PlayButton.onClick.Invoke();
 

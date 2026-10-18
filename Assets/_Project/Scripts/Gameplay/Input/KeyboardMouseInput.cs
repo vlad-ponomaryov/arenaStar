@@ -21,7 +21,8 @@ namespace Arena.Gameplay.Input
 
         /// <param name="fighterPosition">Local fighter position (simulation space).</param>
         /// <param name="attackRange">Range in cells: the aim length is the fraction of it (D-006).</param>
-        public void Poll(LocalInputCollector collector, Camera camera, Vec2 fighterPosition, float attackRange)
+        /// <param name="ultRange">The same for the ult.</param>
+        public void Poll(LocalInputCollector collector, Camera camera, Vec2 fighterPosition, float attackRange, float ultRange)
         {
             Keyboard kb = Keyboard.current;
             Vec2 move = Vec2.Zero;
@@ -51,7 +52,8 @@ namespace Arena.Gameplay.Input
             if (mouse.rightButton.wasPressedThisFrame && !PointerOverUi()) _aimingUlt = true;
 
             Vec2 aim = Vec2.Zero;
-            if (_aimingAttack || _aimingUlt) aim = AimAtMouse(camera, mouse.position.ReadValue(), fighterPosition, attackRange);
+            if (_aimingAttack || _aimingUlt)
+                aim = AimAtMouse(camera, mouse.position.ReadValue(), fighterPosition, _aimingAttack ? attackRange : ultRange);
 
             if (_aimingAttack && mouse.leftButton.wasReleasedThisFrame)
             {
@@ -64,7 +66,7 @@ namespace Arena.Gameplay.Input
                 _aimingUlt = false;
             }
 
-            collector.SetAimSim(InputChannel.KeyboardMouse, _aimingAttack || _aimingUlt ? aim : Vec2.Zero);
+            collector.SetAimSim(InputChannel.KeyboardMouse, _aimingAttack || _aimingUlt ? aim : Vec2.Zero, !_aimingAttack && _aimingUlt);
         }
 
         public void Reset() => _aimingAttack = _aimingUlt = false;

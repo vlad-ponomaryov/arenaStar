@@ -28,12 +28,23 @@ namespace Arena.Data.Localization
         public const string ResultsDeaths = "results.deaths";
         public const string ResultsDamage = "results.damage";
         public const string ResultsAcorns = "results.acorns";
+        public const string MenuSettings = "menu.settings";
+        public const string SettingsTitle = "settings.title";
+        public const string SettingsMirror = "settings.mirror";
+        public const string SettingsVibration = "settings.vibration";
+        public const string SettingsAimMagnet = "settings.aim_magnet";
+        public const string SettingsColorblind = "settings.colorblind";
+        public const string SettingsOn = "settings.on";
+        public const string SettingsOff = "settings.off";
+        public const string SettingsClose = "settings.close";
+        public const string HudFps = "hud.fps";
 
         public static readonly string[] All =
         {
             MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, LanguageEn, LanguageRu, ModeAcorns,
             HudHoldAlly, HudHoldEnemy, ResultsVictory, ResultsDefeat, ResultsDraw, ResultsMvp, ResultsAgain, ResultsMenu,
-            ResultsKills, ResultsDeaths, ResultsDamage, ResultsAcorns
+            ResultsKills, ResultsDeaths, ResultsDamage, ResultsAcorns, MenuSettings, SettingsTitle, SettingsMirror, SettingsVibration,
+            SettingsAimMagnet, SettingsColorblind, SettingsOn, SettingsOff, SettingsClose, HudFps
         };
     }
 }

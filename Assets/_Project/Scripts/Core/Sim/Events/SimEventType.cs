@@ -18,7 +18,8 @@ namespace Arena.Core.Sim.Events
         /// Position = origin, Direction = unit aim.</summary>
         AbilityFired = 3,
 
-        /// <summary>Health removed. Source = attacker (or −1), Target = victim, Value = amount removed, Position = victim.</summary>
+        /// <summary>Health removed. Source = attacker (or −1), Target = victim, Value = amount removed, Position = victim,
+        /// AbilityRef = the ability that dealt it (or −1).</summary>
         Damaged = 4,
 
         /// <summary>Health restored. Source = healer, Target = healed, Value = amount restored, Position = target.</summary>

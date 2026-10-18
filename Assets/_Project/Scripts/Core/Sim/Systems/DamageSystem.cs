@@ -21,8 +21,9 @@ namespace Arena.Core.Sim.Systems
         /// </summary>
         /// <param name="source">Attacking fighter slot, or −1 for the environment.</param>
         /// <param name="chargesUlt">The damage comes from the source's main attack: it charges the source's ult.</param>
+        /// <param name="abilityRef">Ability that deals the damage (carried by the <see cref="SimEventType.Damaged"/> event), or −1.</param>
         public static int ApplyDamage(MatchState state, MatchDefs defs, SimEventBuffer events, int source, int target, int amount,
-            bool chargesUlt = false)
+            bool chargesUlt = false, int abilityRef = -1)
         {
             ref FighterState t = ref state.Fighters[target];
             if (!t.Active || !t.Alive || amount <= 0) return 0;
@@ -35,7 +36,7 @@ namespace Arena.Core.Sim.Systems
             t.Health -= dealt;
             RegenSystem.MarkInCombat(ref t, tick);
             if (source >= 0 && source != target) state.Stats[source].DamageDealt += dealt;
-            events.Add(new SimEvent(SimEventType.Damaged, tick, source, target, dealt, t.Position, Vec2.Zero));
+            events.Add(new SimEvent(SimEventType.Damaged, tick, source, target, dealt, t.Position, Vec2.Zero, abilityRef));
             if (chargesUlt && source != target) UltSystem.AddCharge(state, defs, events, source, dealt);
 
             if (t.Health <= 0) Defeat(state, defs, events, source, target);

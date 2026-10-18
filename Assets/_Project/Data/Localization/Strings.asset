@@ -79,6 +79,37 @@ MonoBehaviour:
   - Key: results.acorns
     En: Acorns
     Ru: "\u0416\u0451\u043B\u0443\u0434\u0438"
+  - Key: menu.settings
+    En: Settings
+    Ru: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"
+  - Key: settings.title
+    En: Settings
+    Ru: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"
+  - Key: settings.mirror
+    En: Mirrored layout
+    Ru: "\u0417\u0435\u0440\u043A\u0430\u043B\u044C\u043D\u0430\u044F \u0440\u0430\u0441\u043A\u043B\u0430\u0434\u043A\u0430"
+  - Key: settings.vibration
+    En: Vibration
+    Ru: "\u0412\u0438\u0431\u0440\u0430\u0446\u0438\u044F"
+  - Key: settings.aim_magnet
+    En: Aim assist
+    Ru: "\u041F\u0440\u0438\u043C\u0430\u0433\u043D\u0438\u0447\u0438\u0432\u0430\u043D\u0438\u0435
+      \u043F\u0440\u0438\u0446\u0435\u043B\u0430"
+  - Key: settings.colorblind
+    En: Colour-blind palette
+    Ru: "\u041F\u0430\u043B\u0438\u0442\u0440\u0430 \u0434\u043B\u044F \u0434\u0430\u043B\u044C\u0442\u043E\u043D\u0438\u043A\u043E\u0432"
+  - Key: settings.on
+    En: On
+    Ru: "\u0412\u043A\u043B"
+  - Key: settings.off
+    En: Off
+    Ru: "\u0412\u044B\u043A\u043B"
+  - Key: settings.close
+    En: Close
+    Ru: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C"
+  - Key: hud.fps
+    En: FPS
+    Ru: FPS
   - Key: fighter.pix.name
     En: Pix
     Ru: "\u041F\u0438\u043A\u0441"

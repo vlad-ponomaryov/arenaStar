@@ -16,6 +16,7 @@ namespace Arena.Gameplay.Cameras
         private Quaternion _rotation;
         private Vector3 _focus;
         private Camera _camera;
+        private Vector3 _shakeOffset;
 
         public Camera Camera => _camera != null ? _camera : (_camera = GetComponent<Camera>());
         public bool Rotated => _rotated;
@@ -40,7 +41,10 @@ namespace Arena.Gameplay.Cameras
             Apply();
         }
 
+        /// <summary>Extra world offset of the camera (shake, <c>Feel.CameraShake</c>); applied on the next <see cref="Follow"/>.</summary>
+        public void SetShakeOffset(Vector3 offset) => _shakeOffset = offset;
+
         private void Apply() =>
-            transform.SetPositionAndRotation(CameraMath.Position(_focus, _rotation, _config.Distance), _rotation);
+            transform.SetPositionAndRotation(CameraMath.Position(_focus, _rotation, _config.Distance) + _shakeOffset, _rotation);
     }
 }

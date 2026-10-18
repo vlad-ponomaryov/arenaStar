@@ -21,6 +21,9 @@ namespace Arena.Gameplay.View
 
         public HealthBarView HealthBarPrefab;
 
+        [Tooltip("Ground marker of a pending area attack (zone disc + growing fill), diameter 1.")]
+        public TelegraphView TelegraphPrefab;
+
         [Tooltip("Breakable wall cube of 1 cell, pivot at the bottom centre.")]
         public GameObject BreakableWallPrefab;
 
@@ -69,6 +72,21 @@ namespace Arena.Gameplay.View
 
         [Tooltip("Ring under the enemy team (red, D-029).")]
         public Material TeamEnemy;
+
+        [Tooltip("Enemy ring / health bar in the colour-blind palette (orange, D-029).")]
+        public Material TeamEnemyAlt;
+        public Material BarEnemyAlt;
+
+        [Tooltip("Body of a fighter for a moment after a hit (GDD §5.3).")]
+        public Material FighterFlash;
+
+        [Header("Area telegraph materials (translucent): zone and growing fill, by team; enemy also in the colour-blind palette")]
+        public Material TelegraphAllyZone;
+        public Material TelegraphAllyFill;
+        public Material TelegraphEnemyZone;
+        public Material TelegraphEnemyFill;
+        public Material TelegraphEnemyAltZone;
+        public Material TelegraphEnemyAltFill;
 
         public Material FighterBody;
         public Material Floor;

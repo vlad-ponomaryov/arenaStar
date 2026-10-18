@@ -4,6 +4,8 @@ using Arena.Core.Modes;
 using Arena.Core.Sim;
 using Arena.Core.State;
 using Arena.Data.Localization;
+using Arena.Gameplay.Feel;
+using Arena.Gameplay.Settings;
 using Arena.UI.Common;
 using Arena.UI.Style;
 using UnityEngine;
@@ -110,7 +112,7 @@ namespace Arena.UI.Results
             ref FighterState f = ref sim.State.Fighters[MvpSlot];
             RectTransform holder = UiFactory.CreateRect("CapsuleHolder", row);
             UiFactory.SetPreferredSize(holder.gameObject, new Vector2(s.MvpCapsuleSize.x, height));
-            Image capsule = UiFactory.CreateImage("Capsule", holder, f.Team == localTeam ? s.AllyColor : s.EnemyColor, s.CircleSprite);
+            Image capsule = UiFactory.CreateImage("Capsule", holder, f.Team == localTeam ? s.AllyColor : EnemyColor(s), s.CircleSprite);
             _capsule = capsule.rectTransform;
             _capsule.anchorMin = new Vector2(0.5f, 0f);
             _capsule.anchorMax = new Vector2(0.5f, 0f);
@@ -142,9 +144,9 @@ namespace Arena.UI.Results
                     ref FighterState f = ref state.Fighters[i];
                     if (!f.Active || (f.Team == localTeam) != (pass == 0)) continue;
                     ref FighterStats st = ref state.Stats[i];
-                    Color color = f.Team == localTeam ? s.AllyColor : s.EnemyColor;
-                    AddRow(table, "Row" + i, Loc.Get(sim.Defs.Fighters[f.DefIndex].NameKey), NumberStrings.Get(st.Kills),
-                        NumberStrings.Get(st.Deaths), st.DamageDealt.ToString(), NumberStrings.Get(st.AcornsCollected), color,
+                    Color color = f.Team == localTeam ? s.AllyColor : EnemyColor(s);
+                    AddRow(table, "Row" + i, Loc.Get(sim.Defs.Fighters[f.DefIndex].NameKey), NumberStringCache.Get(st.Kills),
+                        NumberStringCache.Get(st.Deaths), st.DamageDealt.ToString(), NumberStringCache.Get(st.AcornsCollected), color,
                         s.MediumFontSize);
                 }
             }
@@ -163,5 +165,7 @@ namespace Arena.UI.Results
             UiFactory.CreateLayoutText("Damage", row, s, fontSize, statSize, damage);
             UiFactory.CreateLayoutText("Acorns", row, s, fontSize, statSize, acorns);
         }
+
+        private static Color EnemyColor(UiStyle s) => s.Enemy(PlayerSettingsStore.Shared.Current.ColorblindPalette);
     }
 }

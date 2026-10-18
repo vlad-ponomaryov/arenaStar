@@ -2,6 +2,8 @@ using Arena.Core.Modes;
 using Arena.Core.Sim;
 using Arena.Core.State;
 using Arena.Data.Localization;
+using Arena.Gameplay.Feel;
+using Arena.Gameplay.Settings;
 using Arena.UI.Common;
 using Arena.UI.Style;
 using UnityEngine;
@@ -12,7 +14,7 @@ namespace Arena.UI.Hud
     /// <summary>
     /// Acorns score bar at the top of the match HUD: acorns of the local team on the left (blue), of the enemies on the
     /// right (red), the time left in the middle, and the hold countdown under it while one runs ("We hold" / "Enemy holds"
-    /// + seconds). Texts change only when the value changes; numbers come from <see cref="NumberStrings"/> (no allocations
+    /// + seconds). Texts change only when the value changes; numbers come from <see cref="NumberStringCache"/> (no allocations
     /// per frame). Hidden when the match has no Acorns mode.
     /// </summary>
     public sealed class ScoreBarView
@@ -69,7 +71,8 @@ namespace Arena.UI.Hud
 
             Text ally = CreateBox("Ally", row, style, style.ScoreBoxSize, style.AllyColor);
             Text timer = CreateBox("Timer", row, style, style.TimerBoxSize, style.ScorePanelColor);
-            Text enemy = CreateBox("Enemy", row, style, style.ScoreBoxSize, style.EnemyColor);
+            Text enemy = CreateBox("Enemy", row, style, style.ScoreBoxSize,
+                style.Enemy(PlayerSettingsStore.Shared.Current.ColorblindPalette));
 
             RectTransform countdown = UiFactory.CreateRow("Countdown", root, style.ScoreBarSpacing, 0f);
             countdown.anchorMin = new Vector2(0f, 0f);
@@ -102,7 +105,7 @@ namespace Arena.UI.Hud
             if (seconds != _shownSeconds)
             {
                 _shownSeconds = seconds;
-                _timer.text = NumberStrings.Clock(seconds);
+                _timer.text = NumberStringCache.Clock(seconds);
             }
 
             int team = state.Mode.IsEnded ? AcornsRules.NoTeam : state.Mode.CountdownTeam;
@@ -128,7 +131,7 @@ namespace Arena.UI.Hud
         {
             if (value == shown) return;
             shown = value;
-            text.text = NumberStrings.Get(value);
+            text.text = NumberStringCache.Get(value);
         }
 
         private static Text CreateBox(string name, Transform parent, UiStyle style, Vector2 size, Color color)

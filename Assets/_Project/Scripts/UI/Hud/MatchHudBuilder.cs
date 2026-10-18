@@ -16,21 +16,23 @@ namespace Arena.UI.Hud
         private static readonly Vector2 BottomRight = new Vector2(1f, 0f);
         private static readonly Vector2 Centre = new Vector2(0.5f, 0.5f);
 
-        public static MatchHudControls Build(Transform parent, UiStyle style)
+        /// <param name="mirrored">Mirrored layout (setting): the movement zone on the right half, the attack/ult/trick
+        /// buttons in the bottom-left corner.</param>
+        public static MatchHudControls Build(Transform parent, UiStyle style, bool mirrored = false)
         {
             var controls = new MatchHudControls();
             controls.Canvas = CreateCanvas(parent, style);
             Transform root = controls.Canvas.transform;
 
-            controls.MoveStick = CreateMoveStick(root, style);
-            controls.AttackStick = CreateFixedStick("AttackStick", root, style, style.AttackStick);
-            controls.UltStick = CreateFixedStick("UltStick", root, style, style.UltStick);
+            controls.MoveStick = CreateMoveStick(root, style, mirrored);
+            controls.AttackStick = CreateFixedStick("AttackStick", root, style, style.AttackStick, mirrored);
+            controls.UltStick = CreateFixedStick("UltStick", root, style, style.UltStick, mirrored);
             controls.UltChargeRing = CreateChargeRing(controls.UltStick.transform, style);
             Transform ultBase = controls.UltStick.transform.Find("Base");
             controls.UltBase = ultBase != null ? ultBase.GetComponent<Image>() : null;
             Transform ultKnob = ultBase != null ? ultBase.Find("Knob") : null;
             controls.UltKnob = ultKnob != null ? ultKnob.GetComponent<Image>() : null;
-            controls.TrickButton = CreateTrickButton(root, style);
+            controls.TrickButton = CreateTrickButton(root, style, mirrored);
             controls.TrickImage = controls.TrickButton.GetComponent<Image>();
             controls.TrickDots = new Image[0];
             return controls;
@@ -81,20 +83,21 @@ namespace Arena.UI.Hud
             return canvas;
         }
 
-        private static VirtualStick CreateMoveStick(Transform root, UiStyle style)
+        private static VirtualStick CreateMoveStick(Transform root, UiStyle style, bool mirrored)
         {
-            // Zone: left half of the screen, pivot bottom-left, so local coordinates are measured from the corner.
+            // Zone: left (mirrored: right) half of the screen, pivot in its bottom outer corner, so local coordinates are
+            // measured from the corner.
             RectTransform zone = CreateRect("MoveStickZone", root);
-            zone.anchorMin = BottomLeft;
-            zone.anchorMax = new Vector2(0.5f, 1f);
-            zone.pivot = BottomLeft;
+            zone.anchorMin = mirrored ? new Vector2(0.5f, 0f) : BottomLeft;
+            zone.anchorMax = mirrored ? Vector2.one : new Vector2(0.5f, 1f);
+            zone.pivot = mirrored ? BottomRight : BottomLeft;
             zone.offsetMin = Vector2.zero;
             zone.offsetMax = Vector2.zero;
             AddTransparentRaycastImage(zone);
 
             StickStyle s = style.MoveStick;
             RectTransform stickBase = CreateCircle("Base", zone, style, s.BaseSize, s.BaseColor);
-            stickBase.localPosition = s.Position;
+            stickBase.localPosition = mirrored ? new Vector3(-s.Position.x, s.Position.y, 0f) : (Vector3)s.Position;
             RectTransform knob = CreateCircle("Knob", stickBase, style, s.KnobSize, s.KnobColor);
 
             var stick = zone.gameObject.AddComponent<VirtualStick>();
@@ -102,10 +105,10 @@ namespace Arena.UI.Hud
             return stick;
         }
 
-        private static VirtualStick CreateFixedStick(string name, Transform root, UiStyle style, StickStyle s)
+        private static VirtualStick CreateFixedStick(string name, Transform root, UiStyle style, StickStyle s, bool mirrored)
         {
             RectTransform zone = CreateRect(name, root);
-            AnchorBottomRight(zone, s.Position, new Vector2(s.HitSize, s.HitSize));
+            AnchorCorner(zone, s.Position, new Vector2(s.HitSize, s.HitSize), mirrored);
             AddTransparentRaycastImage(zone);
 
             RectTransform stickBase = CreateCircle("Base", zone, style, s.BaseSize, s.BaseColor);
@@ -116,23 +119,25 @@ namespace Arena.UI.Hud
             return stick;
         }
 
-        private static TapButton CreateTrickButton(Transform root, UiStyle style)
+        private static TapButton CreateTrickButton(Transform root, UiStyle style, bool mirrored)
         {
             RectTransform rt = CreateRect("TrickButton", root);
-            AnchorBottomRight(rt, style.TrickButtonPosition, new Vector2(style.TrickButtonSize, style.TrickButtonSize));
+            AnchorCorner(rt, style.TrickButtonPosition, new Vector2(style.TrickButtonSize, style.TrickButtonSize), mirrored);
             Image image = rt.gameObject.AddComponent<Image>();
             image.sprite = style.CircleSprite;
             image.color = style.TrickButtonColor;
             return rt.gameObject.AddComponent<TapButton>();
         }
 
-        private static void AnchorBottomRight(RectTransform rt, Vector2 positionFromCorner, Vector2 size)
+        /// <summary>Bottom-right corner (mirrored: bottom-left), <paramref name="positionFromCorner"/> measured inwards.</summary>
+        private static void AnchorCorner(RectTransform rt, Vector2 positionFromCorner, Vector2 size, bool mirrored)
         {
-            rt.anchorMin = BottomRight;
-            rt.anchorMax = BottomRight;
+            Vector2 corner = mirrored ? BottomLeft : BottomRight;
+            rt.anchorMin = corner;
+            rt.anchorMax = corner;
             rt.pivot = Centre;
             rt.sizeDelta = size;
-            rt.anchoredPosition = new Vector2(-positionFromCorner.x, positionFromCorner.y);
+            rt.anchoredPosition = new Vector2(mirrored ? positionFromCorner.x : -positionFromCorner.x, positionFromCorner.y);
         }
 
         private static RectTransform CreateCircle(string name, Transform parent, UiStyle style, float size, Color color)

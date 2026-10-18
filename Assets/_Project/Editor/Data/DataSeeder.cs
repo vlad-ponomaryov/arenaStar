@@ -22,6 +22,7 @@ namespace Arena.Editor.Data
         public const string MapsFolder = DataRoot + "/Maps";
         public const string AcornsGladePath = MapsFolder + "/Acorns_Glade.asset";
         public const string CameraConfigPath = FeelFolder + "/CameraConfig.asset";
+        public const string FeelConfigPath = FeelFolder + "/Feel.asset";
         public const string MatchRunnerConfigPath = CombatFolder + "/MatchRunnerConfig.asset";
         public const string CombatRulesPath = CombatFolder + "/CombatRules.asset";
         public const string GameDatabasePath = DataRoot + "/GameDatabase.asset";
@@ -154,6 +155,16 @@ namespace Arena.Editor.Data
             new[] { LocKeys.ResultsDeaths, "Knocked out", "Выбыл" },
             new[] { LocKeys.ResultsDamage, "Damage", "Урон" },
             new[] { LocKeys.ResultsAcorns, "Acorns", "Жёлуди" },
+            new[] { LocKeys.MenuSettings, "Settings", "Настройки" },
+            new[] { LocKeys.SettingsTitle, "Settings", "Настройки" },
+            new[] { LocKeys.SettingsMirror, "Mirrored layout", "Зеркальная раскладка" },
+            new[] { LocKeys.SettingsVibration, "Vibration", "Вибрация" },
+            new[] { LocKeys.SettingsAimMagnet, "Aim assist", "Примагничивание прицела" },
+            new[] { LocKeys.SettingsColorblind, "Colour-blind palette", "Палитра для дальтоников" },
+            new[] { LocKeys.SettingsOn, "On", "Вкл" },
+            new[] { LocKeys.SettingsOff, "Off", "Выкл" },
+            new[] { LocKeys.SettingsClose, "Close", "Закрыть" },
+            new[] { LocKeys.HudFps, "FPS", "FPS" },
             new[] { "fighter.pix.name", "Pix", "Пикс" },
             new[] { "fighter.bruno.name", "Bruno", "Бруно" },
             new[] { "fighter.chomp.name", "Chomp", "Чомп" },
@@ -271,6 +282,45 @@ namespace Arena.Editor.Data
         private const float CameraEdgeInset = 7f;
         private const float CameraFollowSharpness = 8f;
 
+        // Feel (GDD §5.3): hit stop 40 ms, telegraph 0.5 s, aim magnet up to 5° (GDD §5.1); the rest PROTO (D-013, D-059):
+        // short flash, numbers float up 0.7 s, small shake on ult hits, light 20 ms buzz per hit (60 ms per ult hit, at most
+        // one per 0.08 s), vibration choices 0/25/50/75/100 %, clips at 22 kHz (hit = noisy blip, ult = falling boom,
+        // ult ready = two rising notes), ult stick pulses twice a second by 8 %, FPS averaged over 0.5 s.
+        private const float FeelFlashSeconds = 0.1f;
+        private const float FeelNumberSeconds = 0.7f;
+        private const float FeelNumberRiseSpeed = 1.6f;
+        private const float FeelNumberHeight = 2.3f;
+        private const float FeelNumberScatter = 0.3f;
+        private const int FeelNumberFontSize = 40;
+        private const int FeelUltNumberFontSize = 56;
+        private const int FeelNumberPoolPrewarm = 24;
+        private static readonly Color FeelDamageColor = new Color(1f, 1f, 1f, 1f);
+        private static readonly Color FeelDamageTakenColor = new Color(1f, 0.38f, 0.32f, 1f);
+        private static readonly Color FeelHealColor = new Color(0.45f, 1f, 0.5f, 1f);
+        private static readonly Vector2 FeelTextReferenceResolution = new Vector2(1920f, 1080f);
+        private const float FeelTextMatchWidthOrHeight = 0.5f;
+        private const float FeelOwnHealthHeight = 2.55f;
+        private const int FeelOwnHealthFontSize = 30;
+        private static readonly Color FeelOwnHealthColor = new Color(1f, 1f, 1f, 1f);
+        private const float FeelShakeAmplitude = 0.25f;
+        private const float FeelShakeSeconds = 0.25f;
+        private const float FeelShakeFrequency = 28f;
+        private const float FeelHitStopSeconds = 0.04f;
+        private const int FeelHitVibrationMs = 20;
+        private const int FeelUltVibrationMs = 60;
+        private const float FeelVibrationMinInterval = 0.08f;
+        private static readonly int[] FeelVibrationSteps = { 0, 25, 50, 75, 100 };
+        private const int FeelSampleRate = 22050;
+        private static readonly ProceduralSoundSettings FeelHitSound = new ProceduralSoundSettings(700f, 300f, 0f, 0.07f, 0.45f, 0.6f);
+        private static readonly ProceduralSoundSettings FeelUltSound = new ProceduralSoundSettings(220f, 70f, 0f, 0.4f, 0.8f, 0.25f);
+        private static readonly ProceduralSoundSettings FeelUltReadySound = new ProceduralSoundSettings(880f, 880f, 1320f, 0.3f, 0.5f, 0f);
+        private const float FeelHitSoundMinInterval = 0.05f;
+        private const float FeelTelegraphSeconds = 0.5f;
+        private const float FeelUltGlowFrequency = 2f;
+        private const float FeelUltGlowScale = 0.08f;
+        private const float FeelFpsUpdateSeconds = 0.5f;
+        private const float FeelAimMagnetDegrees = 5f;
+
         // Match runner: technical limit + prototype setup (3×3: the local player in slot 0, bots in the others; the line-up is
         // the fallback when bots do not pick random fighters).
         private const int MaxTicksPerFrame = 4;
@@ -315,6 +365,7 @@ namespace Arena.Editor.Data
             db.Fighters.AddRange(fighters);
             db.DefaultMap = SeedAcornsGlade();
             db.Camera = SeedCamera();
+            db.Feel = SeedFeel();
             db.MatchRunner = SeedMatchRunner();
             db.AcornsMode = SeedAcornsMode();
             db.Strings = SeedStrings();
@@ -385,6 +436,47 @@ namespace Arena.Editor.Data
                 t.Entries.Add(new LocEntry { Key = Strings[i][0], En = Strings[i][1], Ru = Strings[i][2] });
             EditorUtility.SetDirty(t);
             return t;
+        }
+
+        private static FeelConfig SeedFeel()
+        {
+            FeelConfig c = LoadOrCreate<FeelConfig>(FeelConfigPath);
+            c.FlashSeconds = FeelFlashSeconds;
+            c.NumberSeconds = FeelNumberSeconds;
+            c.NumberRiseSpeed = FeelNumberRiseSpeed;
+            c.NumberHeight = FeelNumberHeight;
+            c.NumberScatter = FeelNumberScatter;
+            c.NumberFontSize = FeelNumberFontSize;
+            c.UltNumberFontSize = FeelUltNumberFontSize;
+            c.NumberPoolPrewarm = FeelNumberPoolPrewarm;
+            c.DamageColor = FeelDamageColor;
+            c.DamageTakenColor = FeelDamageTakenColor;
+            c.HealColor = FeelHealColor;
+            c.TextReferenceResolution = FeelTextReferenceResolution;
+            c.TextMatchWidthOrHeight = FeelTextMatchWidthOrHeight;
+            c.OwnHealthHeight = FeelOwnHealthHeight;
+            c.OwnHealthFontSize = FeelOwnHealthFontSize;
+            c.OwnHealthColor = FeelOwnHealthColor;
+            c.ShakeAmplitude = FeelShakeAmplitude;
+            c.ShakeSeconds = FeelShakeSeconds;
+            c.ShakeFrequency = FeelShakeFrequency;
+            c.HitStopSeconds = FeelHitStopSeconds;
+            c.HitVibrationMs = FeelHitVibrationMs;
+            c.UltVibrationMs = FeelUltVibrationMs;
+            c.VibrationMinInterval = FeelVibrationMinInterval;
+            c.VibrationSteps = (int[])FeelVibrationSteps.Clone();
+            c.SampleRate = FeelSampleRate;
+            c.HitSound = FeelHitSound;
+            c.UltSound = FeelUltSound;
+            c.UltReadySound = FeelUltReadySound;
+            c.HitSoundMinInterval = FeelHitSoundMinInterval;
+            c.TelegraphSeconds = FeelTelegraphSeconds;
+            c.UltGlowFrequency = FeelUltGlowFrequency;
+            c.UltGlowScale = FeelUltGlowScale;
+            c.FpsUpdateSeconds = FeelFpsUpdateSeconds;
+            c.AimMagnetDegrees = FeelAimMagnetDegrees;
+            EditorUtility.SetDirty(c);
+            return c;
         }
 
         private static CameraConfig SeedCamera()

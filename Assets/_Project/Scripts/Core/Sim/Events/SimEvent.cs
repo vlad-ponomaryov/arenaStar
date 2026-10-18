@@ -21,8 +21,18 @@ namespace Arena.Core.Sim.Events
         public Vec2 Position;
         public Vec2 Direction;
 
+        /// <summary>Ability that caused the event (<c>MatchDefs.MakeAbilityRef</c>), or −1 (unknown, environment). Set for
+        /// <see cref="SimEventType.Damaged"/>: the view tells an ult hit (hit stop, shake) from an attack hit.</summary>
+        public int AbilityRef;
+
         public SimEvent(SimEventType type, int tick, int source, int target, int value, Vec2 position, Vec2 direction)
+            : this(type, tick, source, target, value, position, direction, -1)
         {
+        }
+
+        public SimEvent(SimEventType type, int tick, int source, int target, int value, Vec2 position, Vec2 direction, int abilityRef)
+        {
+            AbilityRef = abilityRef;
             Type = type;
             Tick = tick;
             Source = source;

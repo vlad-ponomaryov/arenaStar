@@ -54,6 +54,21 @@ namespace Arena.UI.Hud
             _hasShown = true;
         }
 
+        /// <summary>
+        /// Glow of the charged ult (GDD §5.1: the button lights up): the ult stick base pulses in size while charged and returns
+        /// to normal otherwise. Call every frame.
+        /// </summary>
+        /// <param name="time">Unscaled time, seconds.</param>
+        /// <param name="frequency">Pulses per second.</param>
+        /// <param name="extraScale">Extra scale at the peak (0.08 = +8 %).</param>
+        public void AnimateUltGlow(bool charged, float time, float frequency, float extraScale)
+        {
+            if (_controls.UltBase == null) return;
+            float k = charged ? 1f + extraScale * (0.5f + 0.5f * Mathf.Sin(time * frequency * Mathf.PI * 2f)) : 1f;
+            Transform t = _controls.UltBase.rectTransform;
+            if (t.localScale.x != k) t.localScale = new Vector3(k, k, 1f);
+        }
+
         private static void SetColor(Graphic graphic, Color color)
         {
             if (graphic != null && graphic.color != color) graphic.color = color;

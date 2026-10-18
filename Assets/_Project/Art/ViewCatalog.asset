@@ -17,6 +17,7 @@ MonoBehaviour:
   FloorPrefab: {fileID: 5125847828497573453, guid: a3e4093613d7b3c499233bf9868d4554, type: 3}
   ProjectilePrefab: {fileID: 4008496338427880208, guid: 91b8421af3a1b1f4a907abb21cb85093, type: 3}
   HealthBarPrefab: {fileID: 5199385430744116495, guid: 9235dc2b177f0734d89a4362e273aa93, type: 3}
+  TelegraphPrefab: {fileID: 2309977234652035910, guid: 0f5cd86cb96c6594eb96693c8a7198f5, type: 3}
   BreakableWallPrefab: {fileID: 5423689921568914059, guid: b8d5c855740b6cc4690f7fb09b3865b2, type: 3}
   BushPrefab: {fileID: 3101755314425890175, guid: 0fc88e0671fc8fe4e8580a307ec14816, type: 3}
   AcornPrefab: {fileID: 5887361116785313830, guid: 1abf562ef1acaf546b65554f5215ee40, type: 3}
@@ -32,6 +33,15 @@ MonoBehaviour:
   BushSeeThroughRadius: 2.5
   TeamAlly: {fileID: 2100000, guid: 89d46a19bb4786245b570381bc47fa54, type: 2}
   TeamEnemy: {fileID: 2100000, guid: c8caa291b8137274eae2ca5c5297b215, type: 2}
+  TeamEnemyAlt: {fileID: 2100000, guid: 992c1e09d9da09343a18aef4d9697214, type: 2}
+  BarEnemyAlt: {fileID: 2100000, guid: da883b765326fa342b96d89a9b51faba, type: 2}
+  FighterFlash: {fileID: 2100000, guid: cf02113f70e354241a6968d76777cb77, type: 2}
+  TelegraphAllyZone: {fileID: 2100000, guid: 6d7268cd95ce0a145af75815713400ae, type: 2}
+  TelegraphAllyFill: {fileID: 2100000, guid: 5e584d4e14f53064a8d2eb9a0bcfd537, type: 2}
+  TelegraphEnemyZone: {fileID: 2100000, guid: a66de22cf6ebcdc41b483f7f0049db1f, type: 2}
+  TelegraphEnemyFill: {fileID: 2100000, guid: c7b2520526e7394488cd65be4db15c25, type: 2}
+  TelegraphEnemyAltZone: {fileID: 2100000, guid: 327c5c153d2a69a44bdd83f19c56f7fc, type: 2}
+  TelegraphEnemyAltFill: {fileID: 2100000, guid: 9b6690b8c73dcd844940127b8227250c, type: 2}
   FighterBody: {fileID: 2100000, guid: fdbcdef65fc496244b97b8ef226946b3, type: 2}
   Floor: {fileID: 2100000, guid: 07f2808a38404f0499794e3a1440c155, type: 2}
   AimLine: {fileID: 2100000, guid: 32bb080ca4c8b0f4a86adba860087d94, type: 2}

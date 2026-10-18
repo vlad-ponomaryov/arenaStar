@@ -1,4 +1,7 @@
 using System.Collections;
+using Arena.Core.Math;
+using Arena.Core.Sim.Systems;
+using Arena.Core.State;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Match;
 using Arena.Gameplay.View;
@@ -18,6 +21,8 @@ namespace Arena.Tests.PlayMode
     {
         private const float RunSeconds = 3f;
         private const int ExpectedFighters = 6;
+        private const float EnemyDistance = 1.5f;
+        private const float UltWaitSeconds = 2f;
 
         [UnityTest]
         public IEnumerator MatchScene_RunsThreeSeconds_WithoutErrors()
@@ -58,6 +63,44 @@ namespace Arena.Tests.PlayMode
             Assert.IsNotNull(runner.MapView, "map view built");
             Assert.Greater(runner.MapView.BushCount, 0);
             Assert.Greater(runner.MapView.BreakableCount, 0);
+
+            Assert.IsNotNull(runner.Feedback, "hit feedback created (S2.10)");
+            Assert.Greater(runner.DamageNumbers.Capacity, 0, "damage number pool prewarmed");
+            Assert.IsNotNull(runner.Telegraphs);
+        }
+
+        [UnityTest]
+        public IEnumerator UltHit_OfTheLocalFighter_GivesHitStop_AndDamageNumbers()
+        {
+            SceneFlow.ClearLaunchParams();
+            yield return SceneManager.LoadSceneAsync(SceneNames.Match, LoadSceneMode.Single);
+            yield return null;
+            var runner = Object.FindFirstObjectByType<MatchRunner>();
+            Assert.IsNotNull(runner.Simulation);
+
+            // An enemy right in front of the local fighter, the ult charged and fired straight at it.
+            MatchState state = runner.Simulation.State;
+            int local = runner.LocalSlot;
+            int enemy = -1;
+            for (int i = 0; i < runner.Simulation.FighterCount; i++)
+                if (state.Fighters[i].Team != runner.LocalTeam) { enemy = i; break; }
+            Assert.GreaterOrEqual(enemy, 0);
+            state.Fighters[local].UltCharge = UltSystem.Required(runner.Simulation.Defs, in state.Fighters[local]);
+            state.Fighters[enemy].Position = state.Fighters[local].Position + new Vec2(0f, EnemyDistance);
+            runner.InputCollector.PressUltSim(Vec2.Up, false);
+
+            int hitsBefore = runner.Feedback.UltHitsFelt;
+            float end = Time.realtimeSinceStartup + UltWaitSeconds;
+            while (Time.realtimeSinceStartup < end && runner.Feedback.UltHitsFelt == hitsBefore)
+            {
+                state.Fighters[enemy].Position = state.Fighters[local].Position + new Vec2(0f, EnemyDistance);
+                yield return null;
+            }
+            bool sawStop = runner.HitStop.IsActive || runner.Shake.IsActive;
+            Assert.Greater(runner.Feedback.UltHitsFelt, hitsBefore, "the ult hit the enemy");
+            Assert.IsTrue(sawStop, "hit stop / shake right after the ult hit");
+            Assert.Greater(runner.DamageNumbers.ActiveCount, 0, "damage numbers shown");
+            Assert.IsTrue(runner.enabled, "no exception");
         }
     }
 }

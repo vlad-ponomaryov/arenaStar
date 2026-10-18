@@ -20,6 +20,7 @@ namespace Arena.Gameplay.Input
 
         private readonly Vec2[] _move = new Vec2[ChannelCount];
         private readonly Vec2[] _aim = new Vec2[ChannelCount];
+        private readonly bool[] _aimUlt = new bool[ChannelCount];
 
         private bool _attackLatched;
         private bool _attackAuto;
@@ -39,6 +40,9 @@ namespace Arena.Gameplay.Input
         /// <summary>Current aim being held (stick dragged / mouse button held) in simulation space, zero if none.</summary>
         public Vec2 Aim => Pick(_aim);
 
+        /// <summary>The aim being held (<see cref="Aim"/>) is for the ult, not the attack (the aim line uses the ult range).</summary>
+        public bool AimIsUlt => _aim[(int)InputChannel.Touch].IsZero ? _aimUlt[(int)InputChannel.KeyboardMouse] : _aimUlt[(int)InputChannel.Touch];
+
         /// <summary>View-space direction → simulation-space direction.</summary>
         public Vec2 ViewToSim(Vec2 view) => ViewRotated ? -view : view;
 
@@ -47,10 +51,18 @@ namespace Arena.Gameplay.Input
 
         public void SetMove(InputChannel channel, Vec2 viewMove) => _move[(int)channel] = Vec2.ClampLength(ViewToSim(viewMove), 1f);
 
-        public void SetAim(InputChannel channel, Vec2 viewAim) => _aim[(int)channel] = Vec2.ClampLength(ViewToSim(viewAim), 1f);
+        public void SetAim(InputChannel channel, Vec2 viewAim, bool ult = false)
+        {
+            _aim[(int)channel] = Vec2.ClampLength(ViewToSim(viewAim), 1f);
+            _aimUlt[(int)channel] = ult;
+        }
 
         /// <summary>Same as <see cref="SetAim"/> for a direction that is already in simulation space (mouse ray on the ground).</summary>
-        public void SetAimSim(InputChannel channel, Vec2 simAim) => _aim[(int)channel] = Vec2.ClampLength(simAim, 1f);
+        public void SetAimSim(InputChannel channel, Vec2 simAim, bool ult = false)
+        {
+            _aim[(int)channel] = Vec2.ClampLength(simAim, 1f);
+            _aimUlt[(int)channel] = ult;
+        }
 
         /// <summary>Attack released: manual aim (view space, length = fraction of range) or auto-aim (tap).</summary>
         public void PressAttack(Vec2 viewAim, bool autoAim) => PressAttackSim(ViewToSim(viewAim), autoAim);
@@ -111,6 +123,7 @@ namespace Arena.Gameplay.Input
             {
                 _move[i] = Vec2.Zero;
                 _aim[i] = Vec2.Zero;
+                _aimUlt[i] = false;
             }
             _attackLatched = _ultLatched = _trickLatched = false;
             _attackAuto = _ultAuto = false;

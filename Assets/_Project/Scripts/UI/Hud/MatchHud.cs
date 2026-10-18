@@ -1,6 +1,8 @@
 using Arena.Core.Math;
+using Arena.Data;
 using Arena.Data.Localization;
 using Arena.Gameplay.Flow;
+using Arena.Gameplay.Settings;
 using Arena.Gameplay.Input;
 using Arena.Gameplay.Match;
 using Arena.UI.Controls;
@@ -17,6 +19,8 @@ namespace Arena.UI.Hud
     /// The ult stick works only while the ult is charged (GDD §5.1); ability state is shown by <see cref="AbilityHudView"/>.
     /// The Acorns score bar (<see cref="ScoreBarView"/>) is on the same canvas; when the match ends the controls are hidden
     /// and the <see cref="ResultsScreen"/> appears ("Play again" → <see cref="SceneFlow.Restart"/>, "Menu" → <see cref="SceneFlow.ToMenu"/>).
+    /// S2.10: the layout follows the "mirrored" setting, the charged ult stick pulses (<see cref="FeelConfig"/>), an FPS counter
+    /// sits in the top-left corner; the aim line knows whether the ult stick is held (its range).
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class MatchHud : MonoBehaviour
@@ -28,12 +32,15 @@ namespace Arena.UI.Hud
         private AbilityHudView _abilityView;
         private ScoreBarView _scoreBar;
         private ResultsScreen _results;
+        private FpsCounter _fps;
+        private FeelConfig _feel;
 
         public MatchRunner Runner => _runner;
         public UiStyle Style => _style;
         public MatchHudControls Controls => _controls;
         public ScoreBarView ScoreBar => _scoreBar;
         public ResultsScreen Results => _results;
+        public FpsCounter Fps => _fps;
 
         private void Start()
         {
@@ -44,15 +51,18 @@ namespace Arena.UI.Hud
                 return;
             }
             if (_runner.Database != null && _runner.Database.Strings != null) Loc.Init(_runner.Database.Strings);
-            _controls = MatchHudBuilder.Build(transform, _style);
+            _feel = _runner.Database != null ? _runner.Database.Feel : null;
+            _controls = MatchHudBuilder.Build(transform, _style, PlayerSettingsStore.Shared.Current.MirroredLayout);
             _abilityView = new AbilityHudView(_controls, _style);
             _scoreBar = ScoreBarView.Build(_controls.Canvas.transform, _style);
             _results = ResultsScreen.Build(transform, _style, SceneFlow.Restart, SceneFlow.ToMenu);
+            if (_feel != null) _fps = new FpsCounter(_controls.Canvas.transform, _style, _feel.FpsUpdateSeconds);
         }
 
         private void Update()
         {
             if (_controls == null) return;
+            _fps?.Tick(Time.unscaledDeltaTime);
             if (_runner.Simulation != null) _scoreBar.Apply(_runner.Simulation, _runner.LocalTeam);
             if (_runner.IsMatchEnded)
             {
@@ -68,12 +78,14 @@ namespace Arena.UI.Hud
             AbilityHudInfo abilities = AbilityHudInfo.From(_runner.Simulation, _runner.LocalSlot);
             if (_runner.Simulation != null) _abilityView.Apply(in abilities);
             bool ultActive = abilities.UltCharged;
+            if (_feel != null) _abilityView.AnimateUltGlow(ultActive, Time.unscaledTime, _feel.UltGlowFrequency, _feel.UltGlowScale);
 
             input.SetMove(InputChannel.Touch, ToVec2(_controls.MoveStick.Value));
 
-            Vector2 aim = _controls.AttackStick.IsHeld ? _controls.AttackStick.Aim
+            bool aimingAttack = _controls.AttackStick.IsHeld;
+            Vector2 aim = aimingAttack ? _controls.AttackStick.Aim
                 : ultActive && _controls.UltStick.IsHeld ? _controls.UltStick.Aim : Vector2.zero;
-            input.SetAim(InputChannel.Touch, ToVec2(aim));
+            input.SetAim(InputChannel.Touch, ToVec2(aim), !aimingAttack);
 
             if (_controls.AttackStick.TryConsumeRelease(out StickGestureResult attack, out Vector2 attackAim))
             {

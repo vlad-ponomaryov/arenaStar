@@ -3,7 +3,9 @@ using Arena.Bots;
 using Arena.Data;
 using Arena.Data.Localization;
 using Arena.Gameplay.Flow;
+using Arena.Gameplay.Settings;
 using Arena.UI.Common;
+using Arena.UI.Settings;
 using Arena.UI.Style;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +17,7 @@ namespace Arena.UI.Menu
     /// database, names by localization key), bot difficulty (Novice / Easy, GDD §7), language EN / RU (saved locally,
     /// <see cref="Loc"/>), "Play" → <see cref="SceneFlow.PlayMatch"/>. The choice survives the trip to the match and back
     /// (taken from <see cref="SceneFlow.Current"/>). Switching the language rebuilds the screen. All texts go through keys.
+    /// "Settings" opens the <see cref="SettingsPanel"/> (S2.10).
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
     {
@@ -35,6 +38,8 @@ namespace Arena.UI.Menu
         public string SelectedFighterId => _fighterId;
         public BotDifficulty SelectedBots => _bots;
         public Button PlayButton { get; private set; }
+        public Button SettingsButton { get; private set; }
+        public SettingsPanel Settings { get; private set; }
 
         private void Start()
         {
@@ -83,9 +88,15 @@ namespace Arena.UI.Menu
             return _database.Fighters.Count > 0 ? _database.Fighters[0].Id : null;
         }
 
+        public void OpenSettings()
+        {
+            if (Settings != null) Settings.Show();
+        }
+
         private void Rebuild()
         {
             if (_canvas != null) Destroy(_canvas.gameObject);
+            if (Settings != null) Destroy(Settings.gameObject);
             UiStyle s = _style;
             _canvas = UiFactory.CreateCanvas("MenuCanvas", transform, s, 0);
             RectTransform column = UiFactory.CreateColumn("Column", _canvas.transform, s.MenuRowSpacing);
@@ -125,6 +136,9 @@ namespace Arena.UI.Menu
 
             PlayButton = UiFactory.CreateButton("PlayButton", column, s, s.PlayButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
                 Loc.Get(LocKeys.MenuPlay), Play, out _);
+            SettingsButton = UiFactory.CreateButton("SettingsButton", column, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
+                Loc.Get(LocKeys.MenuSettings), OpenSettings, out _);
+            Settings = SettingsPanel.Create(transform, s, _database.Feel, PlayerSettingsStore.Shared, null);
 
             Text version = UiFactory.CreateText("Version", _canvas.transform, s, s.SmallFontSize, TextAnchor.LowerLeft,
                 Loc.Get(LocKeys.MenuVersion) + " " + Application.version);

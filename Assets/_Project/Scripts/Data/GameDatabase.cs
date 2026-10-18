@@ -8,13 +8,15 @@ namespace Arena.Data
 {
     /// <summary>
     /// Root of all game configs (D-010); scenes reference it directly. Filled by DataSeeder.
-    /// Feel comes in a later step.
     /// </summary>
     [CreateAssetMenu(fileName = "GameDatabase", menuName = "Arena/Game Database")]
     public sealed class GameDatabase : ScriptableObject
     {
         public CombatRulesConfig CombatRules;
         public CameraConfig Camera;
+
+        [Tooltip("Hit feedback, sounds, vibration, telegraph, aim magnet (GDD §5.3).")]
+        public FeelConfig Feel;
         public MatchRunnerConfig MatchRunner;
 
         [Tooltip("All fighters in menu order.")]

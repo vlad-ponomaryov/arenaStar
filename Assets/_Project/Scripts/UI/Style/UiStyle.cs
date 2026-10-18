@@ -65,6 +65,22 @@ namespace Arena.UI.Style
         public Color AllyColor;
         public Color EnemyColor;
 
+        [Tooltip("Enemy colour of the colour-blind palette (orange; allies stay blue).")]
+        public Color EnemyColorAlt;
+
+        [Header("FPS counter (top-left corner)")]
+        public Vector2 FpsMargin;
+        public Vector2 FpsBoxSize;
+
+        [Header("Settings panel")]
+        public Color SettingsPanelColor;
+
+        [Tooltip("Width of the label column of a settings row.")]
+        public float SettingsLabelWidth;
+
+        [Tooltip("Size of one choice button (On/Off, vibration steps).")]
+        public Vector2 SettingsChoiceSize;
+
         [Header("Text and buttons (menu, score, results; built-in LegacyRuntime font, D-018)")]
         public Color TextColor;
         public int TitleFontSize;
@@ -117,5 +133,8 @@ namespace Arena.UI.Style
         public float ResultsStatColumnWidth;
         public float ResultsSpacing;
         public Vector2 ResultsButtonSize;
+
+        /// <summary>Enemy colour of the chosen palette (D-029).</summary>
+        public Color Enemy(bool colorblind) => colorblind ? EnemyColorAlt : EnemyColor;
     }
 }
