@@ -14,6 +14,29 @@ function Get-ArenaUnityPath {
     return $p
 }
 
+# Unity Hub installed as MSIX writes the entitlement license into a virtualized folder; batchmode Unity reads
+# %LOCALAPPDATA%\Unity\licenses. Copy it over when the real one is missing or older (D-043).
+function Sync-ArenaUnityLicense {
+    $name = 'UnityEntitlementLicense.xml'
+    $dst = Join-Path $env:LOCALAPPDATA ('Unity\licenses\' + $name)
+    $pkgRoot = Join-Path $env:LOCALAPPDATA 'Packages'
+    if (-not (Test-Path $pkgRoot)) { return }
+    $srcs = @(Get-ChildItem -Path $pkgRoot -Directory -Filter 'UnityTechnologies.UnityHub_*' -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName ('LocalCache\Local\Unity\licenses\' + $name) } |
+        Where-Object { Test-Path $_ })
+    if ($srcs.Count -eq 0) { return }
+    $src = Get-Item $srcs[0]
+    $needCopy = $true
+    if (Test-Path $dst) { $needCopy = ((Get-Item $dst).LastWriteTimeUtc -lt $src.LastWriteTimeUtc) }
+    if ($needCopy) {
+        try {
+            New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
+            Copy-Item -Path $src.FullName -Destination $dst -Force -ErrorAction Stop
+            Write-Host "Copied Unity license from MSIX Hub folder to $dst"
+        } catch { Write-Host "WARN: cannot copy Unity license: $_" }
+    }
+}
+
 function ConvertTo-ArenaNormalizedPath([string]$Path) {
     if ($null -eq $Path) { return '' }
     return $Path.Replace('/', '\').TrimEnd('\').ToLowerInvariant()
@@ -53,6 +76,7 @@ function Invoke-ArenaUnity {
     )
     $unity = Get-ArenaUnityPath
     if (-not (Test-Path $unity)) { Write-Host "ERROR: Unity not found at $unity (set ARENA_UNITY)"; return 2 }
+    Sync-ArenaUnityLicense
     if (Test-Path $LogFile) { Remove-Item -Force $LogFile }
     $all = @('-batchmode', '-nographics')
     if (-not $NoProject) { $all += @('-projectPath', $ProjectPath) }

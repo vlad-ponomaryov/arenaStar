@@ -32,7 +32,11 @@
 
 <!-- Q-009 и далее. Для «3 неудачи подряд»: что пробовали, где лог (Tools/out/...), в каком состоянии оставлено. -->
 
-**Q-009 [открыт] (S1.1, 2026-10-18 09:45) — Нет активной лицензии Unity: активируйте Personal-лицензию в Unity Hub.**
+## Закрытые
+
+<!-- Перенести сюда вопрос с ответом человека. -->
+
+**Q-009 [закрыт] (S1.1, 2026-10-18 09:45) — Нет активной лицензии Unity: активируйте Personal-лицензию в Unity Hub.**
 Проверка `Unity.exe -batchmode -nographics -quit -logFile Tools/out/license-check.log` → код 198,
 `No valid Unity Editor license found. Please activate your license.` (`Found 0 entitlement groups`, `Access token is unavailable`).
 Нужно: войти в Unity Hub под своей учётной записью и активировать Personal (агент аккаунты не создаёт и пароли не вводит).
@@ -40,7 +44,5 @@
 `Arena.Editor.asmdef` и `PackageInstaller` написаны и закоммичены; проект Unity ещё **не создан** (S1.1 п. 2, 7, 8 не выполнены).
 По плану ночь остановлена. После активации: продолжить S1.1 с п. 2 (`-createProject`), затем `unity-method.ps1 -NoQuit
 -Method Arena.Editor.Setup.PackageInstaller.Install`, `compile.ps1`, `test.ps1`.
-
-## Закрытые
-
-<!-- Перенести сюда вопрос с ответом человека. -->
+Ответ (оркестратор, 10:00): лицензия была активирована, но Hub (MSIX) хранил её в виртуализированной папке; файл скопирован в
+`%LOCALAPPDATA%\Unity\licenses\`, авто-копирование — в `Tools/UnityCommon.ps1` (D-043). S1.1 продолжен.

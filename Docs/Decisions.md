@@ -174,3 +174,8 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
 - D-042 (S1.1, 09:45) — `PackageInstaller` дополнительно ставит `com.unity.cinemachine` (D-040); TextMeshPro отдельно не ставится —
   в Unity 6 он входит в `com.unity.ugui` 2.x. `unity-method.ps1` получил ключ `-NoQuit` для методов, которые сами вызывают
   `EditorApplication.Exit` (установщик пакетов). Причина: D-040; `-quit` завершил бы Unity до окончания асинхронного запроса PM.
+- D-043 (S1.1, 10:00) — **Лицензия Unity при Hub из MSIX.** Hub пишет `UnityEntitlementLicense.xml` в виртуализированную папку
+  `%LOCALAPPDATA%\Packages\UnityTechnologies.UnityHub_*\LocalCache\Local\Unity\licenses\`, а batchmode-Unity читает
+  `%LOCALAPPDATA%\Unity\licenses\`. Файл скопирован оркестратором; `Sync-ArenaUnityLicense` в `Tools/UnityCommon.ps1` перед
+  каждым запуском копирует его снова, если в реальной папке файла нет или он старее (Hub обновил лицензию). (Оркестратор просил
+  номер D-042, но он уже занят — записано как D-043.) Причина: без этого `No valid Unity Editor license` (Q-009).
