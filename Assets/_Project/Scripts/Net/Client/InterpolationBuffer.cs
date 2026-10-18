@@ -70,6 +70,20 @@ namespace Arena.Net.Client
         /// <summary>Ticks to extrapolate from <see cref="From"/> (capped by <see cref="ClientMatchSettings.MaxExtrapolationMs"/>).</summary>
         public float ExtrapolationTicks { get; private set; }
 
+        /// <summary>Forgets the render clock and the arrival history: the next snapshot starts it again (rejoin, long pause; S3.12).</summary>
+        public void Reset()
+        {
+            Started = false;
+            _hasArrival = false;
+            JitterTicks = 0f;
+            Rate = 1f;
+            From = null;
+            To = null;
+            Alpha = 0f;
+            Extrapolating = false;
+            ExtrapolationTicks = 0f;
+        }
+
         /// <summary>A new snapshot arrived at <paramref name="arrivalMicros"/> (only newer ticks move the clock target).</summary>
         public void OnSnapshot(int tick, long arrivalMicros)
         {

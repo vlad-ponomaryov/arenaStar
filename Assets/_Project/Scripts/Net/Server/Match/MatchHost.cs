@@ -221,7 +221,9 @@ namespace Arena.Net.Server.Match
         {
             RejectReason reason = RejectReason.None;
             if (purpose == ConnectPurpose.Lobby || !hasToken) reason = RejectReason.InvalidToken; // lobby: ServerNode
-            else if (!TryFind(in token, out int room, out _)) reason = RejectReason.InvalidToken;
+            // A return with a ticket no open room holds: the room has closed (the ticket is random — S3.12, §7 "MatchOver").
+            else if (!TryFind(in token, out int room, out _))
+                reason = purpose == ConnectPurpose.Rejoin ? RejectReason.MatchOver : RejectReason.InvalidToken;
             else if (_rooms[room].Phase == MatchPhase.Closed) reason = RejectReason.MatchOver;
             if (reason != RejectReason.None) Metrics.RejectedConnections++;
             return reason;

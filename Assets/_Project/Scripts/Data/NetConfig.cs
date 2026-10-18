@@ -55,6 +55,9 @@ namespace Arena.Data
         [Tooltip("A saved rejoin ticket is valid this long (GDD §8.3).")]
         [Min(0f)] public float ReconnectWindowSeconds;
 
+        [Tooltip("Pause before each automatic return attempt after a lost connection, seconds; the last value repeats (Server-Spec §13).")]
+        public List<float> ReconnectRetrySeconds = new List<float>();
+
         [Header("Match HUD (S3.11, §12.4)")]
         [Tooltip("Seconds without a packet from the server before the HUD shows 'connection lost'.")]
         [Min(0.1f)] public float ConnectionLostSeconds;

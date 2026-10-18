@@ -19,5 +19,8 @@ namespace Arena.Online
 
         /// <summary>A remote region never answered the handshake: the network likely drops UDP (S3.11, §12.4).</summary>
         UdpBlocked = 5,
+
+        /// <summary>"Back to the match": the server says the match is already over (S3.12).</summary>
+        MatchOver = 6,
     }
 }

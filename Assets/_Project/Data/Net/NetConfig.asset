@@ -44,6 +44,12 @@ MonoBehaviour:
   DiscoverIntervalMs: 200
   DiscoverTimeoutMs: 600
   ReconnectWindowSeconds: 60
+  ReconnectRetrySeconds:
+  - 0.5
+  - 1
+  - 2
+  - 3
+  - 5
   ConnectionLostSeconds: 1
   HudPingRefreshSeconds: 0.5
   DevOverlay: 1

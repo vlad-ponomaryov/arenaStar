@@ -95,9 +95,12 @@ namespace Arena.Tests.PlayMode
             Assert.Greater((firstStep - start).Length, 0f, "the own fighter moved on the first ticks of its input (prediction)");
 
             bool othersBehind = false;
+            float walked = 0f; // the farthest point: a defeat respawns the fighter at its start (seen once in S3.12)
             while (Time.realtimeSinceStartup < end)
             {
                 if (driver.State.Globals.Tick - session.Presentation.RenderTick > 0) othersBehind = true;
+                float d = (driver.State.Fighters[driver.LocalSlot].Position - start).Length;
+                if (d > walked) walked = d;
                 yield return null;
             }
             runner.InputCollector.SetMove(InputChannel.Touch, Vec2.Zero);
@@ -105,7 +108,7 @@ namespace Arena.Tests.PlayMode
             Assert.IsTrue(runner.enabled, "the runner did not stop on an exception");
             Assert.IsTrue(online.Net.IsConnected, "still connected");
             Assert.Greater(driver.BuiltTicks, (long)(RunSeconds * 30f * 0.5f), "display ticks at ~30 Hz");
-            Assert.Greater((driver.State.Fighters[driver.LocalSlot].Position - start).Length, MinWalkCells, "the own fighter walked");
+            Assert.Greater(walked, MinWalkCells, "the own fighter walked");
             Assert.IsTrue(othersBehind, "the others are shown at the render tick, behind the own fighter");
             Assert.IsTrue(session.Interpolation.Started);
             Assert.AreEqual(0, session.MalformedSnapshots);

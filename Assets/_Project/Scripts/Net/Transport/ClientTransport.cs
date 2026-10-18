@@ -52,6 +52,15 @@ namespace Arena.Net.Transport
 
         public bool IsConnected => State == ClientState.Connected;
 
+        /// <summary>The socket in use (null before the first <see cref="Connect"/>); not owned.</summary>
+        public IDatagramSocket Socket => _socket;
+
+        /// <summary>
+        /// Handshakes that ended in <c>ConnectAccepted</c> so far (counted before any data of the new connection is handled): a
+        /// change tells the match session that a new connection replaced the old one (rejoin, S3.12).
+        /// </summary>
+        public int Connects { get; private set; }
+
         /// <summary>The socket reported a broken local path: create a new one and call <see cref="ReplaceSocket"/>.</summary>
         public bool PathBroken => _socket != null && _socket.PathBroken;
 
@@ -200,6 +209,7 @@ namespace Arena.Net.Transport
             if (accepted.DisconnectTimeoutMs > 0u) _connection.TimeoutMicros = accepted.DisconnectTimeoutMs * MicrosPerMs;
             _connection.Nonce = _nonce;
             State = ClientState.Connected;
+            Connects++;
             return true;
         }
 

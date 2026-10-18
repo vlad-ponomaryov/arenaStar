@@ -6,9 +6,10 @@ using Arena.Net.Transport;
 namespace Arena.Online
 {
     /// <summary>
-    /// Keeps the <see cref="RejoinTicket"/> of the current match on the device (Server-Spec §7, §12.3; S3.10b — the groundwork,
-    /// the return itself is S3.12): saved on <c>MatchAssigned</c>, cleared when the match ends or the player leaves; a ticket
-    /// older than the rejoin window is ignored. Plain values in an <see cref="IKeyValueStore"/> (PlayerPrefs on the device).
+    /// Keeps the <see cref="RejoinTicket"/> of the current match on the device (Server-Spec §7, §12.3; S3.10b, S3.12): saved on
+    /// <c>MatchAssigned</c> (re-saved with a new time when the app goes to the background or quits mid-match), cleared when the
+    /// match ends, the player leaves or the server answers <c>MatchOver</c>; a ticket older than the rejoin window is ignored.
+    /// The menu offers "Back to the match" while a ticket is valid. Plain values in an <see cref="IKeyValueStore"/> (PlayerPrefs on the device).
     /// </summary>
     public sealed class RejoinStore
     {

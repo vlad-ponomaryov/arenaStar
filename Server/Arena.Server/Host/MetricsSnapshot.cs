@@ -58,6 +58,7 @@ namespace Arena.Server.Host
         public long PressesCarried;
         public long Takeovers;
         public long Leaves;
+        public long Rejoins;
 
         public long RejectedConnections;
         public long RateLimited;
@@ -114,6 +115,7 @@ namespace Arena.Server.Host
             PressesCarried = m.PressesCarried;
             Takeovers = m.Takeovers;
             Leaves = m.Leaves;
+            Rejoins = m.Rejoins;
             RejectedConnections = t.Rejected + m.RejectedConnections + l.RejectedJoins;
             RateLimited = t.DroppedRateLimited + t.RateLimitDisconnects + node.Transport.RateLimitedHandshakes;
             Timeouts = t.Timeouts;
@@ -142,7 +144,7 @@ namespace Arena.Server.Host
             BytesSent = other.BytesSent; SnapshotsSent = other.SnapshotsSent; SnapshotAverageBytes = other.SnapshotAverageBytes;
             SnapshotMaxBytes = other.SnapshotMaxBytes; Keyframes = other.Keyframes;
             LateInputs = other.LateInputs; MissingInputShare = other.MissingInputShare; PressesCarried = other.PressesCarried;
-            Takeovers = other.Takeovers; Leaves = other.Leaves;
+            Takeovers = other.Takeovers; Leaves = other.Leaves; Rejoins = other.Rejoins;
             RejectedConnections = other.RejectedConnections; RateLimited = other.RateLimited; Timeouts = other.Timeouts;
             Malformed = other.Malformed; SocketResets = other.SocketResets;
             GcHeapBytes = other.GcHeapBytes; GcGen0 = other.GcGen0; GcGen2 = other.GcGen2;
@@ -186,6 +188,7 @@ namespace Arena.Server.Host
             Counter(sb, "arena_presses_carried_total", PressesCarried);
             Counter(sb, "arena_takeovers_total", Takeovers);
             Counter(sb, "arena_leaves_total", Leaves);
+            Counter(sb, "arena_rejoins_total", Rejoins);
             Counter(sb, "arena_rejected_total", RejectedConnections);
             Counter(sb, "arena_rate_limited_total", RateLimited);
             Counter(sb, "arena_timeouts_total", Timeouts);

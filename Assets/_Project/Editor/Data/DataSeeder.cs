@@ -685,6 +685,7 @@ namespace Arena.Editor.Data
             c.DiscoverTimeoutMs = l.DiscoverTimeoutMs;
 
             c.ReconnectWindowSeconds = ReconnectWindowSeconds;
+            c.ReconnectRetrySeconds = new System.Collections.Generic.List<float>(ReconnectSettings.CreateDefault().RetrySeconds);
             c.ConnectionLostSeconds = ConnectionLostSeconds;
             c.HudPingRefreshSeconds = HudPingRefreshSeconds;
             c.DevOverlay = DevOverlayOn;

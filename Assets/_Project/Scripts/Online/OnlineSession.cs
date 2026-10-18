@@ -46,8 +46,14 @@ namespace Arena.Online
         private TransportSettings _transport;
         private ClientMatchSettings _matchSettings;
         private LobbyClientSettings _lobbySettings;
+        private ReconnectSettings _reconnectSettings;
         private readonly INetRandom _random = new CryptoNetRandom();
         private RejoinStore _rejoin;
+        private RejoinTicket _ticket;
+        private bool _hasTicket;
+        private bool _rejoining;
+        private IPEndPoint _server;
+        private Func<IDatagramSocket> _socketFactory;
 
         private NetClient _net;
         private LobbyClient _lobby;
@@ -131,6 +137,16 @@ namespace Arena.Online
         /// </summary>
         public IPEndPoint ServerOverride { get; set; }
 
+        /// <summary>
+        /// A ticket of an unfinished match is saved (the app was closed or the attempts gave up, Server-Spec §7) and younger than the
+        /// return window: the menu shows "Back to the match" (<see cref="Rejoin"/>).
+        /// </summary>
+        public bool CanRejoin => IsAvailable && _hasTicket && !IsBusy && Phase != OnlinePhase.InMatch
+            && RejoinStore.UnixNowSeconds() - _ticket.SavedAtSeconds <= _config.ReconnectWindowSeconds;
+
+        /// <summary>The current search is a return to a saved match ("Back to the match").</summary>
+        public bool IsRejoining => _rejoining;
+
         private const long MicrosPerSecond = 1000000L;
 
         /// <summary>Sets the database before <c>Awake</c> runs the init (a session created from code — tests).</summary>
@@ -157,7 +173,11 @@ namespace Arena.Online
             Instance = null;
         }
 
-        private void OnApplicationQuit() => Close();
+        private void OnApplicationQuit()
+        {
+            RefreshTicket(); // quitting mid-match: "Back to the match" on the next start
+            Close();
+        }
 
         /// <summary>Loads the config and the content pack. Without them online play stays off (offline still works).</summary>
         public void Init(GameDatabase database)
@@ -176,6 +196,7 @@ namespace Arena.Online
                 _contentHash = header.ContentHash;
                 _matchSettings = NetConfigConverter.ToClientMatchSettings(_config);
                 _lobbySettings = NetConfigConverter.ToLobbySettings(_config);
+                _reconnectSettings = NetConfigConverter.ToReconnectSettings(_config);
             }
             catch (Exception e)
             {
@@ -184,6 +205,8 @@ namespace Arena.Online
             }
             _transport = TransportSettings.CreateDefault();
             _rejoin = new RejoinStore(new PlayerPrefsKeyValueStore(), _config.ReconnectWindowSeconds);
+            _hasTicket = _rejoin.TryLoad(RejoinStore.UnixNowSeconds(), out _ticket);
+            _socketFactory = CreateServerSocket;
             _pings = _config.Regions != null && _config.Regions.Count > 0
                 ? new RegionPingService(_config.Regions, _lobbySettings, _contentHash, _random, () => new UdpProbeSocket())
                 : null;
@@ -325,28 +348,81 @@ namespace Arena.Online
 
         private void ConnectTo(IPEndPoint server)
         {
+            if (!OpenConnection(server)) return;
+            _rejoining = false;
+            Phase = OnlinePhase.Connecting;
+            _lobby.Search(_socket, _mode, _fighterIndex, NetClock.NowMicros());
+            UnityNetLog.Info("connecting to " + server + (Simulating ? " (dev simulator on)" : ""));
+        }
+
+        /// <summary>
+        /// "Back to the match" from the menu (Server-Spec §7): connects with <c>Rejoin</c> and the saved ticket to the saved server;
+        /// <c>MatchStart</c> loads the Match scene as after a search, <c>MatchOver</c> forgets the ticket ("the match is already over").
+        /// </summary>
+        public void Rejoin()
+        {
+            if (!CanRejoin) return;
+            Close();
+            Failure = OnlineFailure.None;
+            RejoinTicket ticket = _ticket;
+            IPEndPoint server = ServerOverride ?? ticket.Server.ToEndPoint(ticket.Server.IsIPv4 ? AddressFamily.InterNetwork
+                : AddressFamily.InterNetworkV6);
+            if (!OpenConnection(server)) return;
+            _rejoining = true;
+            _rejoinSaved = true; // the ticket is already in the store
+            _searchStartedMicros = NetClock.NowMicros();
+            Phase = OnlinePhase.Connecting;
+            _net.Connect(_socket, ConnectPurpose.Rejoin, ticket.Token, NetClock.NowMicros());
+            UnityNetLog.Info("returning to match " + ticket.MatchId.ToString("x") + " at " + server);
+        }
+
+        /// <summary>Socket, client, lobby and match session to <paramref name="server"/>; false — the socket failed (reported).</summary>
+        private bool OpenConnection(IPEndPoint server)
+        {
             CloseLocator();
+            _server = server;
             try
             {
-                IDatagramSocket socket = new UdpDatagramSocket(server);
-                Simulating = Debug.isDebugBuild && _config.DevSimEnabled;
-                if (Simulating)
-                    socket = new LagSimulatorSocket(socket, _config.DevSimLatencyMs, _config.DevSimJitterMs, _config.DevSimLossPercent,
-                        DevSimSlots, Environment.TickCount);
-                _socket = socket;
+                _socket = CreateSocket(server);
             }
             catch (SocketException e)
             {
                 Fail(OnlineFailure.ServerUnreachable, "socket to " + server + ": " + e.SocketErrorCode);
-                return;
+                return false;
             }
-            _net = new NetClient(_transport, _contentHash, _random);
+            _net = new NetClient(_transport, _contentHash, _random, _reconnectSettings) { SocketFactory = _socketFactory };
             _lobby = new LobbyClient(_net);
             _match = new MatchClientSession(_net, _bundle, _matchSettings);
             _rejoinSaved = false;
-            Phase = OnlinePhase.Connecting;
-            _lobby.Search(_socket, _mode, _fighterIndex, NetClock.NowMicros());
-            UnityNetLog.Info("connecting to " + server + (Simulating ? " (dev simulator on)" : ""));
+            return true;
+        }
+
+        private IDatagramSocket CreateSocket(IPEndPoint server)
+        {
+            IDatagramSocket socket = new UdpDatagramSocket(server);
+            Simulating = Debug.isDebugBuild && _config.DevSimEnabled;
+            if (Simulating)
+                socket = new LagSimulatorSocket(socket, _config.DevSimLatencyMs, _config.DevSimJitterMs, _config.DevSimLossPercent,
+                    DevSimSlots, Environment.TickCount);
+            return socket;
+        }
+
+        /// <summary>A new socket to the current server after the old one lost its path (§3.2); null if it cannot be made now.</summary>
+        private IDatagramSocket CreateServerSocket()
+        {
+            if (_server == null) return null;
+            try
+            {
+                IDatagramSocket socket = CreateSocket(_server);
+                _socket = socket;
+                UnityNetLog.Info("new socket to " + _server + " (the network changed)");
+                return socket;
+            }
+            catch (SocketException e)
+            {
+                UnityNetLog.Warn("new socket to " + _server + ": " + e.SocketErrorCode);
+                return null;
+            }
         }
 
         private void Update()
@@ -362,7 +438,8 @@ namespace Arena.Online
             {
                 case OnlinePhase.Connecting:
                 case OnlinePhase.Searching:
-                    UpdateSearch();
+                    if (_rejoining) UpdateRejoin();
+                    else UpdateSearch();
                     break;
                 case OnlinePhase.Starting:
                 case OnlinePhase.InMatch:
@@ -436,13 +513,41 @@ namespace Arena.Online
             SceneFlow.PlayMatch(new MatchLaunchParams(_fighterId, _bots, 0, true, _mode));
         }
 
+        private void UpdateRejoin()
+        {
+            if (_match.HasStart)
+            {
+                Phase = OnlinePhase.Starting;
+                int fighter = _match.Start.Slots[_match.OwnSlot].FighterIndex;
+                string fighterId = fighter >= 0 && fighter < _bundle.Fighters.Length ? _bundle.Fighters[fighter].Id : _fighterId;
+                if (_fighterId == null) _fighterId = fighterId;
+                _mode = _match.Start.Mode;
+                UnityNetLog.Info("back in the match: slot " + _match.OwnSlot + ", " + _mode);
+                SceneFlow.PlayMatch(new MatchLaunchParams(fighterId, _bots, 0, true, _mode));
+                return;
+            }
+            if (_net.Transport.State != ClientState.Disconnected) return;
+            RejectReason reason = _net.Transport.RejectReason;
+            if (reason == RejectReason.MatchOver || reason == RejectReason.InvalidToken)
+            {
+                ForgetTicket();
+                Fail(OnlineFailure.MatchOver, "rejoin: the match is over");
+                return;
+            }
+            Fail(FailureOf(reason, _net.Transport.DisconnectReason, false), "rejoin failed: " + reason + " / " + _net.Transport.DisconnectReason);
+        }
+
         private void UpdateMatch()
         {
             if (_match.HasEnded && _rejoinSaved)
             {
-                _rejoin.Clear();
-                _rejoinSaved = false;
+                ForgetTicket();
                 UnityNetLog.Info("match ended");
+            }
+            if (_net.ReconnectState == ReconnectState.MatchOver && _rejoinSaved)
+            {
+                ForgetTicket();
+                UnityNetLog.Info("rejoin: the match is over");
             }
         }
 
@@ -450,12 +555,50 @@ namespace Arena.Online
         {
             if (_rejoinSaved || _lobby.State != LobbyState.Assigned) return;
             MatchAssignedMessage a = _lobby.Assignment;
+            // An empty address means "this server" (S3.8): store the one we are connected to — after a restart it is unknown.
+            NetAddress server = a.Address.IsEmpty && _server != null ? NetAddress.FromEndPoint(_server) : a.Address;
             var ticket = new RejoinTicket
             {
-                Server = a.Address, MatchId = a.MatchId, Slot = a.Slot, Token = a.RejoinToken, SavedAtSeconds = RejoinStore.UnixNowSeconds()
+                Server = server, MatchId = a.MatchId, Slot = a.Slot, Token = a.RejoinToken, SavedAtSeconds = RejoinStore.UnixNowSeconds()
             };
             _rejoin.Save(in ticket);
+            _ticket = ticket;
+            _hasTicket = true;
             _rejoinSaved = true;
+        }
+
+        /// <summary>The app goes to the background or quits mid-match: the ticket's age restarts, so the return window counts from now.</summary>
+        private void RefreshTicket()
+        {
+            if (!_rejoinSaved || !_hasTicket || _match == null || _match.HasEnded) return;
+            _ticket.SavedAtSeconds = RejoinStore.UnixNowSeconds();
+            _rejoin.Save(in _ticket);
+        }
+
+        private void ForgetTicket()
+        {
+            if (_rejoin != null) _rejoin.Clear();
+            _hasTicket = false;
+            _rejoinSaved = false;
+        }
+
+        /// <summary>
+        /// Background and back (Server-Spec §7): nothing is sent while paused (no frames); on return the clocks of the match restart
+        /// from the next snapshot instead of catching up, and a connection that died meanwhile returns by itself (NetClient).
+        /// </summary>
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused)
+            {
+                RefreshTicket();
+                return;
+            }
+            if (_match != null && (Phase == OnlinePhase.InMatch || Phase == OnlinePhase.Starting))
+            {
+                long now = NetClock.NowMicros();
+                _match.OnResumed(now);
+                UnityNetLog.Info("resumed: the match clocks restart");
+            }
         }
 
         private void OnActiveSceneChanged(Scene from, Scene to)
@@ -470,8 +613,7 @@ namespace Arena.Online
             if (Phase != OnlinePhase.InMatch && Phase != OnlinePhase.Starting) return;
             if (_match != null && !_match.HasEnded) _match.Leave();
             if (_net != null) _net.Update(NetClock.NowMicros()); // flush the Leave
-            if (_rejoin != null) _rejoin.Clear();
-            _rejoinSaved = false;
+            ForgetTicket();
             Close();
             Phase = OnlinePhase.Idle;
             UnityNetLog.Info("left the match");
@@ -522,6 +664,7 @@ namespace Arena.Online
             _match = null;
             _socket = null;
             Simulating = false;
+            _rejoining = false;
         }
     }
 }

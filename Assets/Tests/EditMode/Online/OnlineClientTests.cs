@@ -41,6 +41,14 @@ namespace Arena.Tests.EditMode.Online
             Assert.AreEqual(ld.DiscoverRepeats, l.DiscoverRepeats);
             Assert.AreEqual(ld.PingSamples, l.PingSamples);
             Assert.AreEqual(ld.PingFairMs, l.PingFairMs);
+
+            ReconnectSettings r = NetConfigConverter.ToReconnectSettings(db.Net);
+            ReconnectSettings rd = ReconnectSettings.CreateDefault();
+            Assert.AreEqual(rd.RetrySeconds, r.RetrySeconds, "retry schedule of §13 seeded into NetConfig");
+            Assert.AreEqual(db.Net.ReconnectRetrySeconds.Count, rd.RetrySeconds.Length, "the asset holds the schedule itself");
+            Assert.AreEqual(60f, r.WindowSeconds, "GDD §8.3");
+            Assert.AreEqual(0.5f, r.DelayBefore(0));
+            Assert.AreEqual(5f, r.DelayBefore(20), "the last pause repeats");
         }
 
         [Test]

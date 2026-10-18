@@ -78,6 +78,18 @@ namespace Arena.Online
             }
         }
 
+        /// <summary>The automatic return to the match after a lost connection (S3.12).</summary>
+        public ReconnectState ReconnectState => _session.Client.ReconnectState;
+
+        /// <summary>Seconds left of the return window (0 when not reconnecting).</summary>
+        public float ReconnectSecondsLeft(long nowMicros) => _session.Client.ReconnectSecondsLeft(nowMicros);
+
+        /// <summary>The return window in seconds (GDD §8.3).</summary>
+        public float ReconnectWindowSeconds => _session.Client.ReconnectSettings.WindowSeconds;
+
+        /// <summary>"Back to the match" after the automatic attempts gave up: tries again with a new window.</summary>
+        public bool RetryRejoin() => _session.Client.RetryRejoin(_clock());
+
         /// <summary>Microseconds since the last packet from the server at <paramref name="nowMicros"/>.</summary>
         public long SilenceMicros(long nowMicros) => nowMicros - _session.Client.Transport.Connection.LastReceiveMicros;
 

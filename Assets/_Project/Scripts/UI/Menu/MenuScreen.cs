@@ -57,6 +57,9 @@ namespace Arena.UI.Menu
         /// <summary>"Last Beast": an online free-for-all search.</summary>
         public Button LastBeastButton { get; private set; }
 
+        /// <summary>"Back to the match": shown while a ticket of an unfinished match is saved (S3.12, Server-Spec §7).</summary>
+        public Button RejoinButton { get; private set; }
+
         public Button RegionButton { get; private set; }
         public Text RegionPing { get; private set; }
         public Text OnlineStatus { get; private set; }
@@ -66,6 +69,7 @@ namespace Arena.UI.Menu
         private OnlinePhase _shownPhase;
         private OnlineFailure _shownFailure;
         private bool _shownAvailable;
+        private bool _shownRejoin;
         private int _shownRegion = -1;
         private int _shownPingMs = int.MinValue;
         private bool _onlineDirty = true;
@@ -132,6 +136,14 @@ namespace Arena.UI.Menu
             if (online != null && online.IsBusy) online.Cancel();
         }
 
+        /// <summary>"Back to the match": returns to the saved unfinished match.</summary>
+        public void Rejoin()
+        {
+            OnlineSession online = OnlineSession.Instance;
+            _onlineDirty = true;
+            if (online != null && online.CanRejoin) online.Rejoin();
+        }
+
         /// <summary>Picks the next region of the config (the region button).</summary>
         public void NextRegion()
         {
@@ -149,9 +161,13 @@ namespace Arena.UI.Menu
             RefreshRegion(online, available);
             OnlinePhase phase = online != null ? online.Phase : OnlinePhase.Idle;
             OnlineFailure failure = online != null ? online.Failure : OnlineFailure.None;
-            if (!_onlineDirty && available == _shownAvailable && phase == _shownPhase && failure == _shownFailure) return;
+            bool rejoin = available && online.CanRejoin;
+            if (!_onlineDirty && available == _shownAvailable && phase == _shownPhase && failure == _shownFailure
+                && rejoin == _shownRejoin) return;
             _onlineDirty = false;
             _shownAvailable = available;
+            _shownRejoin = rejoin;
+            RejoinButton.gameObject.SetActive(rejoin);
             _shownPhase = phase;
             _shownFailure = failure;
             PlayOnlineButton.interactable = available;
@@ -183,6 +199,7 @@ namespace Arena.UI.Menu
                 case OnlineFailure.UpdateRequired: return LocKeys.ErrorUpdateRequired;
                 case OnlineFailure.Maintenance: return LocKeys.ErrorMaintenance;
                 case OnlineFailure.UdpBlocked: return LocKeys.ErrorUdpBlocked;
+                case OnlineFailure.MatchOver: return LocKeys.ErrorMatchOver;
                 default: return LocKeys.ErrorServerUnreachable;
             }
         }
@@ -238,6 +255,11 @@ namespace Arena.UI.Menu
                 UiFactory.CreateButton("Language_Ru", languageRow, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
                     Loc.Get(LocKeys.LanguageRu), () => Loc.SetLanguage(Language.Ru), out _)
             };
+
+            RejoinButton = UiFactory.CreateButton("RejoinButton", column, s, s.PlayButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
+                Loc.Get(LocKeys.NetRejoin), Rejoin, out _);
+            RejoinButton.gameObject.SetActive(false);
+            _shownRejoin = false;
 
             RectTransform playRow = UiFactory.CreateRow("PlayRow", column, s.MenuItemSpacing, s.PlayButtonSize.y);
             PlayOnlineButton = UiFactory.CreateButton("PlayOnlineButton", playRow, s, s.PlayButtonSize, s.PrimaryButtonColor,

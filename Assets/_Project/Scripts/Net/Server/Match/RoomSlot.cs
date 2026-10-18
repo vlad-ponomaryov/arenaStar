@@ -29,6 +29,9 @@ namespace Arena.Net.Server.Match
         /// <summary><c>ClientReady</c> came over the current connection.</summary>
         public bool Ready;
 
+        /// <summary>A connection was bound to this slot before (the next bind is a return, S3.12).</summary>
+        public bool EverConnected;
+
         public bool MatchStartPending;
         public bool EliminatedPending;
         public bool MatchEndedPending;

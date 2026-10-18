@@ -144,10 +144,13 @@ namespace Arena.Net.Server.Match
         {
             RoomSlot s = _slots[slot];
             if (!s.IsConnected) _metrics.ConnectedPlayers++;
+            if (s.EverConnected) _metrics.Rejoins++;
+            s.EverConnected = true;
             s.Connection = connection;
             s.Ready = false;
             s.View.Reset();
-            s.MatchStartPending = Phase >= MatchPhase.Loading && Phase < MatchPhase.Ended;
+            // A return after the end gets MatchStart too: a restarted client needs the slot table to show the result (S3.12).
+            s.MatchStartPending = Phase >= MatchPhase.Loading;
             s.MatchEndedPending = Phase >= MatchPhase.Ended;
             s.EliminatedPending = s.EliminatedQueued && Phase < MatchPhase.Ended;
             Takeover.Clear(slot, BotControlReason.Disconnected);

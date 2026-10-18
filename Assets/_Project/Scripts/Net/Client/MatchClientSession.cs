@@ -38,6 +38,8 @@ namespace Arena.Net.Client
         private bool _newSnapshot;
         private long _lastFrameMicros;
         private bool _hasFrameTime;
+        private bool _hasFirstTick;
+        private int _connects;
         private EliminatedMessage _eliminated;
 
         public MatchClientSession(NetClient client, ContentBundle content, ClientMatchSettings settings = null)
@@ -107,6 +109,25 @@ namespace Arena.Net.Client
         /// <summary>Server tick and <c>InputMarginMin</c> of the newest snapshot when the prediction tick reached 0 (clock check).</summary>
         public int MarginAtZero { get; private set; } = int.MinValue;
 
+        /// <summary>A new connection replaced the old one this many times (rejoin, S3.12).</summary>
+        public int Rejoins { get; private set; }
+
+        /// <summary>The clocks were restarted after a pause of the app this many times (<see cref="OnResumed"/>).</summary>
+        public int Resyncs { get; private set; }
+
+        /// <summary>
+        /// The app returns from a pause (<c>OnApplicationPause(false)</c>, Server-Spec §7): the time it was away is not caught up
+        /// tick by tick — the prediction and render clocks and the own view restart from the next snapshot (a clock jump).
+        /// If the connection died meanwhile, <see cref="NetClient"/> returns to the match by itself.
+        /// </summary>
+        public void OnResumed(long nowMicros)
+        {
+            _lastFrameMicros = nowMicros;
+            if (!HasStart || HasEnded) return;
+            ResetTimelines();
+            Resyncs++;
+        }
+
         /// <summary>Answer <c>MatchStart</c> with <c>ClientReady</c> (the scene is loaded).</summary>
         public void SetReady() => _readyWanted = true;
 
@@ -125,6 +146,8 @@ namespace Arena.Net.Client
             float seconds = _hasFrameTime ? (nowMicros - _lastFrameMicros) / (float)MicrosPerSecond : 0f;
             _lastFrameMicros = nowMicros;
             _hasFrameTime = true;
+            if (HasEnded) Client.ReconnectEnabled = false; // nothing to return to (the result is here)
+            SyncConnection();
             if (!Client.IsConnected) return 0;
             if (HasStart && _readyWanted && !_readySent)
             {
@@ -199,6 +222,7 @@ namespace Arena.Net.Client
 
         public bool OnMatchMessage(MessageKind kind, BitReader reader)
         {
+            SyncConnection();
             switch (kind)
             {
                 case MessageKind.MatchStart:
@@ -218,6 +242,7 @@ namespace Arena.Net.Client
 
         public bool OnSnapshot(byte[] buffer, int offset, int length)
         {
+            SyncConnection();
             SnapshotBytesReceived += length;
             SnapshotDecodeStatus status = _decoder.Decode(buffer, offset, length, Ring, _events, out int eventCount,
                 out SnapshotFrame frame, out int serverTick);
@@ -232,7 +257,11 @@ namespace Arena.Net.Client
                         SnapshotsLate++;
                         return true;
                     }
-                    if (Latest == null) FirstServerTick = serverTick;
+                    if (!_hasFirstTick)
+                    {
+                        FirstServerTick = serverTick;
+                        _hasFirstTick = true;
+                    }
                     Latest = frame;
                     NewestServerTick = serverTick;
                     if (frame.Header.BotControlled) BotControlledSnapshots++;
@@ -253,6 +282,36 @@ namespace Arena.Net.Client
                     MalformedSnapshots++;
                     return false;
             }
+        }
+
+        /// <summary>
+        /// A new connection replaced the old one (rejoin, Server-Spec §7, §2.3): its first snapshot is a key frame on a new
+        /// baseline chain, so the ring and the newest view are dropped, the clocks and the own view restart from it, pending
+        /// events are forgotten and <c>ClientReady</c> goes out again. The input history stays (the server keeps the first copy
+        /// of a tick).
+        /// </summary>
+        private void SyncConnection()
+        {
+            int connects = Client.Transport.Connects;
+            if (connects == _connects) return;
+            bool rejoin = _connects != 0;
+            _connects = connects;
+            if (!rejoin) return;
+            Rejoins++;
+            Ring.Clear();
+            Latest = null;
+            _requestKeyframe = false;
+            _readySent = false;
+            ResetTimelines();
+        }
+
+        private void ResetTimelines()
+        {
+            _newSnapshot = false;
+            Clock.Reset();
+            Interpolation.Reset();
+            Scheduler.Clear();
+            Predictor?.ResetView();
         }
 
         private bool SetUpMatch()

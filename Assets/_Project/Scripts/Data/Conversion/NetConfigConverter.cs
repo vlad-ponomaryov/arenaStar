@@ -35,6 +35,17 @@ namespace Arena.Data.Conversion
             };
         }
 
+        /// <summary>The automatic return to the match (S3.12): the retry pauses and the window; an empty list — the code defaults.</summary>
+        public static ReconnectSettings ToReconnectSettings(NetConfig c)
+        {
+            if (c == null) throw new ArgumentNullException(nameof(c));
+            ReconnectSettings s = ReconnectSettings.CreateDefault();
+            if (c.ReconnectRetrySeconds != null && c.ReconnectRetrySeconds.Count > 0) s.RetrySeconds = c.ReconnectRetrySeconds.ToArray();
+            s.WindowSeconds = c.ReconnectWindowSeconds;
+            s.Validate();
+            return s;
+        }
+
         public static LobbyClientSettings ToLobbySettings(NetConfig c)
         {
             if (c == null) throw new ArgumentNullException(nameof(c));

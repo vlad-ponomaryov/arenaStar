@@ -32,6 +32,9 @@ namespace Arena.Net.Server.Match
 
         public long Takeovers;
         public long Leaves;
+
+        /// <summary>A player came back to his slot after being connected before (rejoin, S3.12).</summary>
+        public long Rejoins;
         public long KeyframeRequests;
 
         public long RejectedConnections;

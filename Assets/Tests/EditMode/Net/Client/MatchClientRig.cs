@@ -40,6 +40,9 @@ namespace Arena.Tests.EditMode.Net.Client
         public readonly Func<int, PlayerInput>[] Scripts;
         public readonly ClientBot[] Bots;
 
+        /// <summary>A paused client is not updated at all (the app is in the background or was killed, S3.12).</summary>
+        public readonly bool[] Paused;
+
         private DeterministicRng _frames;
 
         public MatchClientRig(ModeKind mode, int[] playerSlots, int seed = 7, NetworkConditions conditions = null,
@@ -72,6 +75,7 @@ namespace Arena.Tests.EditMode.Net.Client
             Sockets = new InMemoryClientSocket[playerSlots.Length];
             Scripts = new Func<int, PlayerInput>[playerSlots.Length];
             Bots = new ClientBot[playerSlots.Length];
+            Paused = new bool[playerSlots.Length];
             ClientSlots = playerSlots;
             for (int k = 0; k < playerSlots.Length; k++)
             {
@@ -113,6 +117,7 @@ namespace Arena.Tests.EditMode.Net.Client
             Host.Tick(now);
             for (int k = 0; k < Clients.Length; k++)
             {
+                if (Paused[k]) continue;
                 Clients[k].Update(now);
                 MatchClientSession s = Sessions[k];
                 int ticks = s.BeginFrame(now);

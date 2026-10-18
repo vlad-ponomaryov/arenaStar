@@ -68,12 +68,12 @@ namespace Arena.Data.Localization
         public const string NetReconnecting = "net.reconnecting";
         public const string NetBotPlaying = "net.bot_playing";
 
-        /// <summary>"Back to the match" (the button comes with S3.12).</summary>
+        /// <summary>"Back to the match": the menu button and the gave-up banner (S3.12).</summary>
         public const string NetRejoin = "net.rejoin";
 
         public const string ErrorUdpBlocked = "error.udp_blocked";
 
-        /// <summary>"The match is already over" (rejoin, S3.12).</summary>
+        /// <summary>"The match is already over" (a return refused with MatchOver, S3.12).</summary>
         public const string ErrorMatchOver = "error.match_over";
 
         /// <summary>The unit after a ping number.</summary>

@@ -131,6 +131,7 @@ namespace Arena.Net.Client
                     var assigned = new MatchAssignedMessage();
                     if (!assigned.Read(reader)) return false;
                     _assignment = assigned;
+                    Client.SetRejoinToken(in assigned.RejoinToken); // a lost match connection returns by itself (S3.12)
                     _joinPending = false;
                     State = LobbyState.Assigned;
                     return true;

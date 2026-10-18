@@ -163,6 +163,17 @@ namespace Arena.Net.Client
         }
 
         /// <summary>
+        /// Forgets the shown prediction (rejoin, long pause; S3.12): the next snapshot rebuilds the shadow without an error sample
+        /// and places the own view at once; until then nothing is predicted.
+        /// </summary>
+        public void ResetView()
+        {
+            Ready = false;
+            CorrectionOffset = Vec2.Zero;
+            ExternalCorrection = false;
+        }
+
+        /// <summary>
         /// Predicts tick <paramref name="tick"/> with the (quantized) own input; the shadow must stand at that tick. True if a
         /// tick ran (its events are in <c>Shadow.Events</c>).
         /// </summary>

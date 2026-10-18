@@ -64,6 +64,18 @@ namespace Arena.Net.Client
             Started = true;
         }
 
+        /// <summary>
+        /// Stops the clock: the next snapshot starts it again (<see cref="Start"/>) — after a rejoin or a long pause of the app
+        /// (S3.12: a big gap is not caught up tick by tick, the clock jumps).
+        /// </summary>
+        public void Reset()
+        {
+            Started = false;
+            _accumulator = 0.0;
+            Rate = 1f;
+            LastMarginError = 0;
+        }
+
         /// <summary>A newer snapshot: margin feedback (late snapshots are ignored by tick).</summary>
         public void OnSnapshot(int serverTick, int inputMarginMin, long rttMicros)
         {
