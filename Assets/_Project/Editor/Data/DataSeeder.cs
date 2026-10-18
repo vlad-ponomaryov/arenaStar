@@ -695,6 +695,7 @@ namespace Arena.Editor.Data
             c.InterpGain = m.InterpGain;
             c.InterpDelayMaxMs = m.InterpDelayMaxMs;
             c.MaxExtrapolationMs = m.MaxExtrapolationMs;
+            c.StatsReportTicks = m.StatsReportTicks;
 
             LobbyClientSettings l = LobbyClientSettings.CreateDefault();
             c.PingSamples = l.PingSamples;

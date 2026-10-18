@@ -32,6 +32,8 @@ namespace Arena.Net.Client
         private readonly BitWriter _writer = new BitWriter();
         private readonly byte[] _send = new byte[NetConnection.MaxPayloadBytes];
         private readonly InputMessage _input = new InputMessage();
+        private readonly ClientStatsMessage _stats = new ClientStatsMessage();
+        private int _ticksSinceStats;
         private bool _readySent;
         private bool _readyWanted;
         private bool _requestKeyframe;
@@ -189,7 +191,11 @@ namespace Arena.Net.Client
                 Interpolation.Sample();
                 Presentation.Build(tick, Predictor, Interpolation, Scheduler, predicted ? Predictor.Shadow.Events : null, NetStats);
             }
-            if (!Silent) SendInput(tick, nowMicros);
+            if (!Silent)
+            {
+                SendInput(tick, nowMicros);
+                SendStatsWhenDue(nowMicros);
+            }
             Clock.CompleteTick();
         }
 
@@ -231,6 +237,32 @@ namespace Arena.Net.Client
             InputPacketsSent++;
             InputBytesSent += _writer.BytesWritten;
             _requestKeyframe = false;
+        }
+
+        /// <summary>Statistics sent to the server (<c>ClientStats</c>, Server-Spec §5.6).</summary>
+        public long StatsReportsSent { get; private set; }
+
+        /// <summary>
+        /// Every <c>StatsReportTicks</c> prediction ticks: the cumulative prediction error and presentation counters of this match
+        /// to the server (one small unreliable payload; a lost one is covered by the next, the counters are totals).
+        /// </summary>
+        private void SendStatsWhenDue(long nowMicros)
+        {
+            if (Settings.StatsReportTicks <= 0 || ++_ticksSinceStats < Settings.StatsReportTicks) return;
+            _ticksSinceStats = 0;
+            ClientStatsMessage m = _stats;
+            PredictionErrorStats e = Predictor?.Errors;
+            m.PredictionSamples = e != null ? e.Samples : 0;
+            m.PredictionCorrections = e != null ? e.NonZeroSamples : 0;
+            m.LargeCorrections = e != null ? e.LargeCorrections : 0;
+            m.MaxErrorMilliCells = e != null ? (long)Math.Round(e.MaxCells * 1000f) : 0;
+            m.PresentedTicks = NetStats.PresentedTicks;
+            m.ExtrapolatedTicks = NetStats.ExtrapolatedTicks;
+            m.Teleports = NetStats.Teleports;
+            m.LargeTeleports = NetStats.LargeTeleports;
+            _writer.Reset(_send, 0, _send.Length);
+            m.Write(_writer);
+            if (Client.Send(_send, _writer.BytesWritten, nowMicros)) StatsReportsSent++;
         }
 
         // ---- IMatchMessageHandler ----

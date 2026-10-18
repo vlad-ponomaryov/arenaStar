@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Load test of the dedicated server (Server-Spec §11.2, S3.15): light clients over UDP against Arena.Server started as a child
+    process. Without the .NET SDK, Tools/server-build.ps1 -Target LoadTest builds the same sources in bootstrap mode.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Arena.LoadTest</RootNamespace>
+    <AssemblyName>Arena.LoadTest</AssemblyName>
+    <StartupObject>Arena.LoadTest.LoadTestProgram</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Server types (ServerConfig, ServerSettingsLoader, ServerContent) and, in the output folder, Arena.Server.dll to start. -->
+    <ProjectReference Include="..\Arena.Server\Arena.Server.csproj" />
+  </ItemGroup>
+</Project>

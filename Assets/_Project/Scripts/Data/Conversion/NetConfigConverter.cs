@@ -31,6 +31,7 @@ namespace Arena.Data.Conversion
                 InterpGain = c.InterpGain,
                 InterpDelayMaxMs = c.InterpDelayMaxMs,
                 MaxExtrapolationMs = c.MaxExtrapolationMs,
+                StatsReportTicks = c.StatsReportTicks,
                 ReadyOnMatchStart = false
             };
         }

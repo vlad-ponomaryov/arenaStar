@@ -61,6 +61,9 @@ namespace Arena.Net.Client
         /// <summary>Without newer data a fighter is extrapolated by its velocity at most this long (ms), then it stands.</summary>
         public int MaxExtrapolationMs;
 
+        /// <summary>Send <c>ClientStats</c> (prediction and presentation counters, §5.6) every this many prediction ticks; 0 — never.</summary>
+        public int StatsReportTicks;
+
         /// <summary>Answer <c>MatchStart</c> with <c>ClientReady</c> at once (tests, self-test); the game sends it after the scene loads.</summary>
         public bool ReadyOnMatchStart;
 
@@ -83,6 +86,7 @@ namespace Arena.Net.Client
             InterpGain = 0.02f,
             InterpDelayMaxMs = 200,
             MaxExtrapolationMs = 120,
+            StatsReportTicks = 30,
             ReadyOnMatchStart = true
         };
     }

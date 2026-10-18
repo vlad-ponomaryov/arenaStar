@@ -1,4 +1,5 @@
-# Builds the dedicated server outside Unity (Server-Spec 5.2) into Tools/out/server/Arena.Server.dll.
+# Builds the dedicated server outside Unity (Server-Spec 5.2) into Tools/out/server/Arena.Server.dll
+# (-Target LoadTest: the load test, Tools/out/server/Arena.LoadTest.dll, Server-Spec 11.2, S3.15).
 #   Sdk       - dotnet build Server/Arena.Server (needs the .NET SDK, Q-012).
 #   Bootstrap - Roslyn (csc.dll) and .NET 6 bundled with the Unity editor: no SDK, no downloads.
 #   Auto      - Sdk if a .NET SDK is installed, otherwise Bootstrap.
@@ -7,13 +8,16 @@
 # Writes Tools/out/server/host.txt (the dotnet.exe that runs the dll). Last line: SERVER BUILD: OK|FAILED ...
 # Exit: 0 ok, 2 build failed. Windows PowerShell 5.1 compatible, ASCII only.
 param(
-    [ValidateSet('Auto', 'Sdk', 'Bootstrap')][string]$Mode = 'Auto'
+    [ValidateSet('Auto', 'Sdk', 'Bootstrap')][string]$Mode = 'Auto',
+    [ValidateSet('Server', 'LoadTest')][string]$Target = 'Server'
 )
 . "$PSScriptRoot\UnityCommon.ps1"
 
 $serverOut = Join-Path $OutDir 'server'
 $hostFile = Join-Path $serverOut 'host.txt'
-$dllPath = Join-Path $serverOut 'Arena.Server.dll'
+$assemblyName = 'Arena.Server'
+if ($Target -eq 'LoadTest') { $assemblyName = 'Arena.LoadTest' }
+$dllPath = Join-Path $serverOut ($assemblyName + '.dll')
 $contentPack = Join-Path $ProjectPath 'Assets\_Project\Data\Net\ArenaContent.bytes'
 $started = Get-Date
 
@@ -24,6 +28,7 @@ $sourceDirs = @(
     'Assets\_Project\Scripts\Net',
     'Server\Arena.Server'
 )
+if ($Target -eq 'LoadTest') { $sourceDirs += 'Server\Arena.LoadTest' }
 
 function Test-ArenaDotnetSdk {
     $cmd = Get-Command dotnet -ErrorAction SilentlyContinue
@@ -51,7 +56,7 @@ if (Test-Path $hostFile) { Remove-Item -Force $hostFile }
 if ($Mode -eq 'Sdk') {
     if (-not (Test-ArenaDotnetSdk)) { Write-Host 'SERVER BUILD: FAILED, .NET SDK not found (use -Mode Bootstrap)'; exit 2 }
     $dotnet = (Get-Command dotnet).Source
-    $proj = Join-Path $ProjectPath 'Server\Arena.Server\Arena.Server.csproj'
+    $proj = Join-Path $ProjectPath ('Server\' + $assemblyName + '\' + $assemblyName + '.csproj')
     $old = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     $output = @(& $dotnet build $proj -c Release -o $serverOut -nologo 2>&1 | ForEach-Object { "$_" })
@@ -96,6 +101,8 @@ if ($Mode -eq 'Sdk') {
     $rsp = Join-Path $serverOut 'bootstrap.rsp'
     $lines = @('-nologo', '-preferreduilang:en-US', '-langversion:9.0', '-nostdlib', '-optimize+',
         '-deterministic', '-target:exe', ('-out:"' + $dllPath + '"'))
+    # The load test compiles the server sources too (config, content): its own entry point.
+    if ($Target -eq 'LoadTest') { $lines += '-main:Arena.LoadTest.LoadTestProgram' }
     foreach ($r in $refs) { $lines += ('-r:"' + $r + '"') }
     foreach ($s in $sources) { $lines += ('"' + $s + '"') }
     [System.IO.File]::WriteAllLines($rsp, [string[]]$lines, (New-Object System.Text.UTF8Encoding($false)))
@@ -126,7 +133,7 @@ if ($Mode -eq 'Sdk') {
   }
 }
 "@
-    [System.IO.File]::WriteAllText((Join-Path $serverOut 'Arena.Server.runtimeconfig.json'), $runtimeConfig,
+    [System.IO.File]::WriteAllText((Join-Path $serverOut ($assemblyName + '.runtimeconfig.json')), $runtimeConfig,
         (New-Object System.Text.UTF8Encoding($false)))
     Set-Content -Path $hostFile -Value $dotnet -Encoding ASCII
     # Content pack (Server-Spec 5.4): the server loads it next to its dll. The SDK build copies it via Arena.Server.csproj.
@@ -145,5 +152,5 @@ if ($Mode -eq 'Sdk') {
 $size = [math]::Round((Get-Item $dllPath).Length / 1KB, 1)
 $secs = [math]::Round(((Get-Date) - $started).TotalSeconds, 1)
 Write-Host ([string]::Format([System.Globalization.CultureInfo]::InvariantCulture, 'SERVER BUILD: OK ({0}), {1}, {2} KB, {3} s',
-    $Mode.ToLowerInvariant(), $dllPath, $size, $secs))
+    ($Mode.ToLowerInvariant() + $(if ($Target -eq 'LoadTest') { ', load test' } else { '' })), $dllPath, $size, $secs))
 exit 0

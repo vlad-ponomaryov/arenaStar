@@ -1,7 +1,10 @@
 # Runs Unity tests in batchmode (-runTests, no -quit) and parses the NUnit XML.
+# -Category: Unity -testCategory (';'-separated, '!' excludes). Default '!Long;!Perf' leaves out the long and load tests
+# (Server-Spec 11.1, D-106): run them with -Category Long / -Category Perf; -Category all runs every test.
 # Exit: 0 all green (or none found), 1 failures, 2 compile errors / no XML / Unity failure, 3 Unity already running.
 param(
     [string]$Filter = '',
+    [string]$Category = '!Long;!Perf',
     [ValidateSet('EditMode', 'PlayMode')][string]$Platform = 'EditMode',
     [int]$TimeoutMinutes = 20
 )
@@ -14,6 +17,7 @@ if (Test-Path $xmlPath) { Remove-Item -Force $xmlPath }
 
 $uargs = @('-runTests', '-testPlatform', $Platform, '-testResults', $xmlPath)
 if (-not [string]::IsNullOrEmpty($Filter)) { $uargs += @('-testFilter', $Filter) }
+if (-not [string]::IsNullOrEmpty($Category) -and $Category -ne 'all') { $uargs += @('-testCategory', $Category) }
 $code = Invoke-ArenaUnity -UnityArgs $uargs -LogFile $log -TimeoutMinutes $TimeoutMinutes
 
 if (-not (Test-Path $xmlPath)) {

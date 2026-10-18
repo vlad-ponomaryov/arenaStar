@@ -43,6 +43,17 @@ namespace Arena.Net.Server.Match
         public long Rejoins;
         public long KeyframeRequests;
 
+        // Client statistics (ClientStats, §5.6, S3.15): sums of the clients' own prediction and presentation counters.
+        public long ClientStatsReports;
+        public long ClientPredictionSamples;
+        public long ClientPredictionCorrections;
+        public long ClientLargeCorrections;
+        public long ClientMaxErrorMilliCells;
+        public long ClientPresentedTicks;
+        public long ClientExtrapolatedTicks;
+        public long ClientTeleports;
+        public long ClientLargeTeleports;
+
         public long RejectedConnections;
         public long MalformedMessages;
         public long ReliableSendFailures;

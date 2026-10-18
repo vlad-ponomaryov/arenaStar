@@ -258,8 +258,10 @@ namespace Arena.Tests.EditMode.Net.Server
                 int place = rig.Room.Result.Slots[slot].Place;
                 Assert.Greater(place, 0, "a place for every slot");
                 Assert.AreEqual(place, c.Ended.Slots[slot].Place);
-                // The last two leave in the end tick (MatchEnded only); everyone out earlier gets Eliminated.
-                if (place > 2) Assert.IsTrue(c.HasEliminated, "slot " + slot + " (place " + place + ") got Eliminated");
+                // Everyone out gets Eliminated — also the runner-up who falls in the end tick (S3.15); one still standing at the
+                // time limit gets MatchEnded only.
+                bool standing = rig.Room.Simulation.State.Fighters[slot].Alive;
+                if (place > 1 && !standing) Assert.IsTrue(c.HasEliminated, "slot " + slot + " (place " + place + ") got Eliminated");
                 if (c.HasEliminated)
                 {
                     Assert.AreEqual(slot, c.Eliminated.Slot);

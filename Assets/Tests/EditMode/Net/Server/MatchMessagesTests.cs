@@ -108,6 +108,41 @@ namespace Arena.Tests.EditMode.Net.Server
         }
 
         [Test]
+        public void ClientStats_RoundTrip_RefusesTruncatedAndInconsistent()
+        {
+            var m = new ClientStatsMessage
+            {
+                PredictionSamples = 4000, PredictionCorrections = 30, LargeCorrections = 1, MaxErrorMilliCells = 312,
+                PresentedTicks = 4500, ExtrapolatedTicks = 9, Teleports = 2, LargeTeleports = 0
+            };
+            var w = new BitWriter(_buffer);
+            m.Write(w);
+            int length = w.BytesWritten;
+            var r = new BitReader(_buffer, length);
+            Assert.AreEqual((byte)MessageKind.ClientStats, r.ReadByte());
+            var back = new ClientStatsMessage();
+            Assert.IsTrue(back.Read(r));
+            Assert.AreEqual(4000, back.PredictionSamples);
+            Assert.AreEqual(30, back.PredictionCorrections);
+            Assert.AreEqual(1, back.LargeCorrections);
+            Assert.AreEqual(312, back.MaxErrorMilliCells);
+            Assert.AreEqual(4500, back.PresentedTicks);
+            Assert.AreEqual(9, back.ExtrapolatedTicks);
+            Assert.AreEqual(2, back.Teleports);
+            Assert.Less(length, 20, "a report is a few bytes");
+            for (int cut = 1; cut < length - 1; cut++)
+            {
+                r.Reset(_buffer, 1, cut);
+                Assert.IsFalse(back.Read(r), "truncated at " + cut);
+            }
+            m.PredictionCorrections = 5000; // more corrections than samples
+            w.Reset(_buffer);
+            m.Write(w);
+            r.Reset(_buffer, 1, w.BytesWritten - 1);
+            Assert.IsFalse(back.Read(r), "inconsistent counters are refused");
+        }
+
+        [Test]
         public void TruncatedMessages_AreRefused_WithoutAllocations()
         {
             var m = new InputMessage { NewestTick = 100, Count = 4 };

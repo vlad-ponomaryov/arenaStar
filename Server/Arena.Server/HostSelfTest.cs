@@ -25,7 +25,7 @@ namespace Arena.Server
     /// <see cref="ClientBot"/> reading its display state) at 60 frames/s of real time. They search Acorns, get one full 3×3
     /// match and play it shortened to <c>--match-seconds</c> (the mode length of the shared in-memory content — server and
     /// clients alike; the pack hash does not change). Mid-match <c>/metrics</c> and <c>/healthz</c> are fetched (numbers with a
-    /// dot) and <see cref="ShutdownHandler.RequestStop"/> is called: a new lobby client is refused (<c>Maintenance</c>), the
+    /// dot, the clients' <c>ClientStats</c> arrived) and <see cref="ShutdownHandler.RequestStop"/> is called: a new lobby client is refused (<c>Maintenance</c>), the
     /// match plays to the end, every client's <c>MatchEnded</c> equals the server's line in <c>matches.jsonl</c>, the game thread
     /// exits on its own. Also: no exception and no error line, tick lateness p99 &lt; 2 ms.
     /// </summary>
@@ -236,6 +236,7 @@ namespace Arena.Server
             string metrics = HttpGet(endPoint, "/metrics", out int status);
             if (status != 200) return "/metrics status " + status;
             bool uptimeWithDot = false;
+            bool clientStats = false;
             int values = 0;
             foreach (string raw in metrics.Split('\n'))
             {
@@ -249,7 +250,12 @@ namespace Arena.Server
                 values++;
                 if (line.StartsWith("arena_uptime_seconds ", StringComparison.Ordinal) && value.IndexOf('.') > 0) uptimeWithDot = true;
                 if (line == "arena_matches_playing 0") return "the running match is missing in the metrics";
+                // The clients' own statistics reach the server (ClientStats, S3.15).
+                if (line == "arena_client_stats_reports_total 0") return "no ClientStats report reached the server";
+                if (line == "arena_client_prediction_samples_total 0") return "ClientStats carried no prediction samples";
+                if (line.StartsWith("arena_client_stats_reports_total ", StringComparison.Ordinal)) clientStats = true;
             }
+            if (!clientStats) return "arena_client_stats_reports_total is missing";
             if (values < 20) return "only " + values + " values";
             if (!uptimeWithDot) return "arena_uptime_seconds has no fractional part with a dot";
             string health = HttpGet(endPoint, "/healthz", out status);

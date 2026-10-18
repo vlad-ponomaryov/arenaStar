@@ -46,5 +46,9 @@ namespace Arena.Net.Protocol
 
         /// <summary>Reliable, server → client: maintenance or shutdown of the server (<see cref="ServerNoticeMessage"/>).</summary>
         ServerNotice = 13,
+
+        /// <summary>Unreliable, client → server, about once a second in a match: prediction and presentation counters
+        /// (<see cref="ClientStatsMessage"/>, protocol v5, S3.15).</summary>
+        ClientStats = 14,
     }
 }

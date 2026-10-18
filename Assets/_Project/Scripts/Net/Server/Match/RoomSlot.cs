@@ -47,6 +47,15 @@ namespace Arena.Net.Server.Match
         /// <summary>The interpolation delay the client reported in its newest <c>Input</c>, ticks (lag compensation bound, §2.8).</summary>
         public int InterpDelayTicks;
 
+        // The newest ClientStats of this slot (cumulative counters, §5.6): the next report adds only its growth to the metrics.
+        public long ReportedPredictionSamples;
+        public long ReportedPredictionCorrections;
+        public long ReportedLargeCorrections;
+        public long ReportedPresentedTicks;
+        public long ReportedExtrapolatedTicks;
+        public long ReportedTeleports;
+        public long ReportedLargeTeleports;
+
         public bool IsConnected => Connection >= 0;
     }
 }

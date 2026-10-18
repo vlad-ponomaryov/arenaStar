@@ -73,6 +73,17 @@ namespace Arena.Server.Host
         public long UnknownConnectionPackets;
         public long DuplicatePackets;
 
+        // Client statistics (ClientStats, S3.15).
+        public long ClientStatsReports;
+        public long ClientPredictionSamples;
+        public long ClientPredictionCorrections;
+        public long ClientLargeCorrections;
+        public double ClientMaxErrorCells;
+        public long ClientPresentedTicks;
+        public long ClientExtrapolatedTicks;
+        public long ClientTeleports;
+        public long ClientLargeTeleports;
+
         public long GcHeapBytes;
         public long GcGen0;
         public long GcGen2;
@@ -133,6 +144,15 @@ namespace Arena.Server.Host
             TooFarAheadInputs = m.TooFarAheadInputs;
             UnknownConnectionPackets = t.DroppedUnknownConnection;
             DuplicatePackets = t.DroppedDuplicates;
+            ClientStatsReports = m.ClientStatsReports;
+            ClientPredictionSamples = m.ClientPredictionSamples;
+            ClientPredictionCorrections = m.ClientPredictionCorrections;
+            ClientLargeCorrections = m.ClientLargeCorrections;
+            ClientMaxErrorCells = m.ClientMaxErrorMilliCells / 1000.0;
+            ClientPresentedTicks = m.ClientPresentedTicks;
+            ClientExtrapolatedTicks = m.ClientExtrapolatedTicks;
+            ClientTeleports = m.ClientTeleports;
+            ClientLargeTeleports = m.ClientLargeTeleports;
             GcHeapBytes = GC.GetTotalMemory(false);
             GcGen0 = GC.CollectionCount(0);
             GcGen2 = GC.CollectionCount(2);
@@ -161,6 +181,11 @@ namespace Arena.Server.Host
             Malformed = other.Malformed; SocketResets = other.SocketResets;
             RewoundInputs = other.RewoundInputs; ViewDelayClamped = other.ViewDelayClamped; TooFarAheadInputs = other.TooFarAheadInputs;
             UnknownConnectionPackets = other.UnknownConnectionPackets; DuplicatePackets = other.DuplicatePackets;
+            ClientStatsReports = other.ClientStatsReports; ClientPredictionSamples = other.ClientPredictionSamples;
+            ClientPredictionCorrections = other.ClientPredictionCorrections; ClientLargeCorrections = other.ClientLargeCorrections;
+            ClientMaxErrorCells = other.ClientMaxErrorCells; ClientPresentedTicks = other.ClientPresentedTicks;
+            ClientExtrapolatedTicks = other.ClientExtrapolatedTicks; ClientTeleports = other.ClientTeleports;
+            ClientLargeTeleports = other.ClientLargeTeleports;
             GcHeapBytes = other.GcHeapBytes; GcGen0 = other.GcGen0; GcGen2 = other.GcGen2;
         }
 
@@ -213,6 +238,15 @@ namespace Arena.Server.Host
             Counter(sb, "arena_too_far_ahead_inputs_total", TooFarAheadInputs);
             Counter(sb, "arena_unknown_connection_packets_total", UnknownConnectionPackets);
             Counter(sb, "arena_duplicate_packets_total", DuplicatePackets);
+            Counter(sb, "arena_client_stats_reports_total", ClientStatsReports);
+            Counter(sb, "arena_client_prediction_samples_total", ClientPredictionSamples);
+            Counter(sb, "arena_client_prediction_corrections_total", ClientPredictionCorrections);
+            Counter(sb, "arena_client_large_corrections_total", ClientLargeCorrections);
+            Gauge(sb, "arena_client_prediction_error_max_cells", ClientMaxErrorCells);
+            Counter(sb, "arena_client_presented_ticks_total", ClientPresentedTicks);
+            Counter(sb, "arena_client_extrapolated_ticks_total", ClientExtrapolatedTicks);
+            Counter(sb, "arena_client_teleports_total", ClientTeleports);
+            Counter(sb, "arena_client_large_teleports_total", ClientLargeTeleports);
             Gauge(sb, "arena_gc_heap_bytes", GcHeapBytes);
             Counter(sb, "arena_gc_gen0_total", GcGen0);
             Counter(sb, "arena_gc_gen2_total", GcGen2);

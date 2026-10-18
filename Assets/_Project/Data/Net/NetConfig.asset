@@ -35,6 +35,7 @@ MonoBehaviour:
   InterpGain: 0.02
   InterpDelayMaxMs: 200
   MaxExtrapolationMs: 120
+  StatsReportTicks: 30
   PingSamples: 5
   PingIntervalMs: 100
   PingTimeoutMs: 1000

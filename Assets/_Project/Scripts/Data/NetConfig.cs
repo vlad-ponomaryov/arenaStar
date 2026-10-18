@@ -41,6 +41,9 @@ namespace Arena.Data
         [Min(0)] public int InterpDelayMaxMs;
         [Min(0)] public int MaxExtrapolationMs;
 
+        [Header("Client statistics to the server (§5.6, S3.15)")]
+        [Min(0)] public int StatsReportTicks;
+
         [Header("Lobby (§6.3)")]
         [Min(1)] public int PingSamples;
         [Min(0)] public int PingIntervalMs;

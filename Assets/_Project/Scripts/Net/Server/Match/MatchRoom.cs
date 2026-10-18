@@ -177,6 +177,31 @@ namespace Arena.Net.Server.Match
             Takeover.Set(slot, BotControlReason.Left);
         }
 
+        /// <summary>
+        /// A client's cumulative statistics (<c>ClientStats</c>, §5.6): the growth since the slot's previous report goes into the
+        /// metrics (a smaller value — a new client after a restart — counts from zero). Diagnostics only, never game state.
+        /// </summary>
+        public void OnClientStats(int slot, ClientStatsMessage m)
+        {
+            RoomSlot s = _slots[slot];
+            _metrics.ClientStatsReports++;
+            _metrics.ClientPredictionSamples += Growth(ref s.ReportedPredictionSamples, m.PredictionSamples);
+            _metrics.ClientPredictionCorrections += Growth(ref s.ReportedPredictionCorrections, m.PredictionCorrections);
+            _metrics.ClientLargeCorrections += Growth(ref s.ReportedLargeCorrections, m.LargeCorrections);
+            _metrics.ClientPresentedTicks += Growth(ref s.ReportedPresentedTicks, m.PresentedTicks);
+            _metrics.ClientExtrapolatedTicks += Growth(ref s.ReportedExtrapolatedTicks, m.ExtrapolatedTicks);
+            _metrics.ClientTeleports += Growth(ref s.ReportedTeleports, m.Teleports);
+            _metrics.ClientLargeTeleports += Growth(ref s.ReportedLargeTeleports, m.LargeTeleports);
+            if (m.MaxErrorMilliCells > _metrics.ClientMaxErrorMilliCells) _metrics.ClientMaxErrorMilliCells = m.MaxErrorMilliCells;
+        }
+
+        private static long Growth(ref long reported, long value)
+        {
+            long growth = value >= reported ? value - reported : value;
+            reported = value;
+            return growth;
+        }
+
         public void OnInput(int slot, InputMessage message)
         {
             if (Phase >= MatchPhase.Ended) return;
@@ -302,7 +327,7 @@ namespace Arena.Net.Server.Match
             Builder.Capture(state, Simulation.Events);
 
             bool ended = Simulation.IsEnded;
-            if (Mode == ModeKind.LastBeast && !ended) CheckEliminations(state);
+            if (Mode == ModeKind.LastBeast) CheckEliminations(state, ended);
             if (ended) EnterEnded(state);
             return ended || IsSnapshotTick(Tick);
         }
@@ -345,12 +370,18 @@ namespace Arena.Net.Server.Match
             return r == 0;
         }
 
-        private void CheckEliminations(MatchState state)
+        /// <summary>
+        /// Last Beast: a player who is out gets his personal result (<c>Eliminated</c>) once. On the end tick that includes the
+        /// runner-up who fell in that very tick (sent before <c>MatchEnded</c>); the winner and fighters still standing at the
+        /// time limit get only <c>MatchEnded</c>.
+        /// </summary>
+        private void CheckEliminations(MatchState state, bool ended)
         {
             for (int i = 0; i < _slots.Length; i++)
             {
                 RoomSlot s = _slots[i];
                 if (!s.IsPlayer || s.EliminatedQueued || state.Stats[i].Place <= 0) continue;
+                if (ended && (state.Stats[i].Place == 1 || state.Fighters[i].Alive)) continue;
                 s.EliminatedQueued = true;
                 s.EliminatedPending = s.IsConnected;
             }
@@ -369,7 +400,6 @@ namespace Arena.Net.Server.Match
             for (int i = 0; i < _slots.Length; i++)
             {
                 RoomSlot s = _slots[i];
-                s.EliminatedPending = false;
                 if (s.IsConnected) s.MatchEndedPending = true;
             }
         }

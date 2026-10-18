@@ -54,7 +54,7 @@ namespace Arena.Tests.EditMode.Net.Client
             return slots;
         }
 
-        private static MatchClientRig RunBotMatch(int clients, NetworkConditions conditions, int seed, out double seconds)
+        internal static MatchClientRig RunBotMatch(int clients, NetworkConditions conditions, int seed, out double seconds)
         {
             var rig = new MatchClientRig(ModeKind.Acorns, Slots(clients), seed: seed, conditions: conditions);
             rig.UseBots(BotDifficulty.Easy, seed);
@@ -83,7 +83,7 @@ namespace Arena.Tests.EditMode.Net.Client
                 + " KB/s; clock jumps " + s.Clock.Jumps);
         }
 
-        private static void AssertResult(MatchClientRig rig, MatchClientSession s)
+        internal static void AssertResult(MatchClientRig rig, MatchClientSession s)
         {
             MatchEndedMessage server = rig.Room.Result;
             Assert.AreEqual(server.EndTick, s.Ended.EndTick, "end tick");
@@ -126,6 +126,32 @@ namespace Arena.Tests.EditMode.Net.Client
                 + ", carried presses " + m.PressesCarried + ", takeovers " + m.Takeovers);
             Assert.Less(m.MissingInputShare, MaxMissingShareCi, "late and missing inputs < 1 % of ticks");
             Assert.AreEqual(0, rig.Room.Takeover.TakeoverCount, "nobody was taken over");
+            AssertClientStatsReachServer(rig);
+        }
+
+        /// <summary>ClientStats (S3.15): the server's sums of the clients' counters lag the clients by at most one report.</summary>
+        private static void AssertClientStatsReachServer(MatchClientRig rig)
+        {
+            ServerMetrics m = rig.Host.Metrics;
+            long samples = 0, presented = 0, reports = 0;
+            for (int k = 0; k < rig.Sessions.Length; k++)
+            {
+                samples += rig.Sessions[k].Predictor.Errors.Samples;
+                presented += rig.Sessions[k].NetStats.PresentedTicks;
+                reports += rig.Sessions[k].StatsReportsSent;
+            }
+            TestContext.WriteLine("server client stats: reports " + m.ClientStatsReports + " of " + reports + ", samples "
+                + m.ClientPredictionSamples + " of " + samples + ", presented " + m.ClientPresentedTicks + " of " + presented
+                + ", corrections " + m.ClientPredictionCorrections + ", large " + m.ClientLargeCorrections + ", teleports " + m.ClientTeleports);
+            Assert.Greater(m.ClientStatsReports, 0, "reports arrive");
+            Assert.LessOrEqual(m.ClientStatsReports, reports);
+            Assert.LessOrEqual(m.ClientPredictionSamples, samples);
+            Assert.Greater(m.ClientPredictionSamples, samples * 9 / 10, "the sums follow the clients");
+            Assert.LessOrEqual(m.ClientPresentedTicks, presented);
+            Assert.Greater(m.ClientPresentedTicks, presented * 9 / 10);
+            Assert.AreEqual(0, m.ClientLargeCorrections);
+            Assert.AreEqual(0, m.ClientTeleports);
+            Assert.AreEqual(0, m.MalformedMessages, "ClientStats is not counted as malformed");
         }
 
         [Test]

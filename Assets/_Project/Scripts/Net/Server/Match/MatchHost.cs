@@ -28,6 +28,7 @@ namespace Arena.Net.Server.Match
         private readonly int[] _connSlot;
         private readonly BitReader _reader = new BitReader();
         private readonly InputMessage _input = new InputMessage();
+        private readonly ClientStatsMessage _stats = new ClientStatsMessage();
 
         /// <summary>A standalone match server: owns its <see cref="ServerTransport"/> and is its handler (tests of S3.6–S3.7).</summary>
         public MatchHost(IServerDatagramSocket socket, TransportSettings transportSettings, ServerSettings settings, ContentBundle bundle,
@@ -293,13 +294,20 @@ namespace Arena.Net.Server.Match
         {
             int room = _connRoom[connection];
             if (room < 0) return;
-            if (length < 1 || (MessageKind)buffer[offset] != MessageKind.Input)
+            if (length < 1)
             {
                 Metrics.MalformedMessages++;
                 return;
             }
             _reader.Reset(buffer, offset + 1, length - 1);
-            if (!_input.Read(_reader))
+            MessageKind kind = (MessageKind)buffer[offset];
+            if (kind == MessageKind.ClientStats)
+            {
+                if (_stats.Read(_reader)) _rooms[room].OnClientStats(_connSlot[connection], _stats);
+                else Metrics.MalformedMessages++;
+                return;
+            }
+            if (kind != MessageKind.Input || !_input.Read(_reader))
             {
                 Metrics.MalformedMessages++;
                 return;

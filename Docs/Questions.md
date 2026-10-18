@@ -85,6 +85,9 @@ S3.1 — предложение правки CLAUDE.md (агент сам не �
 S3.9 — в ту же таблицу Tools: `Tools/server-run.ps1 [-Config <json>] [-NoBuild]` — сборка и запуск сервера в консоли (Ctrl+C —
 доигрывание матчей); `Tools/server-publish.ps1 [-Mode Auto|Sdk|Bootstrap]` — пакет `Builds/Server/` для другого ПК или VPS, итог
 `SERVER PUBLISH: OK|FAILED`, коды 0 · 2.
+S3.15 — туда же: `Tools/server-load.ps1 [-MatchCount 100] [-Seconds 60] [-GameMode acorns|lastbeast]` — нагрузочный тест
+(сервер отдельным процессом + лёгкие клиенты по UDP), итог `LOAD TEST: OK|FAILED`, коды 0 · 1 · 2; у `Tools/test.ps1` новый ключ
+`-Category` (по умолчанию `!Long;!Perf`; `Long`, `Perf`, `all`), D-106. Долгие тесты `Long`/`Perf` в обычный цикл шага не входят.
 
 ## Закрытые
 

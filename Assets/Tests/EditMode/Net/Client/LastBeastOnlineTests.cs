@@ -82,7 +82,7 @@ namespace Arena.Tests.EditMode.Net.Client
                 int place = result.Slots[slot].Place;
                 Assert.That(place, Is.InRange(1, Clients), "slot " + slot + " has a place");
                 if (place == 1) winners++;
-                else if (s.HasEliminated || place > 2) // the runner-up is out on the end tick: MatchEnded is its result
+                else if (s.HasEliminated || !rig.Room.Simulation.State.Fighters[slot].Alive) // out, also on the end tick (S3.15)
                 {
                     Assert.IsTrue(s.HasEliminated, "slot " + slot + " (place " + place + ") got Eliminated");
                     Assert.AreEqual(slot, s.Eliminated.Slot);
