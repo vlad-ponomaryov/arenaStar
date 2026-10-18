@@ -11,4 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Arena.Shared\Arena.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Content pack exported by the editor (Server-Spec 5.4); the server loads it next to its dll and re-checks the hash. -->
+    <None Include="$(MSBuildThisFileDirectory)..\..\Assets\_Project\Data\Net\ArenaContent.bytes" Link="ArenaContent.bytes" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

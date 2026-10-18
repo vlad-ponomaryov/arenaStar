@@ -12,6 +12,9 @@
 *.ps1     text eol=crlf
 *.cmd     text eol=crlf
 
+# Content pack (Server-Spec 5.4): bytes must stay exact, small enough for plain git
+*.bytes   binary
+
 # Binary assets via Git LFS
 *.png   filter=lfs diff=lfs merge=lfs -text
 *.jpg   filter=lfs diff=lfs merge=lfs -text

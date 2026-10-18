@@ -2,6 +2,7 @@ using Arena.Bots;
 using Arena.Core.Defs;
 using Arena.Data;
 using Arena.Data.Localization;
+using Arena.Editor.Net;
 using Arena.Editor.Setup;
 using UnityEditor;
 using UnityEngine;
@@ -442,6 +443,9 @@ namespace Arena.Editor.Data
             db.Fighters.Clear();
             db.Fighters.AddRange(fighters);
             db.DefaultMap = SeedAcornsGlade();
+            if (db.AcornsMaps == null) db.AcornsMaps = new System.Collections.Generic.List<MapConfig>();
+            db.AcornsMaps.Clear();
+            db.AcornsMaps.Add(db.DefaultMap);
             db.Camera = SeedCamera();
             db.Feel = SeedFeel();
             db.MatchRunner = SeedMatchRunner();
@@ -458,6 +462,9 @@ namespace Arena.Editor.Data
 
             AssetDatabase.SaveAssets();
             Debug.Log("ARENA_DATA_SEEDED fighters=" + db.Fighters.Count);
+
+            // The content pack of the online client and the server is derived from these assets (Server-Spec §5.4).
+            ContentPackExporter.Export();
         }
 
         private static CombatRulesConfig SeedCombatRules()

@@ -766,3 +766,16 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   Обратное преобразование — только деление. (3) Bootstrap: `-noconfig` передаётся в командной строке, а не в .rsp (иначе CS2023);
   ссылки — управляемые dll фреймворка, отобранные `AssemblyName.GetAssemblyName` (нативные отсеиваются сами). `server-build.ps1`
   пишет `Tools/out/server/host.txt` — какой `dotnet.exe` запускает сборку; `server-test.ps1` читает его. Без SDK `-Mode Auto` = Bootstrap.
+- D-091 (S3.2) — **Пакет данных: формат, хэш, состояние матча.** (1) `ArenaContent.bytes` = заголовок 18 Б (u32 магия «ARNC»,
+  u16 `ContentPackHeader.CurrentFormatVersion`, u32 длина тела, u64 `ContentHash`) + тело: поля Defs в порядке объявления, int —
+  zigzag varint, float — побитово, bool — бит, enum — varint, строки — UTF-8 с длиной + 1 (0 — null), необязательные объекты — бит
+  присутствия, массивы — длина + 1. У пакета своя версия формата, отдельно от `NetProtocol.Version` (уточняет D-068): пакет может
+  поменяться без смены протокола и наоборот; несовпадение данных и так ловит хэш. Хэш — первые 8 байт SHA-256 тела big-endian
+  (hex равен началу hex SHA-256). (2) Ридер не валидирует Defs (это `ContentBundle.Validate`), длины массивов не больше оставшихся
+  бит — битый файл не выделит гигантский массив; ошибки — `InvalidDataException`. (3) Карты: `GameDatabase.AcornsMaps` (списки по
+  режимам); в пакете `DefaultMap` первая, затем карты режимов без повторов, `ContentModeMaps` хранит индексы. Политика матча — уровень
+  и `UnlockAllAbilities` из `MatchRunnerConfig`. (4) `StateHash` (FNV-1a 64) обходит поля `MatchState` рефлексией в порядке
+  `MetadataToken` — новое поле состояния попадает в хэш без правок; выделяет память, только для диагностики. (5) `HeadlessMatch`
+  и `MatchSetupBuilder` (раскладка слотов как `MatchSetupFactory`) — в `Arena.Net`: их используют self-test сервера и тесты.
+  (6) Сервер грузит пакет рядом с dll при старте (без него — код 3), `--version` печатает хэш. (7) `*.bytes binary` в
+  `.gitattributes` — иначе `autocrlf` испортил бы пакет. Причина: Server-Spec §4.1, §5.4; один файл — одни биты на клиенте и сервере.

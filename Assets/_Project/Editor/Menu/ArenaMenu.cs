@@ -1,6 +1,7 @@
 using Arena.Editor.Art;
 using Arena.Editor.Build;
 using Arena.Editor.Data;
+using Arena.Editor.Net;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -36,6 +37,13 @@ namespace Arena.Editor.Menu
         {
             ViewAssetBuilder.BuildAll();
             Debug.Log("Arena: view assets rebuilt.");
+        }
+
+        [MenuItem(Root + "Server/Export Content Pack", false, 20)]
+        public static void ExportContentPack()
+        {
+            ContentPackExporter.Export();
+            Debug.Log("Arena: content pack exported to " + ContentPackExporter.PackPath + ".");
         }
 
         [MenuItem(Root + "Build Android APK", false, 30)]

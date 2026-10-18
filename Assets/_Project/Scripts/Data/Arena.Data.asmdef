@@ -3,7 +3,8 @@
     "rootNamespace": "Arena.Data",
     "references": [
         "Arena.Core",
-        "Arena.Bots"
+        "Arena.Bots",
+        "Arena.Net"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

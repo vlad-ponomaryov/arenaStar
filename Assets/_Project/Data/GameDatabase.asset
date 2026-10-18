@@ -25,6 +25,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 48563381b38b9d94fa376db9d8c7c253, type: 2}
   DefaultMap: {fileID: 11400000, guid: 31630bfaa678cf24f9d302ae8acf938a, type: 2}
   AcornsMode: {fileID: 11400000, guid: 2b18b5db9eb0d5643be4f111a0a47c62, type: 2}
+  AcornsMaps:
+  - {fileID: 11400000, guid: 31630bfaa678cf24f9d302ae8acf938a, type: 2}
   Strings: {fileID: 11400000, guid: 0a23a9ebe45295648a8a851b6895acff, type: 2}
   BotDifficulties:
   - {fileID: 11400000, guid: 185f72a3a0c39f44386e16e965c4b507, type: 2}

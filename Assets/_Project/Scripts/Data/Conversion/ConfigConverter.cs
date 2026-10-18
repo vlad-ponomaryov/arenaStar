@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using Arena.Bots.Defs;
 using Arena.Core.Defs;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Modes;
 using Arena.Core.Sim;
+using Arena.Net.Content;
 
 namespace Arena.Data.Conversion
 {
@@ -40,6 +43,69 @@ namespace Arena.Data.Conversion
             }
             defs.Validate();
             return defs;
+        }
+
+        /// <summary>
+        /// Everything for online matches (Server-Spec §5.4, D-083): the same defs as <see cref="ToMatchDefs"/> (fighters in
+        /// the order of <see cref="GameDatabase.Fighters"/>), all maps (the default map first, then the mode maps without
+        /// repeats), the modes with their maps, bots and the match policy of <see cref="GameDatabase.MatchRunner"/>.
+        /// Exported to <c>ArenaContent.bytes</c> by the editor; validated before it is returned.
+        /// </summary>
+        public static ContentBundle ToContentBundle(GameDatabase db)
+        {
+            MatchDefs offline = ToMatchDefs(db);
+            if (db.MatchRunner == null) throw new ArgumentException("GameDatabase.MatchRunner is not set");
+            if (db.BotBehaviour == null) throw new ArgumentException("GameDatabase.BotBehaviour is not set");
+
+            var mapConfigs = new List<MapConfig> { db.DefaultMap };
+            var modeMaps = new List<ContentModeMaps>();
+            if (db.AcornsMode != null)
+            {
+                if (db.AcornsMaps == null || db.AcornsMaps.Count == 0) throw new ArgumentException("GameDatabase.AcornsMaps is empty");
+                modeMaps.Add(new ContentModeMaps { Mode = ModeKind.Acorns, MapIndices = MapIndices(db.AcornsMaps, mapConfigs, "AcornsMaps") });
+            }
+            var maps = new MapDef[mapConfigs.Count];
+            maps[0] = offline.Map;
+            for (int i = 1; i < maps.Length; i++) maps[i] = MapConverter.ToMapDef(mapConfigs[i]);
+
+            var difficulties = new BotDifficultyDef[db.BotDifficulties == null ? 0 : db.BotDifficulties.Count];
+            for (int i = 0; i < difficulties.Length; i++) difficulties[i] = ToBotDifficultyDef(db.BotDifficulties[i]);
+
+            var bundle = new ContentBundle
+            {
+                Rules = offline.Rules,
+                Fighters = offline.Fighters,
+                Maps = maps,
+                DefaultMapIndex = 0,
+                Acorns = offline.Acorns,
+                ModeMaps = modeMaps.ToArray(),
+                BotBehaviour = ToBotBehaviourDef(db.BotBehaviour),
+                BotDifficulties = difficulties,
+                Policy = new ContentMatchPolicy
+                {
+                    FighterLevel = db.MatchRunner.FighterLevel, UnlockAllAbilities = db.MatchRunner.UnlockAllAbilities
+                }
+            };
+            bundle.Validate();
+            return bundle;
+        }
+
+        private static int[] MapIndices(List<MapConfig> modeList, List<MapConfig> all, string listName)
+        {
+            var indices = new int[modeList.Count];
+            for (int i = 0; i < modeList.Count; i++)
+            {
+                MapConfig map = modeList[i];
+                if (map == null) throw new ArgumentException("GameDatabase." + listName + "[" + i + "] is null");
+                int index = all.IndexOf(map);
+                if (index < 0)
+                {
+                    index = all.Count;
+                    all.Add(map);
+                }
+                indices[i] = index;
+            }
+            return indices;
         }
 
         public static BotDifficultyDef ToBotDifficultyDef(BotDifficultyConfig c)

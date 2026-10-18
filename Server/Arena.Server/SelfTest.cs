@@ -3,7 +3,13 @@ using System.IO;
 using Arena.Core.Math;
 using Arena.Core.Random;
 using Arena.Core.State;
+using Arena.Bots;
+using Arena.Bots.Defs;
+using Arena.Core.Defs;
+using Arena.Core.Modes;
 using Arena.Net;
+using Arena.Net.Content;
+using Arena.Net.Diagnostics;
 using Arena.Net.Protocol;
 using Arena.Net.Serialization;
 
@@ -12,8 +18,9 @@ namespace Arena.Server
     /// <summary>
     /// <c>--selftest</c>: checks that run on the server's own runtime (CoreCLR), outside Unity (Server-Spec §11.2). Stage 3.1:
     /// bit packing round trip, varint / zigzag edges, aim quantization, <c>MatchState.CopyFrom</c> / <c>ContentEquals</c>,
-    /// zero allocations of the coder (<c>GC.GetAllocatedBytesForCurrentThread</c> is exact on CoreCLR). The headless match
-    /// joins in S3.2 (it needs the content pack), real UDP in S3.9.
+    /// zero allocations of the coder (<c>GC.GetAllocatedBytesForCurrentThread</c> is exact on CoreCLR); S3.2: the content
+    /// pack re-encodes to the same bytes, headless Acorns match of bots by the pack (ms/tick, two runs give one
+    /// <c>StateHash</c>). Real UDP arrives in S3.9.
     /// </summary>
     public static class SelfTest
     {
@@ -23,11 +30,15 @@ namespace Arena.Server
 
         private static int _passed;
         private static int _failed;
-        private static TextWriter _out;
+        private const int HeadlessSeed = 20261018;
 
-        public static bool Run(TextWriter output)
+        private static TextWriter _out;
+        private static ServerContent _content;
+
+        public static bool Run(TextWriter output, ServerContent content)
         {
             _out = output;
+            _content = content;
             _passed = 0;
             _failed = 0;
             Check("bit packing round trip", BitPackingRoundTrip);
@@ -36,6 +47,8 @@ namespace Arena.Server
             Check("aim and move quantization", QuantizeAimMove);
             Check("MatchState CopyFrom / ContentEquals", MatchStateCopy);
             Check("coder allocates 0 bytes", CoderAllocations);
+            Check("content pack re-encodes to the same bytes", ContentPackRoundTrip);
+            Check("headless Acorns match of bots, two runs give one state hash", HeadlessAcornsMatch);
             _out.WriteLine("SELFTEST: " + (_failed == 0 ? "OK" : "FAILED") + ", passed " + _passed + ", failed " + _failed);
             return _failed == 0;
         }
@@ -209,6 +222,42 @@ namespace Arena.Server
                 Quantize.FromAim(reader.ReadInt16(), reader.ReadInt16());
                 Quantize.FromPosition(reader.ReadUInt16());
             }
+        }
+
+        private static string ContentPackRoundTrip()
+        {
+            byte[] file = File.ReadAllBytes(_content.Path);
+            byte[] again = ContentPackWriter.Write(_content.Bundle);
+            if (again.Length != file.Length) return "re-encoded " + again.Length + " bytes, file has " + file.Length;
+            for (int i = 0; i < file.Length; i++)
+                if (again[i] != file[i]) return "byte " + i + " differs";
+            _out.WriteLine("        content: " + file.Length + " B, hash " + ContentPackHeader.FormatHash(_content.Hash) + ", fighters " +
+                _content.Bundle.Fighters.Length + ", maps " + _content.Bundle.Maps.Length);
+            return null;
+        }
+
+        private static string HeadlessAcornsMatch()
+        {
+            ContentBundle bundle = _content.Bundle;
+            ContentModeMaps maps = bundle.MapsFor(ModeKind.Acorns);
+            if (maps == null) return "no Acorns maps in the content pack";
+            MatchDefs defs = bundle.CreateMatchDefs(maps.MapIndices[0], ModeKind.Acorns);
+            BotDifficultyDef novice = bundle.FindBotDifficulty(BotDifficulty.Novice);
+            if (novice == null) return "no Novice bots in the content pack";
+            int maxTicks = defs.Acorns.DurationTicks + 1;
+
+            HeadlessMatchResult first = HeadlessMatch.Run(defs, HeadlessMatch.CreateBotSetup(defs, bundle.Policy, HeadlessSeed),
+                bundle.BotBehaviour, novice, maxTicks);
+            HeadlessMatchResult second = HeadlessMatch.Run(defs, HeadlessMatch.CreateBotSetup(defs, bundle.Policy, HeadlessSeed),
+                bundle.BotBehaviour, novice, maxTicks);
+            _out.WriteLine("        match: map " + defs.Map.Id + ", " + first.Ticks + " ticks, winner " + first.WinnerTeam + ", damage " +
+                first.TotalDamage + ", " + first.AverageTickMs.ToString("0.0000") + " ms/tick (max " + first.MaxTickMs.ToString("0.000") +
+                "), state hash " + StateHash.Format(first.StateHash));
+            if (!first.Ended) return "the match did not end within " + maxTicks + " ticks";
+            if (first.TotalDamage <= 0) return "the bots did not fight";
+            if (first.StateHash != second.StateHash || first.Ticks != second.Ticks)
+                return "second run differs: " + second.Ticks + " ticks, hash " + StateHash.Format(second.StateHash);
+            return null;
         }
     }
 }

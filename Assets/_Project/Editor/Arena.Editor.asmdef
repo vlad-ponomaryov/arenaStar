@@ -4,6 +4,7 @@
     "references": [
         "Arena.Core",
         "Arena.Bots",
+        "Arena.Net",
         "Arena.Data",
         "Arena.Gameplay",
         "Arena.Modes",

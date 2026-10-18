@@ -2,6 +2,7 @@
 #   Sdk       - dotnet build Server/Arena.Server (needs the .NET SDK, Q-012).
 #   Bootstrap - Roslyn (csc.dll) and .NET 6 bundled with the Unity editor: no SDK, no downloads.
 #   Auto      - Sdk if a .NET SDK is installed, otherwise Bootstrap.
+# Copies the content pack Assets/_Project/Data/Net/ArenaContent.bytes next to the dll (Server-Spec 5.4).
 # Writes Tools/out/server/host.txt (the dotnet.exe that runs the dll). Last line: SERVER BUILD: OK|FAILED ...
 # Exit: 0 ok, 2 build failed. Windows PowerShell 5.1 compatible, ASCII only.
 param(
@@ -12,6 +13,7 @@ param(
 $serverOut = Join-Path $OutDir 'server'
 $hostFile = Join-Path $serverOut 'host.txt'
 $dllPath = Join-Path $serverOut 'Arena.Server.dll'
+$contentPack = Join-Path $ProjectPath 'Assets\_Project\Data\Net\ArenaContent.bytes'
 $started = Get-Date
 
 # Source folders compiled into the server. Keep in sync with Server/Arena.Shared/Arena.Shared.csproj (+ Server/Arena.Server).
@@ -126,6 +128,12 @@ if ($Mode -eq 'Sdk') {
     [System.IO.File]::WriteAllText((Join-Path $serverOut 'Arena.Server.runtimeconfig.json'), $runtimeConfig,
         (New-Object System.Text.UTF8Encoding($false)))
     Set-Content -Path $hostFile -Value $dotnet -Encoding ASCII
+    # Content pack (Server-Spec 5.4): the server loads it next to its dll. The SDK build copies it via Arena.Server.csproj.
+    if (-not (Test-Path $contentPack)) {
+        Write-Host "SERVER BUILD: FAILED, content pack not found: $contentPack (run DataSeeder.SeedAll)"
+        exit 2
+    }
+    Copy-Item -Path $contentPack -Destination (Join-Path $serverOut 'ArenaContent.bytes') -Force
     Write-Host ("bootstrap: {0} sources, {1} references, .NET {2}" -f $sources.Count, $refs.Count, $fwVersion)
 }
 

@@ -28,6 +28,9 @@ namespace Arena.Data
         [Tooltip("Rules of the Acorns mode (the stage-2 match). Empty = free fight without an objective.")]
         public AcornsModeConfig AcornsMode;
 
+        [Tooltip("Maps of the Acorns mode online (content pack, Server-Spec §5.4). The offline match uses DefaultMap.")]
+        public List<MapConfig> AcornsMaps = new List<MapConfig>();
+
         [Tooltip("UI strings EN/RU (D-019).")]
         public LocTable Strings;
 
