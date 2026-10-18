@@ -1040,3 +1040,34 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   каждым тиком режима, совпадает с прежней суммой по бойцам с точностью до кадра после ручной правки состояния). Проверка:
   `OfflineMatchDriverTests` — полный матч с переменным шагом кадра (в том числе рывки больше 4 тиков) и скриптовым вводом:
   тиков за кадр, `Alpha` и `StateHash` совпадают с дословной копией прежнего цикла на каждом кадре. Причина: Server-Spec §12.2, S3.10a.
+- D-101 (S3.10b) — **Онлайн-матч в Unity: устройство.** (1) Сборка `Arena.Online` (`Scripts/Online`; Core, Bots, Data, Net, Gameplay;
+  без `Arena.Net.Server` — проверяет тест). `OnlineSession` (Boot, `DontDestroyOnLoad`, `DefaultExecutionOrder(-1000)` — сеть
+  опрашивается раньше HUD и раннера) грузит пакет данных из `NetConfig.ContentPack` с проверкой хэша, ищет сервер (регион «LAN» —
+  `LanDiscovery` по `UdpProbeSocket`; регион с адресом — IP или DNS в фоне через `Dns.GetHostAddressesAsync`), на каждый поиск
+  создаёт новые `NetClient` + `LobbyClient` + `MatchClientSession` (сессия подключена до поиска, S3.8). По `MatchStart` грузит Match
+  с `MatchLaunchParams.Online = true`; `OnlineMatchBootstrap` (Awake, `-200`) забирает сессию `TakeMatch`, отдаёт раннеру
+  `OnlineMatchDriver` и шлёт `ClientReady` (`NetConfigConverter` ставит `ReadyOnMatchStart = false` — готовность после загрузки
+  сцены). Нет сессии в фазе `Starting` — предупреждение и офлайн-матч по тем же параметрам. Уход из сцены Match — `Leave` +
+  `Disconnect`, фаза `Idle`; следующий поиск — новое соединение. «Ещё раз» на итогах онлайн-матча пока ведёт в меню
+  (`SceneFlow.Restart`), повторная очередь — S3.11. (2) `OnlineMatchDriver`: `BeginFrame` — `MatchClientSession.BeginFrame(NetClock)`
+  (аргумент dt не нужен: часы предсказания свои), `Step` — ввод → примагничивание (по состоянию показа) → `Session.Step`; `State` —
+  `Presentation.State` (до первого тика — начальное: карта и спавны), `Events` — события показа, а если тик показа не построен
+  (нет данных) — пустой буфер (иначе раннер повторил бы прошлые события), `Alpha` — `TimeSync.Alpha`, `IsEnded` — `MatchEnded`
+  применён к показу. (3) **Вход в онлайн до экранов S3.11:** в меню кнопка «Играть онлайн» (поиск «Жёлудей» выбранным бойцом в первом
+  регионе; при поиске — «Отмена») и строка состояния (подключение / поиск / ошибки `error.*`) — ключи EN/RU в сидере. (4) `NetConfig`
+  (`Data/Net/NetConfig.asset`, `GameDatabase.Net`): регионы (по умолчанию один — «Локальная сеть», порт 7777), пакет данных,
+  параметры «C» §13 — сидер берёт их из `ClientMatchSettings`/`LobbyClientSettings.CreateDefault` (одно место чисел), окно возврата
+  60 с (GDD §8.3), dev-инструменты. Сидер ставит `NetConfig` после экспорта пакета (ссылка на `ArenaContent.bytes`). (5) **Dev-инструменты
+  только в Development-сборках (`Debug.isDebugBuild`), включаются в `NetConfig`** (отдельного пункта в экране настроек нет — экран
+  настроек игрока, а это инструмент разработчика; пересмотреть в S3.11): оверлей сети в HUD (`NetOverlayView`: RTT и разброс,
+  неподтверждённые пакеты ≈ потери, запас ввода сервера, задержка интерполяции, поправки ненулевые/крупные; обновление 2 раза в
+  секунду, одна строка на обновление — допустимая аллокация только dev-сборки) и симулятор `LagSimulatorSocket` (задержка + джиттер +
+  потери в обе стороны, 256 слотов на направление, по умолчанию выкл., значения — условия CI GDD §8.3). (6) `RejoinStore` — заготовка:
+  билет `MatchAssigned` (адрес, матч, слот, токен, время) в PlayerPrefs, сохраняется при назначении, стирается по `MatchEnded` и при
+  уходе, старше окна — не читается; сам возврат — S3.12. `UnityNetLog` — строка `[Net]` на смену состояния, ожидаемые сбои сети —
+  предупреждения. (7) Android: `forceInternetPermission = true` (`ProjectConfigurator`). (8) Тесты: EditMode — `OnlineMatchDriverTests`
+  (полный онлайн-матч через лобби в памяти: свой боец сдвигается на тике своего ввода, чужие на `renderTick` позади, итог в состоянии
+  показа), `OnlineClientTests` (NetConfig, RejoinStore, симулятор); PlayMode — `OnlineMatchSceneTests`: Boot → меню → поиск на
+  сервер в том же процессе (`ServerNode` + `PortableUdpServerSocket` на 127.0.0.1, добор ботами через 1 с) → сцена Match онлайн 10 с без
+  ошибок, свой боец идёт сразу, чужие — интерполяцией, боты движутся; выход в меню закрывает соединение. PlayMode-сборка ссылается на
+  `Arena.Net.Server` (Editor-only) — тесты в плеер не попадают. Причина: Server-Spec §12.1–12.4, §10.1, S3.10b.

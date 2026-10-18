@@ -3,6 +3,7 @@ using Arena.Gameplay.Cameras;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Match;
 using Arena.Modes;
+using Arena.Online;
 using Arena.UI.Hud;
 using Arena.UI.Menu;
 using NUnit.Framework;
@@ -141,6 +142,29 @@ namespace Arena.Tests.EditMode.Setup
             AssertAllReferencesSet(menu);
             Assert.IsNotNull(menu.Database.Strings);
             Assert.Greater(menu.Database.Fighters.Count, 0);
+        }
+
+        [Test]
+        public void Boot_OnlineSession_HasTheDatabaseWithNetConfig()
+        {
+            Scene scene = Open(SceneNames.Boot);
+            FindSingle<BootLoader>(scene);
+            OnlineSession online = FindSingle<OnlineSession>(scene);
+            AssertAllReferencesSet(online);
+            var so = new SerializedObject(online);
+            var db = (Arena.Data.GameDatabase)so.FindProperty("_database").objectReferenceValue;
+            Assert.IsNotNull(db.Net, "GameDatabase.Net");
+            Assert.IsNotNull(db.Net.ContentPack, "NetConfig.ContentPack");
+        }
+
+        [Test]
+        public void Match_OnlineMatchBootstrap_ReferencesTheRunner()
+        {
+            Scene scene = Open(SceneNames.Match);
+            OnlineMatchBootstrap bootstrap = FindSingle<OnlineMatchBootstrap>(scene);
+            AssertAllReferencesSet(bootstrap);
+            var so = new SerializedObject(bootstrap);
+            Assert.AreSame(FindSingle<MatchRunner>(scene), so.FindProperty("_runner").objectReferenceValue);
         }
 
         [Test]

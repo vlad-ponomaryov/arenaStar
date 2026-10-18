@@ -8,6 +8,7 @@ using Arena.Gameplay.Flow;
 using Arena.Gameplay.Match;
 using Arena.Gameplay.View;
 using Arena.Modes;
+using Arena.Online;
 using Arena.UI.Hud;
 using Arena.UI.Menu;
 using Arena.UI.Style;
@@ -66,6 +67,13 @@ namespace Arena.Editor.Build
         {
             var scene = NewScene();
             new GameObject("Boot").AddComponent<BootLoader>();
+
+            // The online connection lives across scenes (Server-Spec §12.3).
+            var database = LoadRequired<GameDatabase>(DataSeeder.GameDatabasePath);
+            var online = new GameObject("OnlineSession").AddComponent<OnlineSession>();
+            var onlineSo = new SerializedObject(online);
+            SetRef(onlineSo, "_database", database);
+            onlineSo.ApplyModifiedPropertiesWithoutUndo();
             Save(scene, SceneNames.Boot);
         }
 
@@ -118,6 +126,12 @@ namespace Arena.Editor.Build
             SetRef(hudSo, "_runner", runner);
             SetRef(hudSo, "_style", style);
             hudSo.ApplyModifiedPropertiesWithoutUndo();
+
+            // Runs before the runner: gives it the online driver when the scene was loaded for an online match (§12.2).
+            var bootstrap = new GameObject("OnlineMatchBootstrap").AddComponent<OnlineMatchBootstrap>();
+            var bootstrapSo = new SerializedObject(bootstrap);
+            SetRef(bootstrapSo, "_runner", runner);
+            bootstrapSo.ApplyModifiedPropertiesWithoutUndo();
 
             var acorns = new GameObject("AcornsModeView").AddComponent<AcornsModeView>();
             var acornsSo = new SerializedObject(acorns);

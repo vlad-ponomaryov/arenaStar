@@ -8,7 +8,10 @@
         "Arena.Bots",
         "Arena.Data",
         "Arena.Gameplay",
-        "Arena.UI"
+        "Arena.UI",
+        "Arena.Net",
+        "Arena.Net.Server",
+        "Arena.Online"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

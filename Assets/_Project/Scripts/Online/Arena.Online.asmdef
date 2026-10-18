@@ -1,0 +1,20 @@
+{
+    "name": "Arena.Online",
+    "rootNamespace": "Arena.Online",
+    "references": [
+        "Arena.Core",
+        "Arena.Bots",
+        "Arena.Data",
+        "Arena.Net",
+        "Arena.Gameplay"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

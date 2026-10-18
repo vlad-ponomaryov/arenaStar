@@ -17,8 +17,17 @@ namespace Arena.Gameplay.Flow
             SceneManager.LoadScene(SceneNames.Match);
         }
 
-        /// <summary>"Play again": the same parameters (fighter, bots, seed).</summary>
-        public static void Restart() => SceneManager.LoadScene(SceneNames.Match);
+        /// <summary>"Play again": the same parameters (fighter, bots, seed). An online match cannot be replayed by reloading the
+        /// scene — it goes back to the menu (S3.10b; S3.11 queues again instead).</summary>
+        public static void Restart()
+        {
+            if (Current != null && Current.Online)
+            {
+                ToMenu();
+                return;
+            }
+            SceneManager.LoadScene(SceneNames.Match);
+        }
 
         public static void ToMenu() => SceneManager.LoadScene(SceneNames.Menu);
 

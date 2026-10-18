@@ -4,6 +4,7 @@ using Arena.Data;
 using Arena.Data.Localization;
 using Arena.Editor.Net;
 using Arena.Editor.Setup;
+using Arena.Net.Client;
 using UnityEditor;
 using UnityEngine;
 
@@ -37,6 +38,23 @@ namespace Arena.Editor.Data
         public const string BotNovicePath = BotsFolder + "/Novice.asset";
         public const string BotEasyPath = BotsFolder + "/Easy.asset";
         public const string BotBehaviourPath = BotsFolder + "/Behaviour.asset";
+        public const string NetFolder = DataRoot + "/Net";
+        public const string NetConfigPath = NetFolder + "/NetConfig.asset";
+
+        // Online client (Server-Spec §13 "C"): the prediction, interpolation and lobby numbers come from
+        // ClientMatchSettings / LobbyClientSettings.CreateDefault (the single place for them). Game port 7777 (§13, server.json);
+        // the first region is "Local (LAN)" — found by the Discover broadcast (§10.1). Rejoin window 60 s (GDD §8.3).
+        // PROTO (D-101): the dev overlay refreshes twice a second; the dev simulator defaults to the CI conditions of GDD §8.3
+        // (RTT 150 ms = 2 × 75, jitter 50 = 2 × 25, loss 2 % = 2 × 1) but is off.
+        private const int GamePort = 7777;
+        private const string LanRegionId = "lan";
+        private const float ReconnectWindowSeconds = 60f;
+        private const bool DevOverlayOn = true;
+        private const float DevOverlayRefreshSeconds = 0.5f;
+        private const bool DevSimOn = false;
+        private const int DevSimLatencyMs = 75;
+        private const int DevSimJitterMs = 25;
+        private const float DevSimLossPercent = 1f;
 
         // Bots (GDD §7): Novice ±25° / 600 ms, Easy ±15° / 450 ms, decisions every 0.2 s, retreat below 35 % health.
         private const float NoviceSpread = 25f;
@@ -196,6 +214,22 @@ namespace Arena.Editor.Data
             new[] { LocKeys.SettingsOff, "Off", "Выкл" },
             new[] { LocKeys.SettingsClose, "Close", "Закрыть" },
             new[] { LocKeys.HudFps, "FPS", "FPS" },
+            new[] { LocKeys.MenuPlayOnline, "Play online", "Играть онлайн" },
+            new[] { LocKeys.RegionLan, "Local network", "Локальная сеть" },
+            new[] { LocKeys.QueueSearching, "Searching for players…", "Ищем игроков…" },
+            new[] { LocKeys.QueueCancel, "Cancel", "Отмена" },
+            new[] { LocKeys.NetConnecting, "Connecting…", "Подключение…" },
+            new[] { LocKeys.ErrorServerUnreachable, "Server unavailable", "Сервер недоступен" },
+            new[] { LocKeys.ErrorUpdateRequired, "Update the game", "Обновите игру" },
+            new[] { LocKeys.ErrorMaintenance, "Maintenance", "Технические работы" },
+            new[] { LocKeys.DevNetRtt, "RTT", "RTT" },
+            new[] { LocKeys.DevNetJitter, "jitter", "джиттер" },
+            new[] { LocKeys.DevNetLoss, "loss %", "потери %" },
+            new[] { LocKeys.DevNetMargin, "input margin", "запас ввода" },
+            new[] { LocKeys.DevNetInterp, "interp.", "интерп." },
+            new[] { LocKeys.DevNetCorrections, "corrections", "поправки" },
+            new[] { LocKeys.DevNetMs, "ms", "мс" },
+            new[] { LocKeys.DevNetSimulator, "simulator", "симулятор" },
             new[] { "fighter.pix.name", "Pix", "Пикс" },
             new[] { "fighter.bruno.name", "Bruno", "Бруно" },
             new[] { "fighter.chomp.name", "Chomp", "Чомп" },
@@ -531,6 +565,11 @@ namespace Arena.Editor.Data
 
             // The content pack of the online client and the server is derived from these assets (Server-Spec §5.4).
             ContentPackExporter.Export();
+
+            // The online client settings reference the exported pack.
+            db.Net = SeedNetConfig();
+            EditorUtility.SetDirty(db);
+            AssetDatabase.SaveAssets();
         }
 
         private static CombatRulesConfig SeedCombatRules()
@@ -587,6 +626,56 @@ namespace Arena.Editor.Data
                 t.Entries.Add(new LocEntry { Key = Strings[i][0], En = Strings[i][1], Ru = Strings[i][2] });
             EditorUtility.SetDirty(t);
             return t;
+        }
+
+        private static NetConfig SeedNetConfig()
+        {
+            ProjectConfigurator.EnsureFolder(NetFolder);
+            NetConfig c = LoadOrCreate<NetConfig>(NetConfigPath);
+            c.ContentPack = AssetDatabase.LoadAssetAtPath<TextAsset>(ContentPackExporter.PackPath);
+            if (c.ContentPack == null) throw new System.InvalidOperationException("DataSeeder: missing " + ContentPackExporter.PackPath);
+            if (c.Regions == null) c.Regions = new System.Collections.Generic.List<NetRegionConfig>();
+            c.Regions.Clear();
+            c.Regions.Add(new NetRegionConfig { Id = LanRegionId, NameKey = LocKeys.RegionLan, Host = "", Port = GamePort });
+
+            ClientMatchSettings m = ClientMatchSettings.CreateDefault();
+            c.TargetInputMarginTicks = m.TargetInputMarginTicks;
+            c.MarginGain = m.MarginGain;
+            c.MaxTimeDilation = m.MaxTimeDilation;
+            c.HardResyncTicks = m.HardResyncTicks;
+            c.MarginSettleTicks = m.MarginSettleTicks;
+            c.MaxResimTicks = m.MaxResimTicks;
+            c.MaxTicksPerFrame = m.MaxTicksPerFrame;
+            c.FallbackRttMs = m.FallbackRttMs;
+            c.CorrectionSmoothingSeconds = m.CorrectionSmoothingSeconds;
+            c.SnapDistanceCells = m.SnapDistanceCells;
+            c.LargeCorrectionCells = m.LargeCorrectionCells;
+            c.InterpDelaySnapshots = m.InterpDelaySnapshots;
+            c.InterpJitterFactor = m.InterpJitterFactor;
+            c.InterpJitterSmoothing = m.InterpJitterSmoothing;
+            c.InterpGain = m.InterpGain;
+            c.InterpDelayMaxMs = m.InterpDelayMaxMs;
+            c.MaxExtrapolationMs = m.MaxExtrapolationMs;
+
+            LobbyClientSettings l = LobbyClientSettings.CreateDefault();
+            c.PingSamples = l.PingSamples;
+            c.PingIntervalMs = l.PingIntervalMs;
+            c.PingTimeoutMs = l.PingTimeoutMs;
+            c.PingGoodMs = l.PingGoodMs;
+            c.PingFairMs = l.PingFairMs;
+            c.DiscoverRepeats = l.DiscoverRepeats;
+            c.DiscoverIntervalMs = l.DiscoverIntervalMs;
+            c.DiscoverTimeoutMs = l.DiscoverTimeoutMs;
+
+            c.ReconnectWindowSeconds = ReconnectWindowSeconds;
+            c.DevOverlay = DevOverlayOn;
+            c.DevOverlayRefreshSeconds = DevOverlayRefreshSeconds;
+            c.DevSimEnabled = DevSimOn;
+            c.DevSimLatencyMs = DevSimLatencyMs;
+            c.DevSimJitterMs = DevSimJitterMs;
+            c.DevSimLossPercent = DevSimLossPercent;
+            EditorUtility.SetDirty(c);
+            return c;
         }
 
         private static FeelConfig SeedFeel()

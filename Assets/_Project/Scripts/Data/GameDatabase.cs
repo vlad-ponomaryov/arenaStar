@@ -46,6 +46,9 @@ namespace Arena.Data
         [Tooltip("Bot behaviour shared by all difficulties.")]
         public BotBehaviourConfig BotBehaviour;
 
+        [Tooltip("Online client settings: regions, content pack, prediction and interpolation (Server-Spec §12.3).")]
+        public NetConfig Net;
+
         /// <summary>Fighter config by id, or null.</summary>
         public FighterConfig FindFighter(string id)
         {

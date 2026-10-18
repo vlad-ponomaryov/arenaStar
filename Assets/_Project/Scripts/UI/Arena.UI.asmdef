@@ -8,7 +8,9 @@
         "Arena.Gameplay",
         "Arena.Modes",
         "Unity.InputSystem",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Arena.Net",
+        "Arena.Online"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

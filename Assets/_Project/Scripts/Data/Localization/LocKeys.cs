@@ -39,13 +39,32 @@ namespace Arena.Data.Localization
         public const string SettingsOff = "settings.off";
         public const string SettingsClose = "settings.close";
         public const string HudFps = "hud.fps";
+        public const string MenuPlayOnline = "menu.play_online";
+        public const string RegionLan = "region.lan";
+        public const string QueueSearching = "queue.searching";
+        public const string QueueCancel = "queue.cancel";
+        public const string NetConnecting = "net.connecting";
+        public const string ErrorServerUnreachable = "error.server_unreachable";
+        public const string ErrorUpdateRequired = "error.update_required";
+        public const string ErrorMaintenance = "error.maintenance";
+        public const string DevNetRtt = "dev.net_rtt";
+        public const string DevNetJitter = "dev.net_jitter";
+        public const string DevNetLoss = "dev.net_loss";
+        public const string DevNetMargin = "dev.net_margin";
+        public const string DevNetInterp = "dev.net_interp";
+        public const string DevNetCorrections = "dev.net_corrections";
+        public const string DevNetMs = "dev.net_ms";
+        public const string DevNetSimulator = "dev.net_simulator";
 
         public static readonly string[] All =
         {
             MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, LanguageEn, LanguageRu, ModeAcorns,
             HudHoldAlly, HudHoldEnemy, ResultsVictory, ResultsDefeat, ResultsDraw, ResultsMvp, ResultsAgain, ResultsMenu,
             ResultsKills, ResultsDeaths, ResultsDamage, ResultsAcorns, MenuSettings, SettingsTitle, SettingsMirror, SettingsVibration,
-            SettingsAimMagnet, SettingsColorblind, SettingsBatterySaver, SettingsOn, SettingsOff, SettingsClose, HudFps
+            SettingsAimMagnet, SettingsColorblind, SettingsBatterySaver, SettingsOn, SettingsOff, SettingsClose, HudFps,
+            MenuPlayOnline, RegionLan, QueueSearching, QueueCancel, NetConnecting, ErrorServerUnreachable, ErrorUpdateRequired,
+            ErrorMaintenance, DevNetRtt, DevNetJitter, DevNetLoss, DevNetMargin, DevNetInterp, DevNetCorrections, DevNetMs,
+            DevNetSimulator
         };
     }
 }

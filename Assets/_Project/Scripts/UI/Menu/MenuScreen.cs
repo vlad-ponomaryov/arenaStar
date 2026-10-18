@@ -1,9 +1,11 @@
 using System;
 using Arena.Bots;
+using Arena.Core.Modes;
 using Arena.Data;
 using Arena.Data.Localization;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Settings;
+using Arena.Online;
 using Arena.UI.Common;
 using Arena.UI.Settings;
 using Arena.UI.Style;
@@ -18,6 +20,9 @@ namespace Arena.UI.Menu
     /// <see cref="Loc"/>), "Play" → <see cref="SceneFlow.PlayMatch"/>. The choice survives the trip to the match and back
     /// (taken from <see cref="SceneFlow.Current"/>). Switching the language rebuilds the screen. All texts go through keys.
     /// "Settings" opens the <see cref="SettingsPanel"/> (S2.10).
+    /// "Play online" (S3.10b, the minimal entry before the S3.11 screens): an Acorns 3x3 search with the chosen fighter through
+    /// <see cref="OnlineSession"/> (default region - LAN); while searching the button cancels, a status line shows the phase or
+    /// the error; <c>MatchStart</c> loads the match.
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
     {
@@ -39,6 +44,14 @@ namespace Arena.UI.Menu
         public BotDifficulty SelectedBots => _bots;
         public Button PlayButton { get; private set; }
         public Button SettingsButton { get; private set; }
+        public Button PlayOnlineButton { get; private set; }
+        public Text OnlineStatus { get; private set; }
+
+        private Text _onlineLabel;
+        private OnlinePhase _shownPhase;
+        private OnlineFailure _shownFailure;
+        private bool _shownAvailable;
+        private bool _onlineDirty = true;
         public SettingsPanel Settings { get; private set; }
 
         private void Start()
@@ -78,7 +91,58 @@ namespace Arena.UI.Menu
         /// <summary>Starts a match with the current choice and a new seed.</summary>
         public void Play()
         {
+            OnlineSession online = OnlineSession.Instance;
+            if (online != null && online.IsBusy) online.Cancel();
             SceneFlow.PlayMatch(new MatchLaunchParams(_fighterId, _bots, Environment.TickCount));
+        }
+
+        /// <summary>Starts an online search with the current fighter, or cancels the running one.</summary>
+        public void PlayOnline()
+        {
+            OnlineSession online = OnlineSession.Instance;
+            _onlineDirty = true;
+            if (online == null || !online.IsAvailable) return;
+            if (online.IsBusy) online.Cancel();
+            else online.Search(ModeKind.Acorns, _fighterId, _bots);
+        }
+
+        private void Update()
+        {
+            if (OnlineStatus == null) return;
+            OnlineSession online = OnlineSession.Instance;
+            bool available = online != null && online.IsAvailable;
+            OnlinePhase phase = online != null ? online.Phase : OnlinePhase.Idle;
+            OnlineFailure failure = online != null ? online.Failure : OnlineFailure.None;
+            if (!_onlineDirty && available == _shownAvailable && phase == _shownPhase && failure == _shownFailure) return;
+            _onlineDirty = false;
+            _shownAvailable = available;
+            _shownPhase = phase;
+            _shownFailure = failure;
+            bool busy = online != null && online.IsBusy;
+            _onlineLabel.text = Loc.Get(busy ? LocKeys.QueueCancel : LocKeys.MenuPlayOnline);
+            OnlineStatus.text = available ? Loc.Get(StatusKey(phase, failure)) : Loc.Get(LocKeys.ErrorServerUnreachable);
+        }
+
+        private static string StatusKey(OnlinePhase phase, OnlineFailure failure)
+        {
+            switch (phase)
+            {
+                case OnlinePhase.Locating:
+                case OnlinePhase.Connecting:
+                    return LocKeys.NetConnecting;
+                case OnlinePhase.Searching:
+                case OnlinePhase.Starting:
+                    return LocKeys.QueueSearching;
+                case OnlinePhase.Failed:
+                    switch (failure)
+                    {
+                        case OnlineFailure.UpdateRequired: return LocKeys.ErrorUpdateRequired;
+                        case OnlineFailure.Maintenance: return LocKeys.ErrorMaintenance;
+                        default: return LocKeys.ErrorServerUnreachable;
+                    }
+                default:
+                    return LocKeys.RegionLan;
+            }
         }
 
         private string DefaultFighterId()
@@ -135,8 +199,13 @@ namespace Arena.UI.Menu
                     Loc.Get(LocKeys.LanguageRu), () => Loc.SetLanguage(Language.Ru), out _)
             };
 
-            PlayButton = UiFactory.CreateButton("PlayButton", column, s, s.PlayButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
+            RectTransform playRow = UiFactory.CreateRow("PlayRow", column, s.MenuItemSpacing, s.PlayButtonSize.y);
+            PlayButton = UiFactory.CreateButton("PlayButton", playRow, s, s.PlayButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
                 Loc.Get(LocKeys.MenuPlay), Play, out _);
+            PlayOnlineButton = UiFactory.CreateButton("PlayOnlineButton", playRow, s, s.PlayButtonSize, s.ButtonColor, s.MediumFontSize,
+                Loc.Get(LocKeys.MenuPlayOnline), PlayOnline, out _onlineLabel);
+            OnlineStatus = UiFactory.CreateLayoutText("OnlineStatus", playRow, s, s.SmallFontSize, s.PlayButtonSize, "", TextAnchor.MiddleLeft);
+            _onlineDirty = true;
             SettingsButton = UiFactory.CreateButton("SettingsButton", column, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
                 Loc.Get(LocKeys.MenuSettings), OpenSettings, out _);
             Settings = SettingsPanel.Create(transform, s, _database.Feel, PlayerSettingsStore.SharedFor(_database.Feel), null);

@@ -55,6 +55,19 @@ namespace Arena.Tests.EditMode.Setup
         }
 
         [Test]
+        public void Android_ForcesInternetPermission()
+        {
+            Assert.IsTrue(PlayerSettings.Android.forceInternetPermission, "online play over UDP (Server-Spec §12.3)");
+        }
+
+        [Test]
+        public void OnlineAssembly_DoesNotReferenceTheEditorOnlyServer()
+        {
+            foreach (AssemblyName reference in typeof(Arena.Online.OnlineSession).Assembly.GetReferencedAssemblies())
+                Assert.AreNotEqual("Arena.Net.Server", reference.Name, "Arena.Online goes into the APK (Server-Spec §12.1)");
+        }
+
+        [Test]
         public void ActiveInputHandler_IsInputSystemOnly()
         {
             Assert.AreEqual(1, ProjectConfigurator.ReadActiveInputHandler());

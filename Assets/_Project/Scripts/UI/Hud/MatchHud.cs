@@ -5,6 +5,7 @@ using Arena.Gameplay.Flow;
 using Arena.Gameplay.Settings;
 using Arena.Gameplay.Input;
 using Arena.Gameplay.Match;
+using Arena.Online;
 using Arena.UI.Controls;
 using Arena.UI.Results;
 using Arena.UI.Style;
@@ -21,6 +22,7 @@ namespace Arena.UI.Hud
     /// and the <see cref="ResultsScreen"/> appears ("Play again" → <see cref="SceneFlow.Restart"/>, "Menu" → <see cref="SceneFlow.ToMenu"/>).
     /// S2.10: the layout follows the "mirrored" setting, the charged ult stick pulses (<see cref="FeelConfig"/>), an FPS counter
     /// sits in the top-left corner; the aim line knows whether the ult stick is held (its range).
+    /// S3.10b: online in a Development build — the dev network overlay (<see cref="NetOverlayView"/>, <c>NetConfig.DevOverlay</c>).
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class MatchHud : MonoBehaviour
@@ -34,6 +36,8 @@ namespace Arena.UI.Hud
         private ResultsScreen _results;
         private FpsCounter _fps;
         private FeelConfig _feel;
+        private NetOverlayView _netOverlay;
+        private bool _netOverlayChecked;
 
         public MatchRunner Runner => _runner;
         public UiStyle Style => _style;
@@ -41,6 +45,9 @@ namespace Arena.UI.Hud
         public ScoreBarView ScoreBar => _scoreBar;
         public ResultsScreen Results => _results;
         public FpsCounter Fps => _fps;
+
+        /// <summary>Dev network overlay of an online match in a Development build, or null.</summary>
+        public NetOverlayView NetOverlay => _netOverlay;
 
         private void Start()
         {
@@ -64,6 +71,8 @@ namespace Arena.UI.Hud
             if (_controls == null) return;
             _fps?.Tick(Time.unscaledDeltaTime);
             IMatchDriver driver = _runner.Driver;
+            if (driver != null && !_netOverlayChecked) CreateNetOverlay(driver);
+            _netOverlay?.Tick(Time.unscaledDeltaTime);
             if (driver != null) _scoreBar.Apply(driver.Defs, driver.State, _runner.LocalTeam);
             if (_runner.IsMatchEnded)
             {
@@ -99,6 +108,16 @@ namespace Arena.UI.Hud
                 else if (ult == StickGestureResult.Manual) input.PressUlt(ToVec2(ultAim), false);
             }
             if (_controls.TrickButton.ConsumePress()) input.PressTrick();
+        }
+
+        /// <summary>The runner gets its driver after this Start: the overlay is made on the first frame with a driver.</summary>
+        private void CreateNetOverlay(IMatchDriver driver)
+        {
+            _netOverlayChecked = true;
+            var online = driver as OnlineMatchDriver;
+            var net = _runner.Database != null ? _runner.Database.Net : null;
+            if (online == null || net == null || !net.DevOverlay || !Debug.isDebugBuild) return;
+            _netOverlay = NetOverlayView.Build(_controls.Canvas.transform, _style, online, net.DevOverlayRefreshSeconds);
         }
 
         private void SetControlsVisible(bool visible)
