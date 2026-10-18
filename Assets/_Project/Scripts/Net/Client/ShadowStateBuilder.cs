@@ -14,8 +14,8 @@ namespace Arena.Net.Client
     /// <summary>
     /// Builds the start state of the client's shadow simulation from a decoded snapshot view (Server-Spec §2.5 "Состав тени"):
     /// the own fighter and its statuses exactly; own projectiles from their segments and own areas (plus enemy fields that block
-    /// projectiles — domes) from the area list; broken cells and the mode block; other fighters as shown — S3.7a: at their
-    /// positions in this snapshot (interpolated positions come in S3.7b, D-096); fighters missing from the snapshot (hidden) are
+    /// projectiles — domes) from the area list; broken cells and the mode block; other fighters at their positions in this
+    /// snapshot, then moved to the shown (interpolated) places by <see cref="ApplyShownOthers"/> (S3.7b); fighters missing from the snapshot (hidden) are
     /// inactive; no foreign projectiles, pickups or boxes. Finally <c>Predicting</c> / <c>PredictedSlot</c> are set (a
     /// <c>CopyFrom</c> or <c>Clear</c> resets them). No allocations.
     /// </summary>
@@ -45,31 +45,10 @@ namespace Arena.Net.Client
                     continue;
                 }
                 PlayerSlotSetup slot = setup.Slots[i];
-                f = default;
-                f.DefIndex = slot.FighterIndex;
-                f.Team = slot.Team;
-                f.Level = slot.Level;
-                f.SpeedMul = 1f;
-                f.DamageTakenMul = 1f;
-                f.DashAbilityRef = -1;
+                ResetOther(ref f, slot);
                 int index = frame.Fighters.IndexOf(i);
                 if (index < 0) continue; // hidden from our team: not a target in the shadow
-                ref NetFighterView v = ref frame.Fighters.ItemAt(index);
-                f.Active = true;
-                f.Alive = v.Alive;
-                f.Position = new Vec2(Quantize.FromPosition(v.PositionX), Quantize.FromPosition(v.PositionY));
-                f.Velocity = new Vec2(Quantize.FromVelocity(v.VelocityX), Quantize.FromVelocity(v.VelocityY));
-                f.Facing = MathUtil.AngleToDir(Quantize.FromAngle(v.Facing, NetProtocol.FacingAngleBits));
-                f.Health = v.Health;
-                f.MaxHealth = v.MaxHealth;
-                f.Charges = v.Charges;
-                f.CarriedAcorns = v.Acorns;
-                f.Berries = v.Berries;
-                f.InBush = (v.Flags & NetFighterFlags.InBush) != 0;
-                f.Invisible = (v.Flags & NetFighterFlags.Invisible) != 0;
-                f.Stunned = (v.Flags & NetFighterFlags.Stunned) != 0;
-                f.VisibleToTeams = TeamBit(ownTeam) | TeamBit(slot.Team);
-                if ((v.Flags & NetFighterFlags.MarkedByViewer) != 0) f.MarkedByTeamMask = TeamBit(ownTeam);
+                FillOther(ref f, in frame.Fighters.ItemAt(index), slot.Team, ownTeam);
             }
 
             int n = frame.OwnStatusCount;
@@ -81,6 +60,68 @@ namespace Arena.Net.Client
 
             g.Predicting = true;
             g.PredictedSlot = ownSlot;
+        }
+
+        /// <summary>A foreign fighter with only what the slot table says (hidden: inactive, nothing known).</summary>
+        internal static void ResetOther(ref FighterState f, PlayerSlotSetup slot)
+        {
+            f = default;
+            f.DefIndex = slot.FighterIndex;
+            f.Team = slot.Team;
+            f.Level = slot.Level;
+            f.SpeedMul = 1f;
+            f.DamageTakenMul = 1f;
+            f.DashAbilityRef = -1;
+        }
+
+        /// <summary>A foreign fighter as the snapshot shows it (visible to our team and its own).</summary>
+        internal static void FillOther(ref FighterState f, in NetFighterView v, int team, int ownTeam)
+        {
+            f.Active = true;
+            f.Alive = v.Alive;
+            f.Position = new Vec2(Quantize.FromPosition(v.PositionX), Quantize.FromPosition(v.PositionY));
+            f.Velocity = new Vec2(Quantize.FromVelocity(v.VelocityX), Quantize.FromVelocity(v.VelocityY));
+            f.Facing = MathUtil.AngleToDir(Quantize.FromAngle(v.Facing, NetProtocol.FacingAngleBits));
+            f.Health = v.Health;
+            f.MaxHealth = v.MaxHealth;
+            f.Charges = v.Charges;
+            f.CarriedAcorns = v.Acorns;
+            f.Berries = v.Berries;
+            f.InBush = (v.Flags & NetFighterFlags.InBush) != 0;
+            f.Invisible = (v.Flags & NetFighterFlags.Invisible) != 0;
+            f.Stunned = (v.Flags & NetFighterFlags.Stunned) != 0;
+            f.VisibleToTeams = TeamBit(ownTeam) | TeamBit(team);
+            f.MarkedByTeamMask = (v.Flags & NetFighterFlags.MarkedByViewer) != 0 ? TeamBit(ownTeam) : 0u;
+        }
+
+        /// <summary>
+        /// Foreign fighters of the shadow at their shown (interpolated) places (Server-Spec §2.5): position, "alive", facing and
+        /// visibility from <paramref name="shown"/>; one not shown to our team is inactive. Other fields stay from the snapshot.
+        /// </summary>
+        public static void ApplyShownOthers(MatchState shadow, MatchState shown, int ownSlot, int ownTeam)
+        {
+            int count = shadow.Globals.FighterCount;
+            for (int i = 0; i < count; i++)
+            {
+                if (i == ownSlot) continue;
+                ref FighterState f = ref shadow.Fighters[i];
+                ref FighterState s = ref shown.Fighters[i];
+                if (!s.Active || !s.IsVisibleTo(ownTeam))
+                {
+                    f.Active = false;
+                    continue;
+                }
+                f.Active = true;
+                f.Alive = s.Alive;
+                f.Position = s.Position;
+                f.Facing = s.Facing;
+                f.Velocity = s.Velocity;
+                f.Health = s.Health;
+                f.MaxHealth = s.MaxHealth;
+                f.InBush = s.InBush;
+                f.Invisible = s.Invisible;
+                f.VisibleToTeams = s.VisibleToTeams;
+            }
         }
 
         private static void AddProjectiles(MatchState state, SnapshotFrame frame, MatchDefs defs, int ownSlot, int tick)
@@ -137,21 +178,7 @@ namespace Arena.Net.Client
                 int slot = list.SlotAt(k);
                 if ((uint)slot >= (uint)state.Areas.Length) continue;
                 ref AreaState a = ref state.Areas[slot];
-                a = default;
-                a.Active = true;
-                a.Triggered = v.Triggered;
-                a.Kind = v.Kind;
-                a.Owner = v.Owner;
-                a.Team = v.Team;
-                a.Position = new Vec2(Quantize.FromPosition(v.PositionX), Quantize.FromPosition(v.PositionY));
-                a.Origin = new Vec2(Quantize.FromPosition(v.OriginX), Quantize.FromPosition(v.OriginY));
-                a.SpawnTick = v.SpawnTick;
-                a.Radius = Quantize.FromRadius(v.Radius);
-                a.ActivateTick = v.ActivateTick;
-                a.ExpireTick = v.ExpireTick;
-                a.AbilityRef = v.AbilityRef;
-                a.VisibleToTeams = ~0u;
-                a.DamagePercent = EffectContext.FullDamagePercent;
+                FillArea(ref a, in v, 0);
                 if (ability != null && a.Kind == AreaKind.Field && ability.AreaPulseTicks > 0)
                 {
                     // Pulses only carry own non-damage effects in the shadow; their timing is rebuilt from the activation tick.
@@ -162,7 +189,27 @@ namespace Arena.Net.Client
             }
         }
 
-        private static ModeState ToMode(in NetModeView v) => new ModeState
+        /// <summary>An area as the snapshot shows it; its tick fields moved by <paramref name="shift"/> (presentation, §12.2).</summary>
+        internal static void FillArea(ref AreaState a, in NetAreaView v, int shift)
+        {
+            a = default;
+            a.Active = true;
+            a.Triggered = v.Triggered;
+            a.Kind = v.Kind;
+            a.Owner = v.Owner;
+            a.Team = v.Team;
+            a.Position = new Vec2(Quantize.FromPosition(v.PositionX), Quantize.FromPosition(v.PositionY));
+            a.Origin = new Vec2(Quantize.FromPosition(v.OriginX), Quantize.FromPosition(v.OriginY));
+            a.SpawnTick = v.SpawnTick + shift;
+            a.Radius = Quantize.FromRadius(v.Radius);
+            a.ActivateTick = v.ActivateTick + shift;
+            a.ExpireTick = v.ExpireTick + shift;
+            a.AbilityRef = v.AbilityRef;
+            a.VisibleToTeams = ~0u;
+            a.DamagePercent = EffectContext.FullDamagePercent;
+        }
+
+        internal static ModeState ToMode(in NetModeView v) => new ModeState
         {
             Phase = v.Phase,
             CountdownTeam = v.CountdownTeam,

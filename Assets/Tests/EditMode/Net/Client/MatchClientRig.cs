@@ -1,4 +1,6 @@
 using System;
+using Arena.Bots;
+using Arena.Bots.Defs;
 using Arena.Core.Input;
 using Arena.Core.Modes;
 using Arena.Core.Random;
@@ -17,7 +19,8 @@ namespace Arena.Tests.EditMode.Net.Client
     /// <see cref="InMemoryNetwork"/> with virtual time (Server-Spec §11.1, S3.7a): one room on the committed content pack, players
     /// in the given slots, bots elsewhere. A frame is 1/60 s with a deterministic spread (like a phone); every frame advances the
     /// clock, runs the host, then every client: transport update → <c>BeginFrame</c> → <c>Step</c> per due prediction tick, the
-    /// input from the client's script for that tick.
+    /// input from the client's script for that tick (<see cref="UseBots"/>: a <see cref="ClientBot"/> reading the display state,
+    /// S3.7b). <paramref name="fighters"/> of the constructor picks the fighter of each player (default: player k → fighter k).
     /// </summary>
     public sealed class MatchClientRig
     {
@@ -35,11 +38,12 @@ namespace Arena.Tests.EditMode.Net.Client
         public readonly InMemoryClientSocket[] Sockets;
         public readonly int[] ClientSlots;
         public readonly Func<int, PlayerInput>[] Scripts;
+        public readonly ClientBot[] Bots;
 
         private DeterministicRng _frames;
 
         public MatchClientRig(ModeKind mode, int[] playerSlots, int seed = 7, NetworkConditions conditions = null,
-            ClientMatchSettings clientSettings = null)
+            ClientMatchSettings clientSettings = null, int[] fighters = null)
         {
             Network = new InMemoryNetwork(seed);
             Network.DefaultConditions = conditions ?? new NetworkConditions();
@@ -57,15 +61,17 @@ namespace Arena.Tests.EditMode.Net.Client
                 ? defs.Map.SpawnCount(Arena.Core.Map.MapSpawn.SharedTeam)
                 : defs.Map.SpawnCount(0) + defs.Map.SpawnCount(1);
             if (slots > Arena.Core.Sim.SimLimits.MaxFighters) slots = Arena.Core.Sim.SimLimits.MaxFighters;
-            var fighters = new int[slots];
-            for (int i = 0; i < slots; i++) fighters[i] = -1;
-            for (int k = 0; k < playerSlots.Length; k++) fighters[playerSlots[k]] = k % Bundle.Fighters.Length;
-            Room = Host.CreateMatch(MatchRoomRequest.FromBundle(Bundle, mapIndex, mode, fighters, seed), Network.NowMicros);
+            var slotFighters = new int[slots];
+            for (int i = 0; i < slots; i++) slotFighters[i] = -1;
+            for (int k = 0; k < playerSlots.Length; k++)
+                slotFighters[playerSlots[k]] = fighters != null ? fighters[k] : k % Bundle.Fighters.Length;
+            Room = Host.CreateMatch(MatchRoomRequest.FromBundle(Bundle, mapIndex, mode, slotFighters, seed), Network.NowMicros);
 
             Clients = new NetClient[playerSlots.Length];
             Sessions = new MatchClientSession[playerSlots.Length];
             Sockets = new InMemoryClientSocket[playerSlots.Length];
             Scripts = new Func<int, PlayerInput>[playerSlots.Length];
+            Bots = new ClientBot[playerSlots.Length];
             ClientSlots = playerSlots;
             for (int k = 0; k < playerSlots.Length; k++)
             {
@@ -78,6 +84,19 @@ namespace Arena.Tests.EditMode.Net.Client
         }
 
         public long Now => Network.NowMicros;
+
+        /// <summary>Every client is played by a bot of <paramref name="difficulty"/> that reads its display state.</summary>
+        public void UseBots(BotDifficulty difficulty, int seed = 1)
+        {
+            BotDifficultyDef def = Bundle.FindBotDifficulty(difficulty) ?? Bundle.BotDifficulties[0];
+            for (int k = 0; k < Sessions.Length; k++)
+            {
+                var bot = new ClientBot(Bundle.BotBehaviour, def, ClientSlots[k], seed * 977 + k);
+                MatchClientSession s = Sessions[k];
+                Bots[k] = bot;
+                Scripts[k] = tick => bot.Think(s.Presentation, s.Defs);
+            }
+        }
 
         public void ConnectAll()
         {

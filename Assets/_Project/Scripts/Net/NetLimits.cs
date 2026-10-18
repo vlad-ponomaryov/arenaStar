@@ -79,5 +79,14 @@ namespace Arena.Net
 
         /// <summary>Width of one histogram bin, cells (1/1024 cell = the snapshot position step): the histogram covers 1 cell.</summary>
         public const float PredictionErrorBinCells = 1f / 1024f;
+
+        /// <summary>Server view events the client holds until the render clock reaches them (<c>EventScheduler</c>); more are dropped and counted.</summary>
+        public const int MaxScheduledEvents = 256;
+
+        /// <summary>Recently received view events remembered to drop the redundant copies of later snapshots (≥ redundancy × events per snapshot).</summary>
+        public const int RecentEventHistory = 192;
+
+        /// <summary>Bins of 1 ms in the client's extrapolation-duration histogram (<c>ClientNetStats</c>); the last bin holds everything above.</summary>
+        public const int ExtrapolationHistogramBins = 1024;
     }
 }

@@ -38,6 +38,7 @@ namespace Arena.Net.Client
             Defs = defs;
             Setup = setup;
             OwnSlot = ownSlot;
+            OwnTeam = setup.Slots[ownSlot].Team;
             Shadow = new MatchSimulation(defs, setup);
             Errors = new PredictionErrorStats(settings.LargeCorrectionCells);
             for (int i = 0; i < _historyTick.Length; i++) _historyTick[i] = int.MinValue;
@@ -46,6 +47,7 @@ namespace Arena.Net.Client
         public MatchDefs Defs { get; }
         public MatchSetup Setup { get; }
         public int OwnSlot { get; }
+        public int OwnTeam { get; }
 
         /// <summary>The shadow simulation; its state is at <see cref="ShadowTick"/> (the next tick to predict).</summary>
         public MatchSimulation Shadow { get; }
@@ -72,6 +74,16 @@ namespace Arena.Net.Client
         /// <summary>Where the own fighter is drawn: predicted position + correction offset.</summary>
         public Vec2 DisplayPosition => Shadow.State.Fighters[OwnSlot].Position + CorrectionOffset;
 
+        /// <summary>
+        /// The correction offset being smoothed now came (at least partly) from something the prediction could not know — a push,
+        /// a dash it did not start, a stun (Server-Spec §2.5): the fast catch-up is not a "teleport" (§11.1).
+        /// </summary>
+        public bool ExternalCorrection { get; private set; }
+
+        /// <summary>Corrections longer than <see cref="ClientMatchSettings.SnapDistanceCells"/> placed at once; of them with an external cause.</summary>
+        public long Snaps { get; private set; }
+        public long ExternalSnaps { get; private set; }
+
         public long Reconciliations { get; private set; }
         public long ResimulatedTicks { get; private set; }
 
@@ -81,8 +93,10 @@ namespace Arena.Net.Client
         /// <summary>
         /// Applies the new newest snapshot and re-simulates up to <paramref name="predictionTick"/> (exclusive) with
         /// <paramref name="inputs"/>. At most <see cref="ClientMatchSettings.MaxResimTicks"/> ticks: beyond, <see cref="ResimLimitHit"/>.
+        /// <paramref name="shown"/> — the presentation state (foreign fighters at their shown places, §2.5), or null before the
+        /// first display tick (then at the snapshot's places).
         /// </summary>
-        public void Reconcile(SnapshotFrame frame, InputHistory inputs, int predictionTick)
+        public void Reconcile(SnapshotFrame frame, InputHistory inputs, int predictionTick, MatchState shown = null)
         {
             if (frame == null) throw new ArgumentNullException(nameof(frame));
             Reconciliations++;
@@ -96,16 +110,24 @@ namespace Arena.Net.Client
             Vec2 oldPosition = Own.Position;
             bool oldAlive = Own.Alive;
 
+            ref FighterState server = ref frame.Own;
+            bool external = server.KnockbackTicks > 0 || server.IsDashing || server.Stunned;
             if (hadView && ts > 0 && TryGetHistory(ts, out FighterState predicted))
-                Errors.Add(Vec2.Distance(predicted.Position, frame.Own.Position), IsExternal(in predicted, in frame.Own));
+            {
+                bool sampleExternal = IsExternal(in predicted, in server);
+                Errors.Add(Vec2.Distance(predicted.Position, server.Position), sampleExternal);
+                external |= sampleExternal;
+            }
 
             ShadowStateBuilder.Build(Shadow.State, frame, Defs, Setup, OwnSlot, baseTick);
+            if (shown != null) ShadowStateBuilder.ApplyShownOthers(Shadow.State, shown, OwnSlot, OwnTeam);
             Ready = true;
             BotControlled = frame.Header.BotControlled;
             Record();
             if (BotControlled)
             {
                 CorrectionOffset = Vec2.Zero;
+                ExternalCorrection = false;
                 return;
             }
 
@@ -124,19 +146,44 @@ namespace Arena.Net.Client
             if (!hadView || oldTick != ShadowTick || !oldAlive || !Own.Alive)
             {
                 CorrectionOffset = Vec2.Zero;
+                ExternalCorrection = false;
                 return;
             }
-            Vec2 offset = CorrectionOffset + (oldPosition - Own.Position);
-            CorrectionOffset = offset.Length > _settings.SnapDistanceCells ? Vec2.Zero : offset;
+            Vec2 jump = oldPosition - Own.Position;
+            if (!jump.IsZero && external) ExternalCorrection = true;
+            Vec2 offset = CorrectionOffset + jump;
+            if (offset.Length > _settings.SnapDistanceCells)
+            {
+                CorrectionOffset = Vec2.Zero;
+                Snaps++;
+                if (external) ExternalSnaps++;
+                return;
+            }
+            CorrectionOffset = offset;
         }
 
-        /// <summary>Predicts tick <paramref name="tick"/> with the (quantized) own input; the shadow must stand at that tick.</summary>
-        public void Predict(int tick, in PlayerInput input)
+        /// <summary>
+        /// Predicts tick <paramref name="tick"/> with the (quantized) own input; the shadow must stand at that tick. True if a
+        /// tick ran (its events are in <c>Shadow.Events</c>).
+        /// </summary>
+        public bool Predict(int tick, in PlayerInput input)
         {
-            if (!Ready || BotControlled || Shadow.IsEnded || tick != ShadowTick) return;
+            if (!Ready || BotControlled || Shadow.IsEnded || tick != ShadowTick) return false;
             bool wasAlive = Own.Alive;
             RunTick(in input);
-            if (!wasAlive && Own.Alive) CorrectionOffset = Vec2.Zero; // respawn: no sliding
+            if (!wasAlive && Own.Alive)
+            {
+                CorrectionOffset = Vec2.Zero; // respawn: no sliding
+                ExternalCorrection = false;
+            }
+            return true;
+        }
+
+        /// <summary>Before a new prediction tick: foreign fighters of the shadow move to their shown places (§2.5).</summary>
+        public void SetShownOthers(MatchState shown)
+        {
+            if (shown == null || !Ready || BotControlled) return;
+            ShadowStateBuilder.ApplyShownOthers(Shadow.State, shown, OwnSlot, OwnTeam);
         }
 
         /// <summary>Decays the correction offset over <paramref name="seconds"/> of real time.</summary>
@@ -150,6 +197,11 @@ namespace Arena.Net.Client
                 return;
             }
             CorrectionOffset *= MathF.Exp(-seconds / tau);
+            if (CorrectionOffset.Length <= Serialization.Quantize.PositionStep)
+            {
+                CorrectionOffset = Vec2.Zero;
+                ExternalCorrection = false;
+            }
         }
 
         /// <summary>The predicted own state at the start of <paramref name="tick"/> (after the ticks before it), if still in the history.</summary>

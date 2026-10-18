@@ -14,8 +14,10 @@ namespace Arena.Net.Client
     /// The client side of one online match (Server-Spec §2.3–2.5, §4.2, S3.7a) over a <see cref="NetClient"/>: reads
     /// <c>MatchStart</c> (Defs from the content pack — the same as the server's, D-083 — and the slot table), answers
     /// <c>ClientReady</c>, decodes snapshots into its ring (asks for a key frame when a baseline is missing), runs the prediction
-    /// clock (<see cref="TimeSync"/>) and the own prediction (<see cref="Predictor"/>), and sends an <c>Input</c> every prediction
-    /// tick with the last <c>InputRedundancy</c> inputs not yet acknowledged by <c>LastAppliedInputTick</c>.
+    /// clock (<see cref="TimeSync"/>) and the own prediction (<see cref="Predictor"/>), the render clock (<see cref="InterpolationBuffer"/>)
+    /// and the display state (<see cref="PresentationState"/>, built every prediction tick; server events by the
+    /// <see cref="EventScheduler"/>), and sends an <c>Input</c> every prediction tick with the last <c>InputRedundancy</c> inputs not
+    /// yet acknowledged by <c>LastAppliedInputTick</c>.
     /// Frame loop (as <c>IMatchDriver</c>, S3.10): <see cref="NetClient.Update"/> → <see cref="BeginFrame"/> (reconcile on a new
     /// snapshot, ticks due) → <see cref="Step"/> per tick. A tick predicted again after a clock jump back keeps the input already
     /// sent for it (the server keeps the first copy). Allocates only on <c>MatchStart</c> (Defs, shadow simulation).
@@ -44,6 +46,7 @@ namespace Arena.Net.Client
             _content = content ?? throw new ArgumentNullException(nameof(content));
             Settings = settings ?? ClientMatchSettings.CreateDefault();
             Clock = new TimeSync(Settings);
+            Interpolation = new InterpolationBuffer(Settings, Ring);
             client.Match = this;
             _readyWanted = Settings.ReadyOnMatchStart;
         }
@@ -53,6 +56,12 @@ namespace Arena.Net.Client
         public TimeSync Clock { get; }
         public InputHistory Inputs { get; } = new InputHistory();
         public SnapshotFrameRing Ring { get; } = new SnapshotFrameRing();
+        public InterpolationBuffer Interpolation { get; }
+        public EventScheduler Scheduler { get; } = new EventScheduler();
+        public ClientNetStats NetStats { get; } = new ClientNetStats();
+
+        /// <summary>The display state (created on <c>MatchStart</c>); read it after <see cref="Step"/>.</summary>
+        public PresentationState Presentation { get; private set; }
 
         /// <summary>Created on <c>MatchStart</c>.</summary>
         public Predictor Predictor { get; private set; }
@@ -125,10 +134,11 @@ namespace Arena.Net.Client
             if (_newSnapshot && Predictor != null && Latest != null)
             {
                 _newSnapshot = false;
-                Predictor.Reconcile(Latest, Inputs, Clock.PredictionTick);
+                Predictor.Reconcile(Latest, Inputs, Clock.PredictionTick, Presentation.HasState ? Presentation.State : null);
                 if (Predictor.ResimLimitHit) Clock.JumpTo(Predictor.ShadowTick, Client.RttMicros);
             }
             Predictor?.Decay(seconds);
+            if (HasEnded && Presentation != null && !Presentation.Ended) Presentation.ApplyEnded(Ended);
             if (HasEnded || !HasStart) return 0;
             return Clock.Advance(nowMicros);
         }
@@ -146,7 +156,15 @@ namespace Arena.Net.Client
                 Inputs.Set(tick, in input);
             }
             if (tick == 0 && Latest != null) MarginAtZero = Latest.Header.InputMarginMin;
-            Predictor?.Predict(tick, in input);
+            bool predicted = false;
+            if (Predictor != null)
+            {
+                if (Presentation.HasState) Predictor.SetShownOthers(Presentation.State);
+                predicted = Predictor.Predict(tick, in input);
+                Interpolation.Advance();
+                Interpolation.Sample();
+                Presentation.Build(tick, Predictor, Interpolation, Scheduler, predicted ? Predictor.Shadow.Events : null, NetStats);
+            }
             if (!Silent) SendInput(tick, nowMicros);
             Clock.CompleteTick();
         }
@@ -201,13 +219,14 @@ namespace Arena.Net.Client
         public bool OnSnapshot(byte[] buffer, int offset, int length)
         {
             SnapshotBytesReceived += length;
-            SnapshotDecodeStatus status = _decoder.Decode(buffer, offset, length, Ring, _events, out _, out SnapshotFrame frame,
-                out int serverTick);
+            SnapshotDecodeStatus status = _decoder.Decode(buffer, offset, length, Ring, _events, out int eventCount,
+                out SnapshotFrame frame, out int serverTick);
             switch (status)
             {
                 case SnapshotDecodeStatus.Ok:
                     SnapshotsDecoded++;
                     if (frame.Header.IsKeyframe) Keyframes++;
+                    if (HasStart) Scheduler.Add(_events, eventCount, Start.OwnSlot, !frame.Header.BotControlled);
                     if (Latest != null && unchecked(serverTick - NewestServerTick) <= 0)
                     {
                         SnapshotsLate++;
@@ -218,8 +237,10 @@ namespace Arena.Net.Client
                     NewestServerTick = serverTick;
                     if (frame.Header.BotControlled) BotControlledSnapshots++;
                     long rtt = Client.RttMicros;
-                    if (!Clock.Started) Clock.Start(serverTick, rtt, Client.Transport.Connection.LastReceiveMicros);
+                    long arrival = Client.Transport.Connection.LastReceiveMicros;
+                    if (!Clock.Started) Clock.Start(serverTick, rtt, arrival);
                     else Clock.OnSnapshot(serverTick, frame.Header.InputMarginMin, rtt);
+                    Interpolation.OnSnapshot(serverTick, arrival);
                     _newSnapshot = true;
                     return true;
                 case SnapshotDecodeStatus.MissingBaseline:
@@ -249,6 +270,7 @@ namespace Arena.Net.Client
             {
                 MatchDefs defs = _content.CreateMatchDefs(m.MapIndex, m.Mode);
                 Predictor = new Predictor(defs, setup, m.OwnSlot, Settings); // validates the slot table against the Defs
+                Presentation = new PresentationState(defs, setup, m.OwnSlot, Settings);
                 Defs = defs;
             }
             catch (ArgumentException)
@@ -256,6 +278,7 @@ namespace Arena.Net.Client
                 return false; // not our content or a broken table: the match cannot be shown
             }
             Setup = setup;
+            Interpolation.SnapshotInterval = m.SnapshotRateDivisor > 0 ? m.SnapshotRateDivisor : 1;
             HasStart = true;
             return true;
         }

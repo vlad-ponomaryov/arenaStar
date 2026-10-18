@@ -43,6 +43,24 @@ namespace Arena.Net.Client
         /// <summary>A prediction error above this (cells) counts as a large correction in the statistics (Server-Spec §11.1).</summary>
         public float LargeCorrectionCells;
 
+        /// <summary>Interpolation delay in snapshot intervals (before the jitter part), Server-Spec §2.3.</summary>
+        public float InterpDelaySnapshots;
+
+        /// <summary>The interpolation delay adds this many times the arrival jitter (EMA of |interval − nominal|, ticks).</summary>
+        public float InterpJitterFactor;
+
+        /// <summary>Weight of a new sample in the arrival jitter EMA (0…1).</summary>
+        public float InterpJitterSmoothing;
+
+        /// <summary>Render-clock rate change per tick of error (0.02 = 2 % per tick), clamped by <see cref="MaxTimeDilation"/>.</summary>
+        public float InterpGain;
+
+        /// <summary>The interpolation delay never exceeds this (ms); the server caps the reported delay the same way (§13).</summary>
+        public int InterpDelayMaxMs;
+
+        /// <summary>Without newer data a fighter is extrapolated by its velocity at most this long (ms), then it stands.</summary>
+        public int MaxExtrapolationMs;
+
         /// <summary>Answer <c>MatchStart</c> with <c>ClientReady</c> at once (tests, self-test); the game sends it after the scene loads.</summary>
         public bool ReadyOnMatchStart;
 
@@ -59,6 +77,12 @@ namespace Arena.Net.Client
             CorrectionSmoothingSeconds = 0.1f,
             SnapDistanceCells = 3f,
             LargeCorrectionCells = 0.25f,
+            InterpDelaySnapshots = 2f,
+            InterpJitterFactor = 2f,
+            InterpJitterSmoothing = 0.1f,
+            InterpGain = 0.02f,
+            InterpDelayMaxMs = 200,
+            MaxExtrapolationMs = 120,
             ReadyOnMatchStart = true
         };
     }
