@@ -32,6 +32,15 @@
 
 <!-- Q-009 и далее. Для «3 неудачи подряд»: что пробовали, где лог (Tools/out/...), в каком состоянии оставлено. -->
 
+**Q-009 [открыт] (S1.1, 2026-10-18 09:45) — Нет активной лицензии Unity: активируйте Personal-лицензию в Unity Hub.**
+Проверка `Unity.exe -batchmode -nographics -quit -logFile Tools/out/license-check.log` → код 198,
+`No valid Unity Editor license found. Please activate your license.` (`Found 0 entitlement groups`, `Access token is unavailable`).
+Нужно: войти в Unity Hub под своей учётной записью и активировать Personal (агент аккаунты не создаёт и пароли не вводит).
+Состояние: Unity 6000.3.26f1 + Android установлены; `Tools/UnityCommon.ps1`, `compile.ps1`, `test.ps1`, `unity-method.ps1`,
+`Arena.Editor.asmdef` и `PackageInstaller` написаны и закоммичены; проект Unity ещё **не создан** (S1.1 п. 2, 7, 8 не выполнены).
+По плану ночь остановлена. После активации: продолжить S1.1 с п. 2 (`-createProject`), затем `unity-method.ps1 -NoQuit
+-Method Arena.Editor.Setup.PackageInstaller.Install`, `compile.ps1`, `test.ps1`.
+
 ## Закрытые
 
 <!-- Перенести сюда вопрос с ответом человека. -->
