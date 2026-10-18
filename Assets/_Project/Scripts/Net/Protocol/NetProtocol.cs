@@ -82,5 +82,25 @@ namespace Arena.Net.Protocol
         /// <summary>Snapshot event fields (§4.4).</summary>
         public const int EventTypeBits = 5;
         public const int SlotBits = 4;
+
+        /// <summary>A 4-bit slot field with this value means "no fighter" (−1).</summary>
+        public const int NoSlot = (1 << SlotBits) - 1;
+
+        // ---- Snapshots (§4.4, S3.5) ----
+
+        /// <summary>Velocity of a foreign fighter (extrapolation only): int16 per axis in 1/<see cref="VelocityStepsPerCell"/> cell/s.</summary>
+        public const int VelocityStepsPerCell = 64;
+        public const int VelocityBits = 16;
+
+        /// <summary>Slot field widths of the snapshot lists: <c>SimLimits.MaxProjectiles</c> = 256, <c>MaxAreas</c> = <c>MaxPickups</c> = 64.</summary>
+        public const int ProjectileSlotBits = 8;
+        public const int AreaSlotBits = 6;
+        public const int PickupSlotBits = 6;
+
+        /// <summary>Mask of fighters a projectile already hit: one bit per fighter slot (<c>SimLimits.MaxFighters</c>).</summary>
+        public const int HitMaskBits = 10;
+
+        /// <summary>Foreign fighter flags (<c>NetFighterFlags</c>).</summary>
+        public const int FighterFlagBits = 8;
     }
 }

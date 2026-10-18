@@ -97,6 +97,23 @@ namespace Arena.Net.Serialization
 
         public static float PositionStep => 1f / NetProtocol.PositionStepsPerCell;
 
+        // ---- Velocity of a foreign fighter (extrapolation only) ----
+
+        private const int VelocityMaxValue = (1 << (NetProtocol.VelocityBits - 1)) - 1;
+
+        /// <summary>Cells per second → int16 in 1/<see cref="NetProtocol.VelocityStepsPerCell"/> cell/s, clamped.</summary>
+        public static short ToVelocity(float cellsPerSecond)
+        {
+            if (!MathUtil.IsFinite(cellsPerSecond)) return 0;
+            float scaled = MathUtil.Clamp(cellsPerSecond * NetProtocol.VelocityStepsPerCell, -VelocityMaxValue, VelocityMaxValue);
+            return (short)MathUtil.RoundToInt(scaled);
+        }
+
+        public static float FromVelocity(short quantized) => quantized / (float)NetProtocol.VelocityStepsPerCell;
+
+        /// <summary>Unit direction → <paramref name="bits"/>-bit angle (views only; uses trigonometry, never fed back into a simulation).</summary>
+        public static uint ToDirectionAngle(Vec2 dir, int bits) => ToAngle(MathUtil.DirToAngle(dir), bits);
+
         // ---- Angles (views only) ----
 
         /// <summary>Angle in degrees (any range) → <paramref name="bits"/>-bit integer of a full turn.</summary>

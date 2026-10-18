@@ -30,6 +30,11 @@ namespace Arena.Core.State
         /// <summary>Winning team, or −1 for a draw (valid when ended).</summary>
         public int WinnerTeam;
 
+        /// <summary>Acorns carried by team 0 / team 1 (Acorns mode), written by <c>AcornsRules</c> every tick: the HUD reads
+        /// the score here, not as a sum over fighters — a hidden carrier is not in an online snapshot (Server-Spec §4.4, D-081).</summary>
+        public int Team0Acorns;
+        public int Team1Acorns;
+
         // --- Last Beast (Server-Spec §9.2); 0 in other modes. ---
 
         /// <summary>Fog steps done so far (0 = no fog yet).</summary>
@@ -54,7 +59,7 @@ namespace Arena.Core.State
 
         public bool Equals(ModeState o) => Phase == o.Phase && NextSpawnTick == o.NextSpawnTick && NextGoldenTick == o.NextGoldenTick
             && CountdownTeam == o.CountdownTeam && CountdownEndTick == o.CountdownEndTick && EndTick == o.EndTick
-            && WinnerTeam == o.WinnerTeam && FogStep == o.FogStep && NextFogStepTick == o.NextFogStepTick
+            && WinnerTeam == o.WinnerTeam && Team0Acorns == o.Team0Acorns && Team1Acorns == o.Team1Acorns && FogStep == o.FogStep && NextFogStepTick == o.NextFogStepTick
             && NextFogPulseTick == o.NextFogPulseTick && SafeMinX == o.SafeMinX && SafeMinY == o.SafeMinY && SafeMaxX == o.SafeMaxX
             && SafeMaxY == o.SafeMaxY && AliveCount == o.AliveCount;
 

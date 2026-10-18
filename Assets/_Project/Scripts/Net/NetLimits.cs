@@ -41,5 +41,28 @@ namespace Arena.Net
 
         /// <summary>Late button presses carried over to the next tick where they make an edge (§2.4).</summary>
         public const int MaxPendingPresses = 3;
+
+        // ---- Snapshot "views" (§4.4, S3.5): capacities of the compact lists of a SnapshotFrame ----
+
+        /// <summary>Projectile segments (live and recently ended) in one view; the nearest win (a full packet holds ≈ 90).</summary>
+        public const int MaxSnapshotProjectiles = 64;
+
+        /// <summary>Areas (zones, mines, fields) in one view.</summary>
+        public const int MaxSnapshotAreas = 32;
+
+        /// <summary>Pickups (acorns, berries) in one view = every pickup slot of the simulation.</summary>
+        public const int MaxSnapshotPickups = 64;
+
+        /// <summary>Statuses of the own fighter in one view.</summary>
+        public const int MaxSnapshotOwnStatuses = 16;
+
+        /// <summary>Events one decoded snapshot can carry (≥ the server setting <c>MaxEventsPerSnapshot</c>).</summary>
+        public const int MaxSnapshotEvents = 64;
+
+        /// <summary>Ticks of view events kept by the server's event journal (≥ redundancy × snapshot rate divisor).</summary>
+        public const int EventJournalTicks = 16;
+
+        /// <summary>View events journaled per tick; the rest of a tick is dropped and counted.</summary>
+        public const int MaxJournalEventsPerTick = 64;
     }
 }

@@ -20,7 +20,8 @@ namespace Arena.Server
     /// bit packing round trip, varint / zigzag edges, aim quantization, <c>MatchState.CopyFrom</c> / <c>ContentEquals</c>,
     /// zero allocations of the coder (<c>GC.GetAllocatedBytesForCurrentThread</c> is exact on CoreCLR); S3.2: the content
     /// pack re-encodes to the same bytes, headless Acorns match of bots by the pack (ms/tick, two runs give one
-    /// <c>StateHash</c>); S3.3: the same for a Last Beast match of 10 bots (one winner). Real UDP arrives in S3.9.
+    /// <c>StateHash</c>); S3.3: the same for a Last Beast match of 10 bots (one winner); S3.4: loopback UDP transport; S3.5: snapshots of
+    /// whole bot matches (views match, budget, 0 B steady state). Real UDP server arrives in S3.9.
     /// </summary>
     public static class SelfTest
     {
@@ -50,6 +51,8 @@ namespace Arena.Server
             Check("content pack re-encodes to the same bytes", ContentPackRoundTrip);
             Check("headless Acorns match of bots, two runs give one state hash", HeadlessAcornsMatch);
             Check("headless Last Beast match of 10 bots, one winner, two runs give one state hash", HeadlessLastBeastMatch);
+            Check("snapshots: Acorns 3x3 bot match, views match, budget, 0 B steady state", () => SnapshotSelfTest.Run(_out, _content.Bundle, ModeKind.Acorns, HeadlessSeed));
+            Check("snapshots: Last Beast 10 bots, views match, budget, 0 B steady state", () => SnapshotSelfTest.Run(_out, _content.Bundle, ModeKind.LastBeast, HeadlessSeed));
             Check("transport: 10 000 packets over loopback UDP, reliable in order", () => LoopbackTransportTest.Run(_out, _content.Hash));
             _out.WriteLine("SELFTEST: " + (_failed == 0 ? "OK" : "FAILED") + ", passed " + _passed + ", failed " + _failed);
             return _failed == 0;

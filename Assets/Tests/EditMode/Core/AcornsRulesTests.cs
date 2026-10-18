@@ -67,6 +67,22 @@ namespace Arena.Tests.EditMode.Core
         }
 
         [Test]
+        public void TeamAcorns_AreWrittenToModeStateEveryTick()
+        {
+            MatchSimulation sim = AcornsTestFactory.Create();
+            Run(sim, 1);
+            Assert.AreEqual(0, sim.State.Mode.Team0Acorns);
+            sim.State.Fighters[0].CarriedAcorns = 4;
+            Run(sim, 1);
+            Assert.AreEqual(AcornsRules.TeamAcorns(sim.State, 0), sim.State.Mode.Team0Acorns);
+            Assert.AreEqual(4, sim.State.Mode.Team0Acorns);
+            Assert.AreEqual(AcornsRules.TeamAcorns(sim.State, 1), sim.State.Mode.Team1Acorns);
+            sim.State.Fighters[0].CarriedAcorns = 1;
+            Run(sim, 1);
+            Assert.AreEqual(1, sim.State.Mode.Team0Acorns, "the score follows the carriers (S3.5: a hidden carrier is not in a snapshot)");
+        }
+
+        [Test]
         public void Pickup_WaitsForPickableTick()
         {
             MatchSimulation sim = AcornsTestFactory.Create();

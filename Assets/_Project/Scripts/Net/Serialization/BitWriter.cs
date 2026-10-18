@@ -130,6 +130,23 @@ namespace Arena.Net.Serialization
 
         public void WriteVarLong(long value) => WriteVarULong(VarInt.ZigZagEncode64(value));
 
+        /// <summary>
+        /// Moves back to <paramref name="bitPosition"/> (≤ <see cref="BitsWritten"/>), forgetting what was written after it and
+        /// clearing <see cref="IsOverflow"/>: an item that did not fit a budget is taken back (snapshot priorities, §4.4).
+        /// </summary>
+        public void Rewind(int bitPosition)
+        {
+            if (bitPosition < 0 || bitPosition > _bitPos) throw new ArgumentOutOfRangeException(nameof(bitPosition));
+            _bitPos = bitPosition;
+            IsOverflow = false;
+            int offset = bitPosition & 7;
+            if (offset != 0)
+            {
+                int index = _start + (bitPosition >> 3);
+                _buffer[index] &= (byte)((1 << offset) - 1);
+            }
+        }
+
         /// <summary>Pads with zero bits up to the next byte boundary.</summary>
         public void AlignToByte()
         {

@@ -134,6 +134,8 @@ namespace Arena.Core.Modes
             ref ModeState m = ref state.Mode;
             int team0 = TeamAcorns(state, 0);
             int team1 = TeamAcorns(state, 1);
+            m.Team0Acorns = team0;
+            m.Team1Acorns = team1;
             int leader = team0 > team1 ? 0 : (team1 > team0 ? 1 : NoTeam);
             int leaderAcorns = team0 > team1 ? team0 : team1;
             int tick = state.Globals.Tick;
