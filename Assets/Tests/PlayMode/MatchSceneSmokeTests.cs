@@ -22,6 +22,7 @@ namespace Arena.Tests.PlayMode
         [UnityTest]
         public IEnumerator MatchScene_RunsThreeSeconds_WithoutErrors()
         {
+            SceneFlow.ClearLaunchParams();
             yield return SceneManager.LoadSceneAsync(SceneNames.Match, LoadSceneMode.Single);
             yield return null;
 

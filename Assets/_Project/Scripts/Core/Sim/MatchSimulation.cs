@@ -1,6 +1,7 @@
 using System;
 using Arena.Core.Defs;
 using Arena.Core.Input;
+using Arena.Core.Modes;
 using Arena.Core.Random;
 using Arena.Core.Sim.Events;
 using Arena.Core.Sim.Systems;
@@ -24,10 +25,13 @@ namespace Arena.Core.Sim
     ///   7. areas (delayed zones);
     ///      effects, damage, healing, ult charge and defeat happen inside 4–7 (DamageSystem is the single health point);
     ///   8. respawn;
+    ///   8a. mode rules (Acorns: acorns from the hollow, pickup, hold countdown, time limit — AcornsRules);
     ///   9. attack charges;
     ///  10. regeneration;
     ///  11. visibility (bushes, reveal, invisibility, marks; read by views, bots and next tick's auto-aim);
     ///  12. Tick++.
+    /// Once the mode has ended (<see cref="ModePhase.Ended"/>) Tick only clears the events: input is ignored and the state
+    /// stands still (the results screen reads it).
     /// Movement, dashes and projectiles collide with the mutable map tiles in the state (walls break there).
     ///
     /// No allocations per tick: the state, the event buffer and the input scratch array are allocated once here.
@@ -71,8 +75,12 @@ namespace Arena.Core.Sim
             TileSystem.Load(State, Defs.Map);
             for (int i = 0; i < Setup.SlotCount; i++)
                 SpawnSystem.SpawnFighter(State, Defs, Setup, i, Events);
+            AcornsRules.Reset(State, Defs);
             VisibilitySystem.Run(State, Defs);
         }
+
+        /// <summary>The mode has ended; further ticks do nothing.</summary>
+        public bool IsEnded => State.Mode.IsEnded;
 
         /// <param name="inputs">Input per fighter slot (index = slot); length ≥ <see cref="FighterCount"/>.</param>
         public void Tick(PlayerInput[] inputs)
@@ -82,6 +90,7 @@ namespace Arena.Core.Sim
                 throw new ArgumentException("MatchSimulation.Tick: need " + count + " inputs");
 
             Events.Clear();
+            if (State.Mode.IsEnded) return;
             ApplyInputs(inputs, count);
             StatusSystem.Run(State);
             MovementSystem.Run(State, Defs, _inputs);
@@ -90,6 +99,7 @@ namespace Arena.Core.Sim
             ProjectileSystem.Run(State, Defs, Events);
             AreaSystem.Run(State, Defs, Events);
             RespawnSystem.Run(State, Defs, Setup, Events);
+            AcornsRules.Run(State, Defs, Events);
             ChargeSystem.Run(State, Defs, Events);
             RegenSystem.Run(State, Defs);
             VisibilitySystem.Run(State, Defs);

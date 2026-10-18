@@ -84,6 +84,22 @@ namespace Arena.Tests.EditMode.Data
         }
 
         [Test]
+        public void MenuFighter_GoesToLocalSlot_SwappingWithItsSlot_AndSeedIsUsed()
+        {
+            MatchDefs defs = TestMatchFactory.CreateDefs();
+            MatchSetup setup = MatchSetupFactory.Create(_config, defs, "test2", 99);
+            Assert.AreEqual(99, setup.Seed);
+            Assert.AreEqual(1, setup.Slots[0].FighterIndex, "local slot plays the chosen fighter");
+            Assert.AreEqual(0, setup.Slots[1].FighterIndex, "the slot that had it gets the old local fighter");
+            for (int i = 2; i < 6; i++) Assert.AreEqual(i % 2, setup.Slots[i].FighterIndex, "slot " + i + " unchanged");
+
+            MatchSetup same = MatchSetupFactory.Create(_config, defs, "test", 5);
+            Assert.AreEqual(0, same.Slots[0].FighterIndex);
+            Assert.AreEqual(1, same.Slots[1].FighterIndex);
+            Assert.Throws<ArgumentException>(() => MatchSetupFactory.Create(_config, defs, "unknown", 1));
+        }
+
+        [Test]
         public void SeededDatabase_BuildsAPlayableDefaultMatch()
         {
             DataSeeder.SeedAll();

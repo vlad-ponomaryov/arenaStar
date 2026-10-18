@@ -80,6 +80,28 @@ namespace Arena.Tests.EditMode.Setup
             Assert.Greater(style.MoveStick.Radius, 0f);
             Assert.Greater(style.AttackStick.Radius, 0f);
             Assert.Greater(style.UltStick.Radius, 0f);
+            Assert.Greater(style.TitleFontSize, 0);
+            Assert.Greater(style.MenuButtonSize.x, 0f);
+            Assert.Greater(style.ResultsButtonSize.x, 0f);
+            Assert.Greater(style.ScoreBoxSize.x, 0f);
+        }
+
+        [Test]
+        public void AcornViews_Exist_WithoutColliders()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
+            GameObject[] prefabs = { catalog.AcornPrefab, catalog.AcornGoldenPrefab, catalog.HollowPrefab };
+            foreach (GameObject p in prefabs)
+            {
+                Assert.IsNotNull(p);
+                Assert.AreEqual(0, p.GetComponentsInChildren<Collider>(true).Length, p.name + " has colliders");
+            }
+            foreach (Material m in new[] { catalog.Acorn, catalog.AcornGolden, catalog.Hollow })
+            {
+                Assert.IsNotNull(m);
+                StringAssert.StartsWith("Universal Render Pipeline/", m.shader.name, m.name);
+            }
+            Assert.Greater(catalog.AcornPoolPrewarm, 0);
         }
     }
 }

@@ -1,5 +1,6 @@
 using Arena.Core.Defs;
 using Arena.Data;
+using Arena.Data.Localization;
 using Arena.Editor.Setup;
 using UnityEditor;
 using UnityEngine;
@@ -23,6 +24,64 @@ namespace Arena.Editor.Data
         public const string MatchRunnerConfigPath = CombatFolder + "/MatchRunnerConfig.asset";
         public const string CombatRulesPath = CombatFolder + "/CombatRules.asset";
         public const string GameDatabasePath = DataRoot + "/GameDatabase.asset";
+        public const string ModesFolder = DataRoot + "/Modes";
+        public const string AcornsModePath = ModesFolder + "/Acorns.asset";
+        public const string LocalizationFolder = DataRoot + "/Localization";
+        public const string StringsPath = LocalizationFolder + "/Strings.asset";
+
+        // Acorns mode (GDD §5.4): acorn every 6 s, golden every 60 s worth 3, 12 to hold for 12 s, 2:30 match.
+        private const float AcornSpawnSeconds = 6f;
+        private const float AcornGoldenSeconds = 60f;
+        private const int AcornGoldenValue = 3;
+        private const int AcornTarget = 12;
+        private const float AcornHoldSeconds = 12f;
+        private const float AcornMatchSeconds = 150f;
+
+        // PROTO (D-013, D-025): scatter around the hollow / the defeated fighter, acorn radius, pickup delay of dropped
+        // acorns, landing attempts, MVP weights (a takedown ≈ 1000 damage, an acorn ≈ 400, a knockout −500).
+        private const float AcornSpawnScatter = 1.5f;
+        private const float AcornDropScatter = 1.2f;
+        private const float AcornPickupRadius = 0.3f;
+        private const float AcornPickupDelaySeconds = 0.5f;
+        private const int AcornScatterAttempts = 8;
+        private const float MvpKillWeight = 1000f;
+        private const float MvpDamageWeight = 1f;
+        private const float MvpHealWeight = 1f;
+        private const float MvpAcornWeight = 400f;
+        private const float MvpDeathWeight = 500f;
+
+        // UI strings EN / RU (D-019). Fighter names are original (GDD §6).
+        private static readonly string[][] Strings =
+        {
+            new[] { LocKeys.MenuPlay, "Play", "Играть" },
+            new[] { LocKeys.MenuFighter, "Fighter", "Боец" },
+            new[] { LocKeys.MenuBots, "Bots", "Боты" },
+            new[] { LocKeys.MenuLanguage, "Language", "Язык" },
+            new[] { LocKeys.MenuVersion, "Version", "Версия" },
+            new[] { LocKeys.BotsNovice, "Novice", "Новичок" },
+            new[] { LocKeys.BotsEasy, "Easy", "Лёгкий" },
+            new[] { LocKeys.LanguageEn, "English", "English" },
+            new[] { LocKeys.LanguageRu, "Русский", "Русский" },
+            new[] { LocKeys.ModeAcorns, "Acorns", "Жёлуди" },
+            new[] { LocKeys.HudHoldAlly, "We hold:", "Держим:" },
+            new[] { LocKeys.HudHoldEnemy, "They hold:", "Держат враги:" },
+            new[] { LocKeys.ResultsVictory, "Victory!", "Победа!" },
+            new[] { LocKeys.ResultsDefeat, "Defeat", "Поражение" },
+            new[] { LocKeys.ResultsDraw, "Draw", "Ничья" },
+            new[] { LocKeys.ResultsMvp, "Best player", "Лучший игрок" },
+            new[] { LocKeys.ResultsAgain, "Play again", "Ещё раз" },
+            new[] { LocKeys.ResultsMenu, "Menu", "Меню" },
+            new[] { LocKeys.ResultsKills, "Takedowns", "Победы" },
+            new[] { LocKeys.ResultsDeaths, "Knocked out", "Выбыл" },
+            new[] { LocKeys.ResultsDamage, "Damage", "Урон" },
+            new[] { LocKeys.ResultsAcorns, "Acorns", "Жёлуди" },
+            new[] { "fighter.pix.name", "Pix", "Пикс" },
+            new[] { "fighter.bruno.name", "Bruno", "Бруно" },
+            new[] { "fighter.chomp.name", "Chomp", "Чомп" },
+            new[] { "fighter.kora.name", "Kora", "Кора" },
+            new[] { "fighter.nova.name", "Nova", "Нова" },
+            new[] { "fighter.vex.name", "Vex", "Векс" }
+        };
 
         /// <summary>Fighter ids in menu order (asset names are the capitalized ids).</summary>
         public static readonly string[] FighterIds = { "pix", "bruno", "chomp", "kora", "nova", "vex" };
@@ -149,6 +208,8 @@ namespace Arena.Editor.Data
             ProjectConfigurator.EnsureFolder(FightersFolder);
             ProjectConfigurator.EnsureFolder(FeelFolder);
             ProjectConfigurator.EnsureFolder(MapsFolder);
+            ProjectConfigurator.EnsureFolder(ModesFolder);
+            ProjectConfigurator.EnsureFolder(LocalizationFolder);
 
             CombatRulesConfig rules = SeedCombatRules();
 
@@ -174,6 +235,8 @@ namespace Arena.Editor.Data
             db.DefaultMap = SeedAcornsGlade();
             db.Camera = SeedCamera();
             db.MatchRunner = SeedMatchRunner();
+            db.AcornsMode = SeedAcornsMode();
+            db.Strings = SeedStrings();
             EditorUtility.SetDirty(db);
 
             AssetDatabase.SaveAssets();
@@ -200,6 +263,40 @@ namespace Arena.Editor.Data
             c.FastSpeed = FastSpeed;
             EditorUtility.SetDirty(c);
             return c;
+        }
+
+        private static AcornsModeConfig SeedAcornsMode()
+        {
+            AcornsModeConfig c = LoadOrCreate<AcornsModeConfig>(AcornsModePath);
+            c.SpawnIntervalSeconds = AcornSpawnSeconds;
+            c.GoldenIntervalSeconds = AcornGoldenSeconds;
+            c.GoldenValue = AcornGoldenValue;
+            c.SpawnScatterRadius = AcornSpawnScatter;
+            c.TargetAcorns = AcornTarget;
+            c.HoldSeconds = AcornHoldSeconds;
+            c.DurationSeconds = AcornMatchSeconds;
+            c.PickupRadius = AcornPickupRadius;
+            c.DropScatterRadius = AcornDropScatter;
+            c.PickupDelaySeconds = AcornPickupDelaySeconds;
+            c.ScatterAttempts = AcornScatterAttempts;
+            c.MvpKillWeight = MvpKillWeight;
+            c.MvpDamageWeight = MvpDamageWeight;
+            c.MvpHealWeight = MvpHealWeight;
+            c.MvpAcornWeight = MvpAcornWeight;
+            c.MvpDeathWeight = MvpDeathWeight;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static LocTable SeedStrings()
+        {
+            LocTable t = LoadOrCreate<LocTable>(StringsPath);
+            if (t.Entries == null) t.Entries = new System.Collections.Generic.List<LocEntry>();
+            t.Entries.Clear();
+            for (int i = 0; i < Strings.Length; i++)
+                t.Entries.Add(new LocEntry { Key = Strings[i][0], En = Strings[i][1], Ru = Strings[i][2] });
+            EditorUtility.SetDirty(t);
+            return t;
         }
 
         private static CameraConfig SeedCamera()

@@ -58,3 +58,31 @@ MonoBehaviour:
     TapMaxSeconds: 0.25
   AllyColor: {r: 0.2, g: 0.52, b: 1, a: 1}
   EnemyColor: {r: 0.95, g: 0.22, b: 0.18, a: 1}
+  TextColor: {r: 1, g: 1, b: 1, a: 1}
+  TitleFontSize: 72
+  LargeFontSize: 52
+  MediumFontSize: 38
+  SmallFontSize: 28
+  ButtonColor: {r: 0.22, g: 0.26, b: 0.34, a: 0.95}
+  ButtonSelectedColor: {r: 0.25, g: 0.55, b: 0.95, a: 1}
+  PrimaryButtonColor: {r: 0.3, g: 0.75, b: 0.4, a: 1}
+  MenuButtonSize: {x: 230, y: 100}
+  PlayButtonSize: {x: 480, y: 140}
+  MenuRowSpacing: 36
+  MenuItemSpacing: 18
+  VersionMargin: {x: 24, y: 24}
+  ScoreBarTopMargin: 20
+  ScoreBoxSize: {x: 150, y: 90}
+  TimerBoxSize: {x: 200, y: 90}
+  ScoreBarSpacing: 12
+  ScorePanelColor: {r: 0, g: 0, b: 0, a: 0.45}
+  CountdownSize: {x: 360, y: 70}
+  ResultsBackdropColor: {r: 0.05, g: 0.06, b: 0.09, a: 0.88}
+  MvpCapsuleSize: {x: 110, y: 200}
+  MvpBounceHeight: 40
+  MvpBounceFrequency: 1.5
+  ResultsRowHeight: 52
+  ResultsNameColumnWidth: 360
+  ResultsStatColumnWidth: 210
+  ResultsSpacing: 24
+  ResultsButtonSize: {x: 400, y: 120}

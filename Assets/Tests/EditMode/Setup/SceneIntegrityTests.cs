@@ -2,7 +2,9 @@ using Arena.Editor.Build;
 using Arena.Gameplay.Cameras;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Match;
+using Arena.Modes;
 using Arena.UI.Hud;
+using Arena.UI.Menu;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -118,6 +120,27 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(controls.UltStick);
             Assert.IsNotNull(controls.TrickButton);
             Assert.AreEqual(Vector2.zero, controls.AttackStick.Aim);
+        }
+
+        [Test]
+        public void Match_AcornsModeView_ReferencesTheRunner()
+        {
+            Scene scene = Open(SceneNames.Match);
+            AcornsModeView view = FindSingle<AcornsModeView>(scene);
+            AssertAllReferencesSet(view);
+            Assert.AreSame(FindSingle<MatchRunner>(scene), view.Runner);
+            Assert.IsNotNull(view.Runner.Database.AcornsMode, "GameDatabase.AcornsMode");
+            Assert.IsNotNull(view.Runner.Database.Strings, "GameDatabase.Strings");
+        }
+
+        [Test]
+        public void Menu_MenuScreen_HasDatabaseAndStyle()
+        {
+            Scene scene = Open(SceneNames.Menu);
+            MenuScreen menu = FindSingle<MenuScreen>(scene);
+            AssertAllReferencesSet(menu);
+            Assert.IsNotNull(menu.Database.Strings);
+            Assert.Greater(menu.Database.Fighters.Count, 0);
         }
 
         [Test]

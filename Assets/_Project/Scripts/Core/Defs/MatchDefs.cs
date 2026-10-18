@@ -1,5 +1,6 @@
 using System;
 using Arena.Core.Map;
+using Arena.Core.Modes;
 
 namespace Arena.Core.Defs
 {
@@ -14,6 +15,12 @@ namespace Arena.Core.Defs
 
         /// <summary>The map of the match (initial tiles, spawns); the mutable tiles are in <c>MatchState.Tiles</c>.</summary>
         public MapDef Map;
+
+        /// <summary>Mode rules of the match (<see cref="ModeKind.None"/> = no objective and no end).</summary>
+        public ModeKind Mode;
+
+        /// <summary>Acorns mode parameters (required when <see cref="Mode"/> is <see cref="ModeKind.Acorns"/>).</summary>
+        public AcornsModeDef Acorns;
 
         /// <summary>Ability slots per fighter in an ability reference (<see cref="AbilitySlot"/>).</summary>
         public const int AbilitySlotsPerFighter = 3;
@@ -58,6 +65,12 @@ namespace Arena.Core.Defs
             }
             if (Map == null) throw new ArgumentException("MatchDefs.Map is null");
             Map.Validate();
+            if (Mode == ModeKind.Acorns)
+            {
+                if (Acorns == null) throw new ArgumentException("MatchDefs.Acorns is null for the Acorns mode");
+                Acorns.Validate();
+                if (!Map.HasHollow) throw new ArgumentException("Map '" + Map.Id + "' has no hollow for the Acorns mode");
+            }
         }
     }
 }

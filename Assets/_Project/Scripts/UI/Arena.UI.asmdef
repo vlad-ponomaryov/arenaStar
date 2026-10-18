@@ -3,6 +3,7 @@
     "rootNamespace": "Arena.UI",
     "references": [
         "Arena.Core",
+        "Arena.Bots",
         "Arena.Data",
         "Arena.Gameplay",
         "Arena.Modes",

@@ -71,6 +71,9 @@ namespace Arena.Core.State
         public bool TrickUnlocked;
         public bool TalentUnlocked;
 
+        /// <summary>Acorns carried (Acorns mode); dropped on defeat (<c>AcornsRules.OnDefeat</c>).</summary>
+        public int CarriedAcorns;
+
         // --- Aggregates of the active statuses (StatusSystem recomputes them; neutral = 1 / false / 0). ---
 
         /// <summary>Movement speed multiplier from slows (1 = normal).</summary>
@@ -136,7 +139,7 @@ namespace Arena.Core.State
                 && RespawnTick == o.RespawnTick && BurstShotsLeft == o.BurstShotsLeft && NextBurstTick == o.NextBurstTick
                 && BurstDir == o.BurstDir && UltCharge == o.UltCharge
                 && TrickUsesLeft == o.TrickUsesLeft && TrickReadyTick == o.TrickReadyTick
-                && TrickUnlocked == o.TrickUnlocked && TalentUnlocked == o.TalentUnlocked
+                && TrickUnlocked == o.TrickUnlocked && TalentUnlocked == o.TalentUnlocked && CarriedAcorns == o.CarriedAcorns
                 && SpeedMul == o.SpeedMul && DamageTakenMul == o.DamageTakenMul && Stunned == o.Stunned
                 && Invisible == o.Invisible && MarkedByTeamMask == o.MarkedByTeamMask
                 && InBush == o.InBush && VisibleToTeams == o.VisibleToTeams && RevealedUntilTick == o.RevealedUntilTick

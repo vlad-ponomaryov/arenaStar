@@ -46,6 +46,24 @@ namespace Arena.Core.Sim.Events
 
         /// <summary>Breakable wall destroyed (now floor). Source = breaker (or −1), Value = tile index (row × width + column),
         /// Position = cell centre.</summary>
-        TileBroken = 12
+        TileBroken = 12,
+
+        /// <summary>Acorn appeared. Value = pickup slot, Position = where it lies.</summary>
+        PickupSpawned = 13,
+
+        /// <summary>Acorn picked up. Source = fighter, Value = acorns it was worth, Position = where it lay.</summary>
+        PickupCollected = 14,
+
+        /// <summary>A defeated fighter dropped its acorns. Source = fighter, Value = acorns dropped, Position = fighter.</summary>
+        AcornsDropped = 15,
+
+        /// <summary>Hold countdown started. Value = team.</summary>
+        CountdownStarted = 16,
+
+        /// <summary>Hold countdown reset. Value = team that lost it.</summary>
+        CountdownReset = 17,
+
+        /// <summary>Match over. Value = winning team, or −1 for a draw.</summary>
+        MatchEnded = 18
     }
 }

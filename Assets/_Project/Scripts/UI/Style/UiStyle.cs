@@ -64,5 +64,58 @@ namespace Arena.UI.Style
         [Header("Team colours (D-029)")]
         public Color AllyColor;
         public Color EnemyColor;
+
+        [Header("Text and buttons (menu, score, results; built-in LegacyRuntime font, D-018)")]
+        public Color TextColor;
+        public int TitleFontSize;
+        public int LargeFontSize;
+        public int MediumFontSize;
+        public int SmallFontSize;
+        public Color ButtonColor;
+
+        [Tooltip("Chosen option in a row of choices (fighter, bots, language).")]
+        public Color ButtonSelectedColor;
+
+        [Tooltip("Main action: Play, Play again.")]
+        public Color PrimaryButtonColor;
+
+        [Header("Menu")]
+        public Vector2 MenuButtonSize;
+        public Vector2 PlayButtonSize;
+
+        [Tooltip("Vertical gap between the rows of the menu.")]
+        public float MenuRowSpacing;
+
+        [Tooltip("Horizontal gap between the buttons of a row.")]
+        public float MenuItemSpacing;
+
+        [Tooltip("Version label offset from the bottom-left corner.")]
+        public Vector2 VersionMargin;
+
+        [Header("Score bar (Acorns)")]
+        [Tooltip("Distance from the top edge of the screen to the bar.")]
+        public float ScoreBarTopMargin;
+
+        public Vector2 ScoreBoxSize;
+        public Vector2 TimerBoxSize;
+        public float ScoreBarSpacing;
+        public Color ScorePanelColor;
+
+        [Tooltip("Hold countdown text below the bar.")]
+        public Vector2 CountdownSize;
+
+        [Header("Results")]
+        public Color ResultsBackdropColor;
+        public Vector2 MvpCapsuleSize;
+
+        [Tooltip("Jump height of the MVP capsule, canvas units, and jumps per second.")]
+        public float MvpBounceHeight;
+        public float MvpBounceFrequency;
+
+        public float ResultsRowHeight;
+        public float ResultsNameColumnWidth;
+        public float ResultsStatColumnWidth;
+        public float ResultsSpacing;
+        public Vector2 ResultsButtonSize;
     }
 }

@@ -27,6 +27,25 @@ namespace Arena.Gameplay.View
         [Tooltip("Low bush cube of 1 cell, pivot at the bottom centre (its renderer gets Bush / BushSeeThrough).")]
         public GameObject BushPrefab;
 
+        [Header("Acorns mode (Arena.Modes.AcornsModeView)")]
+        [Tooltip("Normal acorn view, pivot at the centre.")]
+        public GameObject AcornPrefab;
+
+        [Tooltip("Golden acorn view (worth 3).")]
+        public GameObject AcornGoldenPrefab;
+
+        [Tooltip("Hollow in the map centre, 1 cell, pivot at the bottom centre.")]
+        public GameObject HollowPrefab;
+
+        [Tooltip("Acorn views created at match start per kind.")]
+        [Min(0)] public int AcornPoolPrewarm;
+
+        [Tooltip("Height of an acorn above the ground, world units (view only).")]
+        [Min(0f)] public float AcornHeight;
+
+        [Tooltip("Spin of lying acorns, degrees per second (view only).")]
+        public float AcornSpinSpeed;
+
         [Header("Projectiles")]
         [Tooltip("Views created at match start; the pool grows only if more projectiles fly at once.")]
         [Min(0)] public int ProjectilePoolPrewarm;
@@ -71,5 +90,10 @@ namespace Arena.Gameplay.View
 
         [Tooltip("Body of an own-team fighter hidden in a bush (translucent, D-014, D-024).")]
         public Material FighterHidden;
+
+        [Header("Acorns mode materials")]
+        public Material Acorn;
+        public Material AcornGolden;
+        public Material Hollow;
     }
 }

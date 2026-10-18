@@ -19,6 +19,12 @@ MonoBehaviour:
   HealthBarPrefab: {fileID: 5199385430744116495, guid: 9235dc2b177f0734d89a4362e273aa93, type: 3}
   BreakableWallPrefab: {fileID: 5423689921568914059, guid: b8d5c855740b6cc4690f7fb09b3865b2, type: 3}
   BushPrefab: {fileID: 3101755314425890175, guid: 0fc88e0671fc8fe4e8580a307ec14816, type: 3}
+  AcornPrefab: {fileID: 5887361116785313830, guid: 1abf562ef1acaf546b65554f5215ee40, type: 3}
+  AcornGoldenPrefab: {fileID: 2117828572120719844, guid: 0d01c01937945b34a97395fa4ba43e46, type: 3}
+  HollowPrefab: {fileID: 8922491895689300978, guid: 0d0120281a1417341837354039b6d408, type: 3}
+  AcornPoolPrewarm: 16
+  AcornHeight: 0.35
+  AcornSpinSpeed: 90
   ProjectilePoolPrewarm: 64
   ProjectileHeight: 0.8
   WallHeight: 1.2
@@ -40,3 +46,6 @@ MonoBehaviour:
   BushSeeThrough: {fileID: 2100000, guid: 9c8a73d056f15c148a3ad4606df273fc, type: 2}
   Water: {fileID: 2100000, guid: 0d4df32ed6fd251439688df8fa4b9f9a, type: 2}
   FighterHidden: {fileID: 2100000, guid: 6166a5b68f6e1144fb70bd82458488f9, type: 2}
+  Acorn: {fileID: 2100000, guid: 90c3b679bce8b744481ccc16c39aaa64, type: 2}
+  AcornGolden: {fileID: 2100000, guid: b442733606964a44e9f9cda8cd208b8f, type: 2}
+  Hollow: {fileID: 2100000, guid: b8d40b240668932419e1dacb31581a60, type: 2}

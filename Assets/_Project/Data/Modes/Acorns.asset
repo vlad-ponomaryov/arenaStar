@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f18fbf35d9a5b674485e23e8ab5e635f, type: 3}
+  m_Name: Acorns
+  m_EditorClassIdentifier: Arena.Data::Arena.Data.AcornsModeConfig
+  SpawnIntervalSeconds: 6
+  GoldenIntervalSeconds: 60
+  GoldenValue: 3
+  SpawnScatterRadius: 1.5
+  TargetAcorns: 12
+  HoldSeconds: 12
+  DurationSeconds: 150
+  PickupRadius: 0.3
+  DropScatterRadius: 1.2
+  PickupDelaySeconds: 0.5
+  ScatterAttempts: 8
+  MvpKillWeight: 1000
+  MvpDamageWeight: 1
+  MvpHealWeight: 1
+  MvpAcornWeight: 400
+  MvpDeathWeight: 500

@@ -31,6 +31,9 @@ namespace Arena.Editor.Art
         public const string HealthBarPrefabPath = PrefabsFolder + "/HealthBar.prefab";
         public const string BreakableWallPrefabPath = PrefabsFolder + "/BreakableWall.prefab";
         public const string BushPrefabPath = PrefabsFolder + "/Bush.prefab";
+        public const string AcornPrefabPath = PrefabsFolder + "/Acorn.prefab";
+        public const string AcornGoldenPrefabPath = PrefabsFolder + "/AcornGolden.prefab";
+        public const string HollowPrefabPath = PrefabsFolder + "/Hollow.prefab";
 
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
@@ -72,6 +75,18 @@ namespace Arena.Editor.Art
         private const string DstBlendAlphaProperty = "_DstBlendAlpha";
         private const string ZWriteProperty = "_ZWrite";
         private const string TransparentKeyword = "_SURFACE_TYPE_TRANSPARENT";
+
+        // Acorns mode (S2.7, view only, PROTO): brown acorn sphere, bigger golden one, dark hollow stump in the centre.
+        private static readonly Color AcornColor = new Color(0.62f, 0.38f, 0.16f, 1f);
+        private static readonly Color AcornGoldenColor = new Color(1f, 0.80f, 0.15f, 1f);
+        private static readonly Color HollowColor = new Color(0.30f, 0.20f, 0.12f, 1f);
+        private const float AcornDiameter = 0.5f;
+        private const float AcornGoldenDiameter = 0.7f;
+        private const float AcornHeight = 0.35f;
+        private const float AcornSpinSpeed = 90f;
+        private const int AcornPoolPrewarm = 16;
+        private const float HollowDiameter = 1f;
+        private const float HollowHeight = 0.5f;
 
         // Projectiles: pool prewarm (S2.3 plan) and flight height (view only).
         private const int ProjectilePoolPrewarm = 64;
@@ -132,6 +147,12 @@ namespace Arena.Editor.Art
             HealthBarView healthBar = BuildHealthBarPrefab(barAlly, barBackground, barCharge);
             GameObject breakablePrefab = BuildBlockPrefab("BreakableWall", BreakableWallPrefabPath, wallBreakable, WallHeight);
             GameObject bushPrefab = BuildBlockPrefab("Bush", BushPrefabPath, bush, BushHeight);
+            Material acorn = SaveMaterial("Acorn", LitShader, AcornColor);
+            Material acornGolden = SaveMaterial("AcornGolden", UnlitShader, AcornGoldenColor);
+            Material hollow = SaveMaterial("Hollow", LitShader, HollowColor);
+            GameObject acornPrefab = BuildSpherePrefab("Acorn", AcornPrefabPath, acorn, AcornDiameter);
+            GameObject acornGoldenPrefab = BuildSpherePrefab("AcornGolden", AcornGoldenPrefabPath, acornGolden, AcornGoldenDiameter);
+            GameObject hollowPrefab = BuildHollowPrefab(hollow);
 
             ViewCatalog catalog = LoadOrCreate<ViewCatalog>(ViewCatalogPath);
             catalog.FighterViewPrefab = fighterView;
@@ -141,6 +162,15 @@ namespace Arena.Editor.Art
             catalog.HealthBarPrefab = healthBar;
             catalog.BreakableWallPrefab = breakablePrefab;
             catalog.BushPrefab = bushPrefab;
+            catalog.AcornPrefab = acornPrefab;
+            catalog.AcornGoldenPrefab = acornGoldenPrefab;
+            catalog.HollowPrefab = hollowPrefab;
+            catalog.AcornPoolPrewarm = AcornPoolPrewarm;
+            catalog.AcornHeight = AcornHeight;
+            catalog.AcornSpinSpeed = AcornSpinSpeed;
+            catalog.Acorn = acorn;
+            catalog.AcornGolden = acornGolden;
+            catalog.Hollow = hollow;
             catalog.WallHeight = WallHeight;
             catalog.WaterHeight = WaterHeight;
             catalog.BushSeeThroughRadius = BushSeeThroughRadius;
@@ -208,6 +238,36 @@ namespace Arena.Editor.Art
             s.Gesture = new StickGestureSettings(0.2f, 0.25f, 0.25f);
             s.AllyColor = AllyColor;
             s.EnemyColor = EnemyColor;
+
+            // Menu, score bar, results (S2.7, PROTO sizes at 1920×1080 — check on the phone).
+            s.TextColor = Color.white;
+            s.TitleFontSize = 72;
+            s.LargeFontSize = 52;
+            s.MediumFontSize = 38;
+            s.SmallFontSize = 28;
+            s.ButtonColor = new Color(0.22f, 0.26f, 0.34f, 0.95f);
+            s.ButtonSelectedColor = new Color(0.25f, 0.55f, 0.95f, 1f);
+            s.PrimaryButtonColor = new Color(0.30f, 0.75f, 0.40f, 1f);
+            s.MenuButtonSize = new Vector2(230f, 100f);
+            s.PlayButtonSize = new Vector2(480f, 140f);
+            s.MenuRowSpacing = 36f;
+            s.MenuItemSpacing = 18f;
+            s.VersionMargin = new Vector2(24f, 24f);
+            s.ScoreBarTopMargin = 20f;
+            s.ScoreBoxSize = new Vector2(150f, 90f);
+            s.TimerBoxSize = new Vector2(200f, 90f);
+            s.ScoreBarSpacing = 12f;
+            s.ScorePanelColor = new Color(0f, 0f, 0f, 0.45f);
+            s.CountdownSize = new Vector2(360f, 70f);
+            s.ResultsBackdropColor = new Color(0.05f, 0.06f, 0.09f, 0.88f);
+            s.MvpCapsuleSize = new Vector2(110f, 200f);
+            s.MvpBounceHeight = 40f;
+            s.MvpBounceFrequency = 1.5f;
+            s.ResultsRowHeight = 52f;
+            s.ResultsNameColumnWidth = 360f;
+            s.ResultsStatColumnWidth = 210f;
+            s.ResultsSpacing = 24f;
+            s.ResultsButtonSize = new Vector2(400f, 120f);
             EditorUtility.SetDirty(s);
         }
 
@@ -291,6 +351,38 @@ namespace Arena.Editor.Art
                 cube.transform.localScale = new Vector3(1f, height, 1f);
                 cube.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
                 return SavePrefab(root, path);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static GameObject BuildSpherePrefab(string name, string path, Material material, float diameter)
+        {
+            var root = new GameObject(name);
+            try
+            {
+                GameObject sphere = CreatePart(PrimitiveType.Sphere, "Sphere", root.transform, material);
+                sphere.transform.localScale = new Vector3(diameter, diameter * 1.2f, diameter); // slightly egg-shaped
+                return SavePrefab(root, path);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        private static GameObject BuildHollowPrefab(Material material)
+        {
+            var root = new GameObject("Hollow");
+            try
+            {
+                // Unity cylinder: height 2, diameter 1.
+                GameObject stump = CreatePart(PrimitiveType.Cylinder, "Stump", root.transform, material);
+                stump.transform.localScale = new Vector3(HollowDiameter, HollowHeight * 0.5f, HollowDiameter);
+                stump.transform.localPosition = new Vector3(0f, HollowHeight * 0.5f, 0f);
+                return SavePrefab(root, HollowPrefabPath);
             }
             finally
             {

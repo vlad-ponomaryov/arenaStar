@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Arena.Data.Localization;
 using UnityEngine;
 
 namespace Arena.Data
 {
     /// <summary>
     /// Root of all game configs (D-010); scenes reference it directly. Filled by DataSeeder.
-    /// Modes, bots, feel come in later steps.
+    /// Bots and feel come in later steps.
     /// </summary>
     [CreateAssetMenu(fileName = "GameDatabase", menuName = "Arena/Game Database")]
     public sealed class GameDatabase : ScriptableObject
@@ -20,6 +21,12 @@ namespace Arena.Data
 
         [Tooltip("Map of the prototype match (Acorns).")]
         public MapConfig DefaultMap;
+
+        [Tooltip("Rules of the Acorns mode (the stage-2 match). Empty = free fight without an objective.")]
+        public AcornsModeConfig AcornsMode;
+
+        [Tooltip("UI strings EN/RU (D-019).")]
+        public LocTable Strings;
 
         /// <summary>Fighter config by id, or null.</summary>
         public FighterConfig FindFighter(string id)

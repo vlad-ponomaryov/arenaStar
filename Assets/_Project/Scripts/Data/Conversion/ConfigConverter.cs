@@ -1,6 +1,7 @@
 using System;
 using Arena.Core.Defs;
 using Arena.Core.Math;
+using Arena.Core.Modes;
 using Arena.Core.Sim;
 
 namespace Arena.Data.Conversion
@@ -31,8 +32,39 @@ namespace Arena.Data.Conversion
                 Fighters = fighters,
                 Map = MapConverter.ToMapDef(db.DefaultMap)
             };
+            if (db.AcornsMode != null)
+            {
+                defs.Mode = ModeKind.Acorns;
+                defs.Acorns = ToAcornsModeDef(db.AcornsMode);
+            }
             defs.Validate();
             return defs;
+        }
+
+        public static AcornsModeDef ToAcornsModeDef(AcornsModeConfig c)
+        {
+            if (c == null) throw new ArgumentNullException(nameof(c));
+            var def = new AcornsModeDef
+            {
+                SpawnIntervalTicks = SimTime.SecondsToTicks(c.SpawnIntervalSeconds),
+                GoldenIntervalTicks = SimTime.SecondsToTicks(c.GoldenIntervalSeconds),
+                GoldenValue = c.GoldenValue,
+                TargetAcorns = c.TargetAcorns,
+                HoldTicks = SimTime.SecondsToTicks(c.HoldSeconds),
+                DurationTicks = SimTime.SecondsToTicks(c.DurationSeconds),
+                SpawnScatterRadius = c.SpawnScatterRadius,
+                DropScatterRadius = c.DropScatterRadius,
+                PickupRadius = c.PickupRadius,
+                PickupDelayTicks = SimTime.SecondsToTicks(c.PickupDelaySeconds),
+                ScatterAttempts = c.ScatterAttempts,
+                MvpKillWeight = c.MvpKillWeight,
+                MvpDamageWeight = c.MvpDamageWeight,
+                MvpHealWeight = c.MvpHealWeight,
+                MvpAcornWeight = c.MvpAcornWeight,
+                MvpDeathWeight = c.MvpDeathWeight
+            };
+            def.Validate();
+            return def;
         }
 
         public static CombatRules ToCombatRules(CombatRulesConfig c)

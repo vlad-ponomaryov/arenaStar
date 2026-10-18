@@ -17,8 +17,12 @@ namespace Arena.Core.State
         public int Kills;
         public int Deaths;
 
+        /// <summary>Acorns picked up (a golden one counts by its value), Acorns mode.</summary>
+        public int AcornsCollected;
+
         public bool Equals(FighterStats o) =>
-            DamageDealt == o.DamageDealt && HealingDone == o.HealingDone && Kills == o.Kills && Deaths == o.Deaths;
+            DamageDealt == o.DamageDealt && HealingDone == o.HealingDone && Kills == o.Kills && Deaths == o.Deaths
+            && AcornsCollected == o.AcornsCollected;
 
         public override bool Equals(object obj) => obj is FighterStats other && Equals(other);
         public override int GetHashCode() => (DamageDealt * 397) ^ (Kills * 31) ^ Deaths ^ HealingDone;

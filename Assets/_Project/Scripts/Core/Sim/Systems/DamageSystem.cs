@@ -1,5 +1,6 @@
 using Arena.Core.Defs;
 using Arena.Core.Math;
+using Arena.Core.Modes;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 
@@ -70,6 +71,7 @@ namespace Arena.Core.Sim.Systems
             DashSystem.Cancel(ref t);
             StatusSystem.ClearTarget(state, target);
             UltSystem.OnDefeat(ref t, defs.Rules);
+            AcornsRules.OnDefeat(state, defs, events, target);
 
             state.Stats[target].Deaths++;
             if (source >= 0 && source != target) state.Stats[source].Kills++;

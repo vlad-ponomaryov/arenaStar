@@ -1,7 +1,10 @@
 using Arena.Core.Math;
+using Arena.Data.Localization;
+using Arena.Gameplay.Flow;
 using Arena.Gameplay.Input;
 using Arena.Gameplay.Match;
 using Arena.UI.Controls;
+using Arena.UI.Results;
 using Arena.UI.Style;
 using UnityEngine;
 
@@ -12,6 +15,8 @@ namespace Arena.UI.Hud
     /// into the runner's <see cref="LocalInputCollector"/> (touch channel, view space). Runs before <see cref="MatchRunner"/>
     /// so the values of this frame reach this frame's ticks. Lives in Arena.UI because UI depends on Gameplay, not back.
     /// The ult stick works only while the ult is charged (GDD §5.1); ability state is shown by <see cref="AbilityHudView"/>.
+    /// The Acorns score bar (<see cref="ScoreBarView"/>) is on the same canvas; when the match ends the controls are hidden
+    /// and the <see cref="ResultsScreen"/> appears ("Play again" → <see cref="SceneFlow.Restart"/>, "Menu" → <see cref="SceneFlow.ToMenu"/>).
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class MatchHud : MonoBehaviour
@@ -21,10 +26,14 @@ namespace Arena.UI.Hud
 
         private MatchHudControls _controls;
         private AbilityHudView _abilityView;
+        private ScoreBarView _scoreBar;
+        private ResultsScreen _results;
 
         public MatchRunner Runner => _runner;
         public UiStyle Style => _style;
         public MatchHudControls Controls => _controls;
+        public ScoreBarView ScoreBar => _scoreBar;
+        public ResultsScreen Results => _results;
 
         private void Start()
         {
@@ -34,13 +43,27 @@ namespace Arena.UI.Hud
                 enabled = false;
                 return;
             }
+            if (_runner.Database != null && _runner.Database.Strings != null) Loc.Init(_runner.Database.Strings);
             _controls = MatchHudBuilder.Build(transform, _style);
             _abilityView = new AbilityHudView(_controls, _style);
+            _scoreBar = ScoreBarView.Build(_controls.Canvas.transform, _style);
+            _results = ResultsScreen.Build(transform, _style, SceneFlow.Restart, SceneFlow.ToMenu);
         }
 
         private void Update()
         {
             if (_controls == null) return;
+            if (_runner.Simulation != null) _scoreBar.Apply(_runner.Simulation, _runner.LocalTeam);
+            if (_runner.IsMatchEnded)
+            {
+                if (!_results.IsShown)
+                {
+                    SetControlsVisible(false);
+                    _results.Show(_runner.Simulation, _runner.LocalTeam);
+                }
+                _results.Tick();
+                return;
+            }
             LocalInputCollector input = _runner.InputCollector;
             AbilityHudInfo abilities = AbilityHudInfo.From(_runner.Simulation, _runner.LocalSlot);
             if (_runner.Simulation != null) _abilityView.Apply(in abilities);
@@ -63,6 +86,14 @@ namespace Arena.UI.Hud
                 else if (ult == StickGestureResult.Manual) input.PressUlt(ToVec2(ultAim), false);
             }
             if (_controls.TrickButton.ConsumePress()) input.PressTrick();
+        }
+
+        private void SetControlsVisible(bool visible)
+        {
+            _controls.MoveStick.gameObject.SetActive(visible);
+            _controls.AttackStick.gameObject.SetActive(visible);
+            _controls.UltStick.gameObject.SetActive(visible);
+            _controls.TrickButton.gameObject.SetActive(visible);
         }
 
         private static Vec2 ToVec2(Vector2 v) => new Vec2(v.x, v.y);

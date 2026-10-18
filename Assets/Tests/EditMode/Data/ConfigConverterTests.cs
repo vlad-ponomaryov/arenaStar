@@ -163,6 +163,23 @@ namespace Arena.Tests.EditMode.Data
         }
 
         [Test]
+        public void AcornsMode_FromAsset_HasGddValuesInTicks()
+        {
+            MatchDefs defs = LoadDefs();
+            Assert.AreEqual(Arena.Core.Modes.ModeKind.Acorns, defs.Mode);
+            AcornsModeDef a = defs.Acorns;
+            Assert.AreEqual(180, a.SpawnIntervalTicks);
+            Assert.AreEqual(1800, a.GoldenIntervalTicks);
+            Assert.AreEqual(3, a.GoldenValue);
+            Assert.AreEqual(12, a.TargetAcorns);
+            Assert.AreEqual(360, a.HoldTicks);
+            Assert.AreEqual(4500, a.DurationTicks);
+            Assert.AreEqual(15, a.PickupDelayTicks);
+            Assert.IsTrue(defs.Map.HasHollow);
+            Assert.AreEqual(new Arena.Core.Map.GridCell(10, 15), defs.Map.Hollow);
+        }
+
+        [Test]
         public void MissingRules_Throws()
         {
             var db = ScriptableObject.CreateInstance<GameDatabase>();

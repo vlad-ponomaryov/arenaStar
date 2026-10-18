@@ -19,6 +19,12 @@ namespace Arena.Core.State
         public readonly AreaState[] Areas = new AreaState[SimLimits.MaxAreas];
         public readonly StatusEffectState[] Statuses = new StatusEffectState[SimLimits.MaxStatusEffects];
 
+        /// <summary>Items on the map (acorns of the Acorns mode).</summary>
+        public readonly PickupState[] Pickups = new PickupState[SimLimits.MaxPickups];
+
+        /// <summary>Mode rules state (phase, timers, countdown, winner).</summary>
+        public ModeState Mode;
+
         /// <summary>Mutable copy of the map tiles (broken walls), row-major; the first MapWidth × MapHeight entries are used.</summary>
         public readonly TileType[] Tiles = new TileType[SimLimits.MaxMapCells];
 
@@ -39,6 +45,8 @@ namespace Arena.Core.State
             Array.Copy(other.Projectiles, Projectiles, Projectiles.Length);
             Array.Copy(other.Areas, Areas, Areas.Length);
             Array.Copy(other.Statuses, Statuses, Statuses.Length);
+            Array.Copy(other.Pickups, Pickups, Pickups.Length);
+            Mode = other.Mode;
             Array.Copy(other.Tiles, Tiles, Tiles.Length);
         }
 
@@ -46,7 +54,7 @@ namespace Arena.Core.State
         public bool ContentEquals(MatchState other)
         {
             if (other == null) return false;
-            if (!Globals.Equals(other.Globals)) return false;
+            if (!Globals.Equals(other.Globals) || !Mode.Equals(other.Mode)) return false;
             for (int i = 0; i < Fighters.Length; i++)
                 if (!Fighters[i].Equals(other.Fighters[i]) || !Stats[i].Equals(other.Stats[i])) return false;
             for (int i = 0; i < Projectiles.Length; i++)
@@ -55,6 +63,8 @@ namespace Arena.Core.State
                 if (!Areas[i].Equals(other.Areas[i])) return false;
             for (int i = 0; i < Statuses.Length; i++)
                 if (!Statuses[i].Equals(other.Statuses[i])) return false;
+            for (int i = 0; i < Pickups.Length; i++)
+                if (!Pickups[i].Equals(other.Pickups[i])) return false;
             for (int i = 0; i < Tiles.Length; i++)
                 if (Tiles[i] != other.Tiles[i]) return false;
             return true;
@@ -69,6 +79,8 @@ namespace Arena.Core.State
             Array.Clear(Projectiles, 0, Projectiles.Length);
             Array.Clear(Areas, 0, Areas.Length);
             Array.Clear(Statuses, 0, Statuses.Length);
+            Array.Clear(Pickups, 0, Pickups.Length);
+            Mode = default;
             Array.Clear(Tiles, 0, Tiles.Length);
         }
     }

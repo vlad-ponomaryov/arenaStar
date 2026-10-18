@@ -138,6 +138,32 @@ namespace Arena.Tests.EditMode.Core
         }
 
         [Test]
+        public void Tick_AcornsModeWithPickupsDropsAndEnd_DoesNotAllocate()
+        {
+            var sim = TestMatchFactory.CreateWith(AcornsTestFactory.Defs(),
+                TestMatchFactory.Slot(0, 0, 9.5f, 14.5f), TestMatchFactory.Slot(1, 0, 11.5f, 15.5f), TestMatchFactory.Slot(0, 0, 10.5f, 13.5f),
+                TestMatchFactory.Slot(0, 1, 10.5f, 17.5f), TestMatchFactory.Slot(1, 1, 9.5f, 16.5f), TestMatchFactory.Slot(0, 1, 11.5f, 16.5f));
+            var inputs = TestMatchFactory.Inputs();
+
+            for (int t = 0; t < WarmupTicks; t++) CombatStep(sim, inputs, t);
+            AllocationAssert.NoGcAllocations(() =>
+            {
+                for (int t = WarmupTicks; t < WarmupTicks + AcornTicks; t++) CombatStep(sim, inputs, t);
+            }, AcornTicks + " ticks of the Acorns mode");
+
+            int collected = 0, deaths = 0;
+            for (int i = 0; i < Fighters; i++)
+            {
+                collected += sim.State.Stats[i].AcornsCollected;
+                deaths += sim.State.Stats[i].Deaths;
+            }
+            Assert.Greater(collected, 0, "acorns were picked up during the measured ticks");
+            Assert.Greater(deaths, 0, "acorns were dropped on defeats");
+        }
+
+        private const int AcornTicks = 2400;
+
+        [Test]
         public void SnapshotCopy_DoesNotAllocate()
         {
             var sim = new MatchSimulation(TestMatchFactory.CreateDefs(), TestMatchFactory.CreateSetup(Fighters, 4));

@@ -7,6 +7,7 @@ using Arena.Gameplay.Cameras;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Match;
 using Arena.Gameplay.View;
+using Arena.Modes;
 using Arena.UI.Hud;
 using Arena.UI.Menu;
 using Arena.UI.Style;
@@ -71,10 +72,16 @@ namespace Arena.Editor.Build
         private static void BuildMenu()
         {
             var scene = NewScene();
+            var database = LoadRequired<GameDatabase>(DataSeeder.GameDatabasePath);
+            var style = LoadRequired<UiStyle>(ViewAssetBuilder.UiStylePath);
             CreateCamera("MenuCamera");
             CreateEventSystem();
 
-            new GameObject("MenuScreen").AddComponent<MenuScreen>();
+            var menu = new GameObject("MenuScreen").AddComponent<MenuScreen>();
+            var menuSo = new SerializedObject(menu);
+            SetRef(menuSo, "_database", database);
+            SetRef(menuSo, "_style", style);
+            menuSo.ApplyModifiedPropertiesWithoutUndo();
             Save(scene, SceneNames.Menu);
         }
 
@@ -111,6 +118,11 @@ namespace Arena.Editor.Build
             SetRef(hudSo, "_runner", runner);
             SetRef(hudSo, "_style", style);
             hudSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var acorns = new GameObject("AcornsModeView").AddComponent<AcornsModeView>();
+            var acornsSo = new SerializedObject(acorns);
+            SetRef(acornsSo, "_runner", runner);
+            acornsSo.ApplyModifiedPropertiesWithoutUndo();
 
             Save(scene, SceneNames.Match);
         }

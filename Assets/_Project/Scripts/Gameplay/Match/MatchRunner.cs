@@ -8,6 +8,7 @@ using Arena.Core.State;
 using Arena.Data;
 using Arena.Data.Conversion;
 using Arena.Gameplay.Cameras;
+using Arena.Gameplay.Flow;
 using Arena.Gameplay.Input;
 using Arena.Gameplay.View;
 using UnityEngine;
@@ -54,6 +55,12 @@ namespace Arena.Gameplay.Match
         public int LocalSlot { get; private set; }
         public int LocalTeam { get; private set; }
 
+        /// <summary>Menu choice this match was started with, or null (scene opened directly: config line-up and seed).</summary>
+        public MatchLaunchParams LaunchParams { get; private set; }
+
+        /// <summary>The mode has ended: the simulation stands still, the HUD shows the results.</summary>
+        public bool IsMatchEnded => _simulation != null && _simulation.IsEnded;
+
         private void Start()
         {
             try
@@ -67,7 +74,8 @@ namespace Arena.Gameplay.Match
             }
         }
 
-        /// <summary>Builds defs and the default setup from data, creates the simulation and the views.</summary>
+        /// <summary>Builds defs and the setup (menu choice from <see cref="SceneFlow.Current"/>, else the config's) from data,
+        /// creates the simulation and the views.</summary>
         public void StartMatch()
         {
             if (_database == null) throw new InvalidOperationException("MatchRunner: GameDatabase is not set");
@@ -77,7 +85,10 @@ namespace Arena.Gameplay.Match
             if (_database.Camera == null) throw new InvalidOperationException("MatchRunner: GameDatabase.Camera is not set");
 
             MatchDefs defs = ConfigConverter.ToMatchDefs(_database);
-            MatchSetup setup = MatchSetupFactory.CreateDefault(_database.MatchRunner, defs);
+            LaunchParams = SceneFlow.Current;
+            MatchSetup setup = LaunchParams != null
+                ? MatchSetupFactory.Create(_database.MatchRunner, defs, LaunchParams.FighterId, LaunchParams.Seed)
+                : MatchSetupFactory.CreateDefault(_database.MatchRunner, defs);
             _simulation = new MatchSimulation(defs, setup);
             _maxTicksPerFrame = _database.MatchRunner.MaxTicksPerFrame;
             LocalSlot = _database.MatchRunner.LocalSlot;
@@ -113,7 +124,16 @@ namespace Arena.Gameplay.Match
             UnityEngine.Camera cam = _cameraController != null ? _cameraController.Camera : null;
             _keyboardMouse.Poll(_inputCollector, cam, local.Position, localDef.AttackRange);
 
-            _accumulator += Time.deltaTime;
+            if (_simulation.IsEnded)
+            {
+                // Results: the state stands still; keep the last pose, drop pending presses.
+                _inputCollector.Clear();
+                _accumulator = 0f;
+            }
+            else
+            {
+                _accumulator += Time.deltaTime;
+            }
             int ticks = 0;
             while (_accumulator >= SimTime.Dt && ticks < _maxTicksPerFrame)
             {
