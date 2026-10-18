@@ -14,3 +14,4 @@
 - 09:47 — S1.1 — ок: проект создан, пакеты (URP, Input System, Test Framework, uGUI/TMP, Cinemachine), compile 0 CS, тесты 0/0 (none found) — 1e5d901
 - 09:54 — S1.2 — ок: ProjectConfigurator, SceneBuilder (Boot/Menu/Match), asmdef, URP-ассеты; compile 0 CS, тесты 6/0 — 7cb469d
 - 10:08 — S1.3 — ок: BuildScript + Tools/build-android.ps1, GameCI workflow (не запушен), итог этапа 1; compile 0 CS, тесты 12/0, APK Builds/Android/Arena.apk 31.7 MB, сборка 634 s — 888b38e
+- 10:23 — S2.1 — ок: MatchSimulation (ввод/движение/заряды/реген), MatchState+снапшот, RNG, Defs, SO-конфиги + конвертер, сидер 6 бойцов; compile 0 CS, тесты 76/0 — 9167ce8
