@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: GameDatabase
   m_EditorClassIdentifier: Arena.Data::Arena.Data.GameDatabase
   CombatRules: {fileID: 11400000, guid: f642d00aba6815b4e8999912608576d8, type: 2}
+  Camera: {fileID: 11400000, guid: c4954f4902343344db5d606e44b90322, type: 2}
+  MatchRunner: {fileID: 11400000, guid: dd1e493acd4cdc448a7fc4e78a0da04d, type: 2}
   Fighters:
   - {fileID: 11400000, guid: b6a10826838aa3348bffc2df9af82476, type: 2}
   - {fileID: 11400000, guid: 7c04202206ee44b40ba96846b570d45e, type: 2}

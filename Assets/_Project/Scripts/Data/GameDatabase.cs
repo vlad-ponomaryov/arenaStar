@@ -12,6 +12,8 @@ namespace Arena.Data
     public sealed class GameDatabase : ScriptableObject
     {
         public CombatRulesConfig CombatRules;
+        public CameraConfig Camera;
+        public MatchRunnerConfig MatchRunner;
 
         [Tooltip("All fighters in menu order.")]
         public List<FighterConfig> Fighters = new List<FighterConfig>();

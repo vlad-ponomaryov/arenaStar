@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd208c940a8454040b68be097742a5d5, type: 3}
+  m_Name: ViewCatalog
+  m_EditorClassIdentifier: Arena.Gameplay::Arena.Gameplay.View.ViewCatalog
+  FighterViewPrefab: {fileID: 350873538404402149, guid: fd9a69428cc9b2345bed37489ba18b7f, type: 3}
+  AimIndicatorPrefab: {fileID: 6559715094259858551, guid: c5c1e6eaae3a13845894978c9a830632, type: 3}
+  FloorPrefab: {fileID: 5125847828497573453, guid: a3e4093613d7b3c499233bf9868d4554, type: 3}
+  TeamAlly: {fileID: 2100000, guid: 89d46a19bb4786245b570381bc47fa54, type: 2}
+  TeamEnemy: {fileID: 2100000, guid: c8caa291b8137274eae2ca5c5297b215, type: 2}
+  FighterBody: {fileID: 2100000, guid: fdbcdef65fc496244b97b8ef226946b3, type: 2}
+  Floor: {fileID: 2100000, guid: 07f2808a38404f0499794e3a1440c155, type: 2}
+  AimLine: {fileID: 2100000, guid: 32bb080ca4c8b0f4a86adba860087d94, type: 2}

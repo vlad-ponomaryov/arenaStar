@@ -5,7 +5,8 @@
         "Arena.Core",
         "Arena.Bots",
         "Arena.Data",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -15,6 +15,9 @@ namespace Arena.Editor.Data
         public const string DataRoot = "Assets/_Project/Data";
         public const string CombatFolder = DataRoot + "/Combat";
         public const string FightersFolder = DataRoot + "/Fighters";
+        public const string FeelFolder = DataRoot + "/Feel";
+        public const string CameraConfigPath = FeelFolder + "/CameraConfig.asset";
+        public const string MatchRunnerConfigPath = CombatFolder + "/MatchRunnerConfig.asset";
         public const string CombatRulesPath = CombatFolder + "/CombatRules.asset";
         public const string GameDatabasePath = DataRoot + "/GameDatabase.asset";
 
@@ -38,12 +41,31 @@ namespace Arena.Editor.Data
         private const float RadiusLarge = 0.55f;
         private const float RadiusMedium = 0.5f;
 
+        // Camera (GDD §5.5: ~55°); the rest PROTO (D-013).
+        private const float CameraPitch = 55f;
+        private const float CameraDistance = 18f;
+        private const float CameraFieldOfView = 50f;
+        private const float CameraForwardOffset = 2f;
+        private const float CameraEdgeInset = 7f;
+        private const float CameraFollowSharpness = 8f;
+
+        // Match runner: technical limit + prototype setup (3×3: pix/bruno/chomp vs kora/nova/vex dummies). PROTO spawns.
+        private const int MaxTicksPerFrame = 4;
+        private const int MatchSeed = 1;
+        private const int LocalSlot = 0;
+        private const int TeamSize = 3;
+        private const int FighterLevel = 1;
+        private const float SpawnEdgeInset = 3f;
+        private const float SpawnSpacing = 4f;
+        private static readonly string[] SlotFighterIds = { "pix", "bruno", "chomp", "kora", "nova", "vex" };
+
         public static string FighterAssetPath(string id) => FightersFolder + "/" + AssetNameFor(id) + ".asset";
 
         public static void SeedAll()
         {
             ProjectConfigurator.EnsureFolder(CombatFolder);
             ProjectConfigurator.EnsureFolder(FightersFolder);
+            ProjectConfigurator.EnsureFolder(FeelFolder);
 
             CombatRulesConfig rules = SeedCombatRules();
 
@@ -64,6 +86,8 @@ namespace Arena.Editor.Data
             db.Fighters.Clear();
             db.Fighters.AddRange(fighters);
             db.TempArenaSize = TempArenaSize;
+            db.Camera = SeedCamera();
+            db.MatchRunner = SeedMatchRunner();
             EditorUtility.SetDirty(db);
 
             AssetDatabase.SaveAssets();
@@ -80,6 +104,36 @@ namespace Arena.Editor.Data
             c.SlowSpeed = SlowSpeed;
             c.NormalSpeed = NormalSpeed;
             c.FastSpeed = FastSpeed;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static CameraConfig SeedCamera()
+        {
+            CameraConfig c = LoadOrCreate<CameraConfig>(CameraConfigPath);
+            c.PitchDegrees = CameraPitch;
+            c.Distance = CameraDistance;
+            c.FieldOfView = CameraFieldOfView;
+            c.ForwardOffset = CameraForwardOffset;
+            c.EdgeInset = CameraEdgeInset;
+            c.FollowSharpness = CameraFollowSharpness;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static MatchRunnerConfig SeedMatchRunner()
+        {
+            MatchRunnerConfig c = LoadOrCreate<MatchRunnerConfig>(MatchRunnerConfigPath);
+            c.MaxTicksPerFrame = MaxTicksPerFrame;
+            c.Seed = MatchSeed;
+            c.LocalSlot = LocalSlot;
+            if (c.SlotFighterIds == null) c.SlotFighterIds = new System.Collections.Generic.List<string>();
+            c.SlotFighterIds.Clear();
+            c.SlotFighterIds.AddRange(SlotFighterIds);
+            c.TeamSize = TeamSize;
+            c.FighterLevel = FighterLevel;
+            c.SpawnEdgeInset = SpawnEdgeInset;
+            c.SpawnSpacing = SpawnSpacing;
             EditorUtility.SetDirty(c);
             return c;
         }

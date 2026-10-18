@@ -1,13 +1,20 @@
 using System;
+using Arena.Data;
+using Arena.Editor.Art;
+using Arena.Editor.Data;
 using Arena.Editor.Setup;
+using Arena.Gameplay.Cameras;
 using Arena.Gameplay.Flow;
+using Arena.Gameplay.Match;
+using Arena.Gameplay.View;
+using Arena.UI.Hud;
 using Arena.UI.Menu;
+using Arena.UI.Style;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
-using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -22,11 +29,10 @@ namespace Arena.Editor.Build
         public const string ScenesFolder = "Assets/_Project/Scenes";
         public static readonly string[] SceneOrder = { SceneNames.Boot, SceneNames.Menu, SceneNames.Match };
 
-        // Editor seed values for the temporary match camera (CameraConfig takes over in stage 2).
+        // Editor seed pose of the match camera for the scene view; at runtime MatchCameraController applies CameraConfig.
         private const float MatchCameraPitch = 55f;
         private const float MatchCameraDistance = 22f;
         private const float MatchCameraFieldOfView = 50f;
-        private const float FloorScale = 3f;
         private static readonly Vector3 LightEuler = new Vector3(50f, -30f, 0f);
         private static readonly Color BackgroundColor = new Color(0.12f, 0.14f, 0.18f, 1f);
 
@@ -66,10 +72,7 @@ namespace Arena.Editor.Build
         {
             var scene = NewScene();
             CreateCamera("MenuCamera");
-
-            var eventSystem = new GameObject("EventSystem");
-            eventSystem.AddComponent<EventSystem>();
-            eventSystem.AddComponent<InputSystemUIInputModule>();
+            CreateEventSystem();
 
             new GameObject("MenuScreen").AddComponent<MenuScreen>();
             Save(scene, SceneNames.Menu);
@@ -77,11 +80,16 @@ namespace Arena.Editor.Build
 
         private static void BuildMatch()
         {
+            // Load after NewScene: opening a scene in Single mode unloads unused assets loaded before it.
             var scene = NewScene();
+            var database = LoadRequired<GameDatabase>(DataSeeder.GameDatabasePath);
+            var catalog = LoadRequired<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
+            var style = LoadRequired<UiStyle>(ViewAssetBuilder.UiStylePath);
             var camera = CreateCamera("MatchCamera");
             camera.fieldOfView = MatchCameraFieldOfView;
             var pitch = Quaternion.Euler(MatchCameraPitch, 0f, 0f);
             camera.transform.SetPositionAndRotation(pitch * new Vector3(0f, 0f, -MatchCameraDistance), pitch);
+            var cameraController = camera.gameObject.AddComponent<MatchCameraController>();
 
             var lightGo = new GameObject("DirectionalLight");
             var light = lightGo.AddComponent<Light>();
@@ -89,16 +97,45 @@ namespace Arena.Editor.Build
             light.shadows = LightShadows.None;
             lightGo.transform.rotation = Quaternion.Euler(LightEuler);
 
-            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            floor.name = "Floor";
-            Object.DestroyImmediate(floor.GetComponent<Collider>());
-            floor.transform.localScale = new Vector3(FloorScale, 1f, FloorScale);
-            var floorRenderer = floor.GetComponent<MeshRenderer>();
-            floorRenderer.shadowCastingMode = ShadowCastingMode.Off;
-            floorRenderer.receiveShadows = false;
+            CreateEventSystem();
 
-            new GameObject("MatchRoot");
+            var runner = new GameObject("MatchRoot").AddComponent<MatchRunner>();
+            var runnerSo = new SerializedObject(runner);
+            SetRef(runnerSo, "_database", database);
+            SetRef(runnerSo, "_viewCatalog", catalog);
+            SetRef(runnerSo, "_cameraController", cameraController);
+            runnerSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var hud = new GameObject("MatchHud").AddComponent<MatchHud>();
+            var hudSo = new SerializedObject(hud);
+            SetRef(hudSo, "_runner", runner);
+            SetRef(hudSo, "_style", style);
+            hudSo.ApplyModifiedPropertiesWithoutUndo();
+
             Save(scene, SceneNames.Match);
+        }
+
+        private static void CreateEventSystem()
+        {
+            var eventSystem = new GameObject("EventSystem");
+            eventSystem.AddComponent<EventSystem>();
+            eventSystem.AddComponent<InputSystemUIInputModule>();
+        }
+
+        private static T LoadRequired<T>(string path) where T : Object
+        {
+            T asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset == null)
+                throw new InvalidOperationException("Arena.Editor.Build.SceneBuilder: missing " + path +
+                    " (run DataSeeder.SeedAll and ViewAssetBuilder.BuildAll first)");
+            return asset;
+        }
+
+        private static void SetRef(SerializedObject so, string field, Object value)
+        {
+            SerializedProperty p = so.FindProperty(field);
+            if (p == null) throw new InvalidOperationException("Arena.Editor.Build.SceneBuilder: field not found: " + field);
+            p.objectReferenceValue = value;
         }
 
         private static Camera CreateCamera(string name)

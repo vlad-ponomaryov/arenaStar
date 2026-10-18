@@ -1,0 +1,133 @@
+using Arena.Editor.Build;
+using Arena.Gameplay.Cameras;
+using Arena.Gameplay.Flow;
+using Arena.Gameplay.Match;
+using Arena.UI.Hud;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
+using UnityEngine.SceneManagement;
+
+namespace Arena.Tests.EditMode.Setup
+{
+    /// <summary>The generated scenes have their bootstrap objects and every serialized reference set (S2.2).</summary>
+    public sealed class SceneIntegrityTests
+    {
+        private Scene _scene;
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_scene.IsValid() && _scene.isLoaded) EditorSceneManager.CloseScene(_scene, true);
+            _scene = default;
+        }
+
+        private Scene Open(string sceneName)
+        {
+            // Additive: the current (untitled) scene stays, the opened one is closed in TearDown.
+            _scene = EditorSceneManager.OpenScene(SceneBuilder.ScenePath(sceneName), OpenSceneMode.Additive);
+            Assert.IsTrue(_scene.IsValid(), sceneName + " opened");
+            return _scene;
+        }
+
+        private static T FindSingle<T>(Scene scene) where T : Component
+        {
+            T found = null;
+            int count = 0;
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                foreach (T c in root.GetComponentsInChildren<T>(true))
+                {
+                    found = c;
+                    count++;
+                }
+            }
+            Assert.AreEqual(1, count, "exactly one " + typeof(T).Name + " in " + scene.name);
+            return found;
+        }
+
+        private static void AssertAllReferencesSet(Object component)
+        {
+            var so = new SerializedObject(component);
+            SerializedProperty p = so.GetIterator();
+            int checkedRefs = 0;
+            while (p.NextVisible(true))
+            {
+                if (p.propertyType != SerializedPropertyType.ObjectReference || p.name == "m_Script") continue;
+                Assert.IsNotNull(p.objectReferenceValue, component.GetType().Name + "." + p.propertyPath + " is null");
+                checkedRefs++;
+            }
+            Assert.Greater(checkedRefs, 0, component.GetType().Name + " has serialized references");
+        }
+
+        [Test]
+        public void Match_RunnerHudAndCamera_HaveAllReferences()
+        {
+            Scene scene = Open(SceneNames.Match);
+
+            MatchRunner runner = FindSingle<MatchRunner>(scene);
+            AssertAllReferencesSet(runner);
+            Assert.IsNotNull(runner.Database.Camera, "GameDatabase.Camera");
+            Assert.IsNotNull(runner.Database.MatchRunner, "GameDatabase.MatchRunner");
+            Assert.IsNotNull(runner.ViewCatalog.FighterViewPrefab);
+            Assert.IsNotNull(runner.ViewCatalog.AimIndicatorPrefab);
+
+            MatchHud hud = FindSingle<MatchHud>(scene);
+            AssertAllReferencesSet(hud);
+            Assert.AreSame(runner, hud.Runner);
+            Assert.IsNotNull(hud.Style.CircleSprite);
+
+            MatchCameraController cam = FindSingle<MatchCameraController>(scene);
+            Assert.AreSame(cam, runner.CameraController);
+            Assert.IsNotNull(cam.GetComponent<Camera>());
+        }
+
+        [Test]
+        public void Match_StartMatch_CreatesViews_AndHudBuilds()
+        {
+            Scene scene = Open(SceneNames.Match);
+            MatchRunner runner = FindSingle<MatchRunner>(scene);
+            runner.StartMatch();
+
+            Assert.IsNotNull(runner.Simulation);
+            Assert.AreEqual(6, runner.Simulation.FighterCount);
+            Assert.AreEqual(0, runner.LocalTeam);
+            Assert.IsFalse(runner.InputCollector.ViewRotated);
+            Assert.AreEqual(6, runner.GetComponentsInChildren<Arena.Gameplay.View.FighterView>(true).Length);
+            Assert.AreEqual(1, runner.GetComponentsInChildren<Arena.Gameplay.View.AimIndicatorView>(true).Length);
+
+            Transform cam = runner.CameraController.transform;
+            Assert.Greater(cam.position.y, 0f, "camera above the ground");
+            Assert.Less(cam.position.z, runner.Simulation.State.Fighters[runner.LocalSlot].Position.Y + 2f, "camera behind the player");
+
+            MatchHud hud = FindSingle<MatchHud>(scene);
+            MatchHudControls controls = MatchHudBuilder.Build(hud.transform, hud.Style);
+            Assert.IsNotNull(controls.Canvas);
+            Assert.IsNotNull(controls.MoveStick);
+            Assert.AreEqual(Arena.UI.Controls.StickMode.Floating, controls.MoveStick.Mode);
+            Assert.AreEqual(Arena.UI.Controls.StickMode.Fixed, controls.AttackStick.Mode);
+            Assert.IsNotNull(controls.UltStick);
+            Assert.IsNotNull(controls.TrickButton);
+            Assert.AreEqual(Vector2.zero, controls.AttackStick.Aim);
+        }
+
+        [Test]
+        public void Match_HasEventSystemWithInputSystemModule()
+        {
+            Scene scene = Open(SceneNames.Match);
+            EventSystem es = FindSingle<EventSystem>(scene);
+            Assert.IsNotNull(es.GetComponent<InputSystemUIInputModule>());
+        }
+
+        [Test]
+        public void Menu_HasEventSystemWithInputSystemModule()
+        {
+            Scene scene = Open(SceneNames.Menu);
+            EventSystem es = FindSingle<EventSystem>(scene);
+            Assert.IsNotNull(es.GetComponent<InputSystemUIInputModule>());
+        }
+    }
+}

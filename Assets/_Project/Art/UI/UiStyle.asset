@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e619e9a958a23148908a855d90fa2f6, type: 3}
+  m_Name: UiStyle
+  m_EditorClassIdentifier: Arena.UI::Arena.UI.Style.UiStyle
+  ReferenceResolution: {x: 1920, y: 1080}
+  MatchWidthOrHeight: 0.5
+  CircleSprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  MoveStick:
+    Position: {x: 320, y: 300}
+    HitSize: 0
+    BaseSize: 280
+    KnobSize: 130
+    Radius: 120
+    BaseColor: {r: 1, g: 1, b: 1, a: 0.22}
+    KnobColor: {r: 1, g: 1, b: 1, a: 0.6}
+  AttackStick:
+    Position: {x: 300, y: 290}
+    HitSize: 380
+    BaseSize: 260
+    KnobSize: 120
+    Radius: 110
+    BaseColor: {r: 1, g: 0.45, b: 0.35, a: 0.3}
+    KnobColor: {r: 1, g: 0.45, b: 0.35, a: 0.85}
+  UltStick:
+    Position: {x: 620, y: 190}
+    HitSize: 260
+    BaseSize: 190
+    KnobSize: 95
+    Radius: 80
+    BaseColor: {r: 1, g: 0.85, b: 0.25, a: 0.3}
+    KnobColor: {r: 1, g: 0.85, b: 0.25, a: 0.85}
+  TrickButtonPosition: {x: 290, y: 600}
+  TrickButtonSize: 150
+  TrickButtonColor: {r: 0.35, g: 0.9, b: 0.55, a: 0.75}
+  Gesture:
+    DeadZone: 0.2
+    CancelRadius: 0.25
+    TapMaxSeconds: 0.25
+  AllyColor: {r: 0.2, g: 0.52, b: 1, a: 1}
+  EnemyColor: {r: 0.95, g: 0.22, b: 0.18, a: 1}
