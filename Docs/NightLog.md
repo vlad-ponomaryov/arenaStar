@@ -13,3 +13,4 @@
 - 09:41 — S1.1 — частично: Tools/*.ps1 и PackageInstaller готовы; проект не создан, compile/test не запускались — нет лицензии Unity (Q-009), ночь остановлена — c1d3f98
 - 09:47 — S1.1 — ок: проект создан, пакеты (URP, Input System, Test Framework, uGUI/TMP, Cinemachine), compile 0 CS, тесты 0/0 (none found) — 1e5d901
 - 09:54 — S1.2 — ок: ProjectConfigurator, SceneBuilder (Boot/Menu/Match), asmdef, URP-ассеты; compile 0 CS, тесты 6/0 — 7cb469d
+- 10:08 — S1.3 — ок: BuildScript + Tools/build-android.ps1, GameCI workflow (не запушен), итог этапа 1; compile 0 CS, тесты 12/0, APK Builds/Android/Arena.apk 31.7 MB, сборка 634 s — 888b38e
