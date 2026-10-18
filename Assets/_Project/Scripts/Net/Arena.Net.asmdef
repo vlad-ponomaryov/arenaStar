@@ -1,0 +1,17 @@
+{
+    "name": "Arena.Net",
+    "rootNamespace": "Arena.Net",
+    "references": [
+        "Arena.Core",
+        "Arena.Bots"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

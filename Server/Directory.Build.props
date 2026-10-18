@@ -1,0 +1,13 @@
+<Project>
+  <!-- Shared settings for the Arena server projects (Server-Spec §5.2). Shared sources are C# 9 / .NET Standard 2.1 as in Unity. -->
+  <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ArenaScripts>$(MSBuildThisFileDirectory)..\Assets\_Project\Scripts\</ArenaScripts>
+  </PropertyGroup>
+</Project>

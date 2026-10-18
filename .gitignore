@@ -45,3 +45,8 @@ crashlytics-build.properties
 
 # IL2CPP/Burst temp output
 /.utmp/
+
+# Server (.NET, outside Unity): keep our project files, ignore build output (Server-Spec 5.2)
+!Server/**/*.csproj
+Server/**/bin/
+Server/**/obj/

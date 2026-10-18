@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Sources shared with Unity, linked (not copied) from Assets/_Project/Scripts. netstandard2.1 catches APIs Unity does not have.
+    The folder set must match Tools/server-build.ps1 (bootstrap build): add a folder here -> add it there too.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>Arena</RootNamespace>
+    <AssemblyName>Arena.Shared</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(ArenaScripts)Core\**\*.cs" Link="Core\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="$(ArenaScripts)Bots\**\*.cs" Link="Bots\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="$(ArenaScripts)Net\**\*.cs" Link="Net\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
