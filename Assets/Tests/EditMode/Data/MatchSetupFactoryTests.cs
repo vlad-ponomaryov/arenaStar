@@ -1,5 +1,6 @@
 using System;
 using Arena.Core.Defs;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Sim;
 using Arena.Data;
@@ -26,8 +27,6 @@ namespace Arena.Tests.EditMode.Data
             _config.LocalSlot = 0;
             _config.TeamSize = 3;
             _config.FighterLevel = 1;
-            _config.SpawnEdgeInset = 3f;
-            _config.SpawnSpacing = 4f;
             _config.SlotFighterIds.AddRange(new[] { "test", "test2", "test", "test2", "test", "test2" });
         }
 
@@ -42,16 +41,17 @@ namespace Arena.Tests.EditMode.Data
 
             Assert.AreEqual(6, setup.SlotCount);
             Assert.AreEqual(7, setup.Seed);
-            Vec2 centre = defs.Bounds.Center;
+            Vec2 centre = defs.Map.Center;
             for (int i = 0; i < 6; i++)
             {
                 Assert.AreEqual(i < 3 ? 0 : 1, setup.Slots[i].Team, "slot " + i);
                 Assert.AreEqual(i % 2, setup.Slots[i].FighterIndex);
                 Assert.AreEqual(1, setup.Slots[i].Level);
             }
-            Assert.AreEqual(new Vec2(centre.X - 4f, 3f), setup.Slots[0].SpawnPosition);
-            Assert.AreEqual(new Vec2(centre.X, 3f), setup.Slots[1].SpawnPosition);
-            Assert.AreEqual(new Vec2(centre.X + 4f, 3f), setup.Slots[2].SpawnPosition);
+            // Map spawns (cell centres) in order: team 0 at columns 6, 10, 14 of row 2.
+            Assert.AreEqual(new Vec2(6.5f, 2.5f), setup.Slots[0].SpawnPosition);
+            Assert.AreEqual(new Vec2(10.5f, 2.5f), setup.Slots[1].SpawnPosition);
+            Assert.AreEqual(new Vec2(14.5f, 2.5f), setup.Slots[2].SpawnPosition);
             for (int i = 0; i < 3; i++)
             {
                 // Central symmetry: slot i of team 0 mirrors slot i of team 1 through the arena centre.
@@ -61,6 +61,14 @@ namespace Arena.Tests.EditMode.Data
             }
 
             Assert.DoesNotThrow(() => new MatchSimulation(defs, setup));
+        }
+
+        [Test]
+        public void MapWithoutEnoughSpawns_Throws()
+        {
+            MatchDefs defs = TestMatchFactory.CreateDefs();
+            defs.Map = MapDef.CreateEmpty(21, 31);
+            Assert.Throws<ArgumentException>(() => MatchSetupFactory.CreateDefault(_config, defs));
         }
 
         [Test]
@@ -92,7 +100,11 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(defs.IndexOfFighter("pix"), setup.Slots[db.MatchRunner.LocalSlot].FighterIndex, "player is Pix");
             Assert.AreEqual(0, setup.Slots[db.MatchRunner.LocalSlot].Team);
             for (int i = 0; i < setup.SlotCount; i++)
-                Assert.IsTrue(defs.Bounds.Contains(setup.Slots[i].SpawnPosition), "spawn " + i + " inside the arena");
+            {
+                GridCell cell = GridCell.Of(setup.Slots[i].SpawnPosition);
+                Assert.IsTrue(defs.Map.InitialGrid.InBounds(cell.Column, cell.Row), "spawn " + i + " inside the map");
+                Assert.IsFalse(defs.Map.InitialGrid.BlocksMovement(cell.Column, cell.Row), "spawn " + i + " walkable");
+            }
         }
     }
 }

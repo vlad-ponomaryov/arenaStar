@@ -6,7 +6,7 @@ namespace Arena.Data
 {
     /// <summary>
     /// Root of all game configs (D-010); scenes reference it directly. Filled by DataSeeder.
-    /// Default map, modes, bots, feel come in later steps.
+    /// Modes, bots, feel come in later steps.
     /// </summary>
     [CreateAssetMenu(fileName = "GameDatabase", menuName = "Arena/Game Database")]
     public sealed class GameDatabase : ScriptableObject
@@ -18,8 +18,8 @@ namespace Arena.Data
         [Tooltip("All fighters in menu order.")]
         public List<FighterConfig> Fighters = new List<FighterConfig>();
 
-        [Tooltip("Temporary rectangular arena size in cells (width × height) until grid maps (S2.5).")]
-        public Vector2 TempArenaSize;
+        [Tooltip("Map of the prototype match (Acorns).")]
+        public MapConfig DefaultMap;
 
         /// <summary>Fighter config by id, or null.</summary>
         public FighterConfig FindFighter(string id)

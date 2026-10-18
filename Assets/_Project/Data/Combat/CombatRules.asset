@@ -22,6 +22,8 @@ MonoBehaviour:
   TrickCooldownSeconds: 5
   TrickUnlockLevel: 5
   TalentUnlockLevel: 8
+  BushRevealDistance: 2
+  RevealSeconds: 1
   SlowSpeed: 2.2
   NormalSpeed: 2.5
   FastSpeed: 2.8

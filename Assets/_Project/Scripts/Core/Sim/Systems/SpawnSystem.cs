@@ -1,4 +1,5 @@
 using Arena.Core.Defs;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
@@ -6,7 +7,8 @@ using Arena.Core.State;
 namespace Arena.Core.Sim.Systems
 {
     /// <summary>
-    /// Puts a fighter into its slot at the spawn point: full (level-scaled) health and charges, facing the arena centre,
+    /// Puts a fighter into its slot at the spawn point (kept inside the map and out of walls): full (level-scaled) health
+    /// and charges, facing the map centre,
     /// neutral statuses, trick uses and unlocks from the rules (D-012). <see cref="Respawn"/> additionally carries over what
     /// lasts the whole match: the ult charge (already reduced on defeat) and the trick uses / cooldown.
     /// </summary>
@@ -26,10 +28,12 @@ namespace Arena.Core.Sim.Systems
             f.DefIndex = slot.FighterIndex;
             f.Team = slot.Team;
             f.Level = slot.Level;
-            f.Position = defs.Bounds.ClampCircle(slot.SpawnPosition, def.Radius);
+            TileGrid grid = state.Grid;
+            Vec2 spawn = GridCollision.ClampToMap(slot.SpawnPosition, def.Radius, grid.Width, grid.Height);
+            f.Position = GridCollision.ResolveCircle(in grid, spawn, def.Radius);
             f.Velocity = Vec2.Zero;
 
-            Vec2 toCentre = (defs.Bounds.Center - f.Position).Normalized;
+            Vec2 toCentre = (defs.Map.Center - f.Position).Normalized;
             f.Facing = toCentre.IsZero ? Vec2.Up : toCentre;
 
             f.MaxHealth = rules.ScaleByLevel(def.MaxHealth, slot.Level);

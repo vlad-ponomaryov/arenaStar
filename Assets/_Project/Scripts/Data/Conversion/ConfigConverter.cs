@@ -16,6 +16,7 @@ namespace Arena.Data.Conversion
             if (db == null) throw new ArgumentNullException(nameof(db));
             if (db.CombatRules == null) throw new ArgumentException("GameDatabase.CombatRules is not set");
             if (db.Fighters == null || db.Fighters.Count == 0) throw new ArgumentException("GameDatabase.Fighters is empty");
+            if (db.DefaultMap == null) throw new ArgumentException("GameDatabase.DefaultMap is not set");
 
             var fighters = new FighterDef[db.Fighters.Count];
             for (int i = 0; i < fighters.Length; i++)
@@ -28,7 +29,7 @@ namespace Arena.Data.Conversion
             {
                 Rules = ToCombatRules(db.CombatRules),
                 Fighters = fighters,
-                Bounds = ArenaBounds.FromSize(db.TempArenaSize.x, db.TempArenaSize.y)
+                Map = MapConverter.ToMapDef(db.DefaultMap)
             };
             defs.Validate();
             return defs;
@@ -48,7 +49,9 @@ namespace Arena.Data.Conversion
                 TrickUses = c.TrickUses,
                 TrickCooldownTicks = SimTime.SecondsToTicks(c.TrickCooldownSeconds),
                 TrickUnlockLevel = c.TrickUnlockLevel,
-                TalentUnlockLevel = c.TalentUnlockLevel
+                TalentUnlockLevel = c.TalentUnlockLevel,
+                BushRevealDistance = c.BushRevealDistance,
+                RevealTicks = SimTime.SecondsToTicks(c.RevealSeconds)
             };
         }
 

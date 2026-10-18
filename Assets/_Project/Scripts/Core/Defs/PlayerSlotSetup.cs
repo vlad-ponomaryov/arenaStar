@@ -14,7 +14,7 @@ namespace Arena.Core.Defs
         /// <summary>Fighter level, 1 and up (D-012: 1 in the prototype).</summary>
         public int Level;
 
-        /// <summary>Spawn and respawn position (until map spawns of S2.5).</summary>
+        /// <summary>Spawn and respawn position (MatchSetupFactory takes it from the map spawns).</summary>
         public Vec2 SpawnPosition;
 
         public PlayerSlotSetup(int fighterIndex, int team, int level, Vec2 spawnPosition)

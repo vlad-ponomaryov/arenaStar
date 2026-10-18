@@ -1,5 +1,6 @@
 using Arena.Core.Defs;
 using Arena.Core.Input;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Random;
 using Arena.Core.Sim;
@@ -23,6 +24,8 @@ namespace Arena.Tests.EditMode.Core
         public const int TrickCooldownTicks = 150;
         public const int TrickUnlockLevel = 5;
         public const int TalentUnlockLevel = 8;
+        public const float BushRevealDistance = 2f;
+        public const int RevealTicks = 30;
 
         // Fighter 0 ("test", Pix-like): burst of straight drops.
         public const float ShooterRange = 8f;
@@ -69,7 +72,9 @@ namespace Arena.Tests.EditMode.Core
                     TrickUses = TrickUses,
                     TrickCooldownTicks = TrickCooldownTicks,
                     TrickUnlockLevel = TrickUnlockLevel,
-                    TalentUnlockLevel = TalentUnlockLevel
+                    TalentUnlockLevel = TalentUnlockLevel,
+                    BushRevealDistance = BushRevealDistance,
+                    RevealTicks = RevealTicks
                 },
                 Fighters = new[]
                 {
@@ -84,8 +89,30 @@ namespace Arena.Tests.EditMode.Core
                         Radius = TankRadius, AttackRechargeTicks = 33, Attack = ConeAttack()
                     }
                 },
-                Bounds = ArenaBounds.FromSize(ArenaWidth, ArenaHeight)
+                Map = TestMap()
             };
+        }
+
+        /// <summary>All-floor 21×31 map with 3 centrally symmetric spawns per team (rows 2 and 28, columns 6/10/14).</summary>
+        public static MapDef TestMap()
+        {
+            int w = (int)ArenaWidth, h = (int)ArenaHeight;
+            var map = new MapDef { Id = "test", Width = w, Height = h, Tiles = new TileType[w * h] };
+            map.Spawns = new[]
+            {
+                new MapSpawn(0, new GridCell(6, 2)), new MapSpawn(0, new GridCell(10, 2)), new MapSpawn(0, new GridCell(14, 2)),
+                new MapSpawn(1, new GridCell(14, 28)), new MapSpawn(1, new GridCell(10, 28)), new MapSpawn(1, new GridCell(6, 28))
+            };
+            map.Validate();
+            return map;
+        }
+
+        /// <summary>Test defs on a map from text rows (top row first, legend of <c>MapConverter</c>).</summary>
+        public static MatchDefs CreateDefsOnMap(params string[] rows)
+        {
+            MatchDefs defs = CreateDefs();
+            defs.Map = Arena.Data.Conversion.MapConverter.FromRows("test_rows", rows);
+            return defs;
         }
 
         /// <summary>Slots alternate teams 0/1 and fighters 0/1; spawns are spread around the arena.</summary>

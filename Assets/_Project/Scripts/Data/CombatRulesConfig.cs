@@ -44,6 +44,13 @@ namespace Arena.Data
         [Tooltip("Fighter level that opens the talent (unless the match unlocks all, D-012).")]
         [Min(1)] public int TalentUnlockLevel = 1;
 
+        [Header("Bushes and reveal (D-024)")]
+        [Tooltip("An enemy closer than this (cells) sees a fighter in a bush.")]
+        [Min(0f)] public float BushRevealDistance;
+
+        [Tooltip("Seconds an attack keeps the attacker visible (in a bush, invisible).")]
+        [Min(0f)] public float RevealSeconds;
+
         [Header("Movement speed by class, cells per second")]
         [Min(0f)] public float SlowSpeed;
         [Min(0f)] public float NormalSpeed;

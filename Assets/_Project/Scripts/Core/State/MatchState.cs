@@ -1,4 +1,5 @@
 using System;
+using Arena.Core.Map;
 using Arena.Core.Sim;
 
 namespace Arena.Core.State
@@ -18,6 +19,12 @@ namespace Arena.Core.State
         public readonly AreaState[] Areas = new AreaState[SimLimits.MaxAreas];
         public readonly StatusEffectState[] Statuses = new StatusEffectState[SimLimits.MaxStatusEffects];
 
+        /// <summary>Mutable copy of the map tiles (broken walls), row-major; the first MapWidth × MapHeight entries are used.</summary>
+        public readonly TileType[] Tiles = new TileType[SimLimits.MaxMapCells];
+
+        /// <summary>Grid view over <see cref="Tiles"/> (no allocation).</summary>
+        public TileGrid Grid => new TileGrid(Globals.MapWidth, Globals.MapHeight, Tiles);
+
         public int Tick => Globals.Tick;
         public int FighterCount => Globals.FighterCount;
 
@@ -32,6 +39,7 @@ namespace Arena.Core.State
             Array.Copy(other.Projectiles, Projectiles, Projectiles.Length);
             Array.Copy(other.Areas, Areas, Areas.Length);
             Array.Copy(other.Statuses, Statuses, Statuses.Length);
+            Array.Copy(other.Tiles, Tiles, Tiles.Length);
         }
 
         /// <summary>Field-by-field equality of the whole state (determinism and snapshot checks).</summary>
@@ -47,6 +55,8 @@ namespace Arena.Core.State
                 if (!Areas[i].Equals(other.Areas[i])) return false;
             for (int i = 0; i < Statuses.Length; i++)
                 if (!Statuses[i].Equals(other.Statuses[i])) return false;
+            for (int i = 0; i < Tiles.Length; i++)
+                if (Tiles[i] != other.Tiles[i]) return false;
             return true;
         }
 
@@ -59,6 +69,7 @@ namespace Arena.Core.State
             Array.Clear(Projectiles, 0, Projectiles.Length);
             Array.Clear(Areas, 0, Areas.Length);
             Array.Clear(Statuses, 0, Statuses.Length);
+            Array.Clear(Tiles, 0, Tiles.Length);
         }
     }
 }

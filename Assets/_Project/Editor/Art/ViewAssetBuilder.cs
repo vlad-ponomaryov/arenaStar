@@ -29,6 +29,8 @@ namespace Arena.Editor.Art
         public const string FloorPrefabPath = PrefabsFolder + "/Floor.prefab";
         public const string ProjectilePrefabPath = PrefabsFolder + "/Projectile.prefab";
         public const string HealthBarPrefabPath = PrefabsFolder + "/HealthBar.prefab";
+        public const string BreakableWallPrefabPath = PrefabsFolder + "/BreakableWall.prefab";
+        public const string BushPrefabPath = PrefabsFolder + "/Bush.prefab";
 
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
@@ -44,6 +46,32 @@ namespace Arena.Editor.Art
         private static readonly Color ProjectileColor = new Color(0.55f, 0.88f, 1f, 1f);
         private static readonly Color BarBackgroundColor = new Color(0.08f, 0.08f, 0.1f, 1f);
         private static readonly Color BarChargeColor = new Color(1f, 0.78f, 0.2f, 1f);
+
+        // Map (S2.5): walls grey-brown, breakable walls lighter wood, bushes dark green, water blue; translucent variants for
+        // hiding (D-014, D-024).
+        private static readonly Color WallColor = new Color(0.45f, 0.40f, 0.36f, 1f);
+        private static readonly Color WallBreakableColor = new Color(0.72f, 0.55f, 0.34f, 1f);
+        private static readonly Color BushColor = new Color(0.16f, 0.45f, 0.18f, 1f);
+        private static readonly Color BushSeeThroughColor = new Color(0.16f, 0.45f, 0.18f, 0.35f);
+        private static readonly Color WaterColor = new Color(0.22f, 0.50f, 0.85f, 1f);
+        private static readonly Color FighterHiddenColor = new Color(0.86f, 0.80f, 0.70f, 0.45f);
+
+        // Map geometry (world units, view only, PROTO): wall and breakable wall height, bush height, water sheet height,
+        // see-through radius around the local fighter in a bush.
+        private const float WallHeight = 1.2f;
+        private const float BushHeight = 0.8f;
+        private const float WaterHeight = 0.02f;
+        private const float BushSeeThroughRadius = 2.5f;
+
+        // URP surface setup for translucent materials (property names of URP Lit/Unlit).
+        private const string SurfaceProperty = "_Surface";
+        private const string BlendProperty = "_Blend";
+        private const string SrcBlendProperty = "_SrcBlend";
+        private const string DstBlendProperty = "_DstBlend";
+        private const string SrcBlendAlphaProperty = "_SrcBlendAlpha";
+        private const string DstBlendAlphaProperty = "_DstBlendAlpha";
+        private const string ZWriteProperty = "_ZWrite";
+        private const string TransparentKeyword = "_SURFACE_TYPE_TRANSPARENT";
 
         // Projectiles: pool prewarm (S2.3 plan) and flight height (view only).
         private const int ProjectilePoolPrewarm = 64;
@@ -90,12 +118,20 @@ namespace Arena.Editor.Art
             Material barEnemy = SaveMaterial("BarEnemy", UnlitShader, EnemyColor);
             Material barBackground = SaveMaterial("BarBackground", UnlitShader, BarBackgroundColor);
             Material barCharge = SaveMaterial("BarCharge", UnlitShader, BarChargeColor);
+            Material wall = SaveMaterial("Wall", LitShader, WallColor);
+            Material wallBreakable = SaveMaterial("WallBreakable", LitShader, WallBreakableColor);
+            Material bush = SaveMaterial("Bush", LitShader, BushColor);
+            Material bushSeeThrough = SaveMaterial("BushSeeThrough", LitShader, BushSeeThroughColor, true);
+            Material water = SaveMaterial("Water", LitShader, WaterColor);
+            Material fighterHidden = SaveMaterial("FighterHidden", LitShader, FighterHiddenColor, true);
 
             FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine);
             AimIndicatorView aimIndicator = BuildAimIndicatorPrefab(aimLine);
             GameObject floorPrefab = BuildFloorPrefab(floor);
             GameObject projectilePrefab = BuildProjectilePrefab(projectile);
             HealthBarView healthBar = BuildHealthBarPrefab(barAlly, barBackground, barCharge);
+            GameObject breakablePrefab = BuildBlockPrefab("BreakableWall", BreakableWallPrefabPath, wallBreakable, WallHeight);
+            GameObject bushPrefab = BuildBlockPrefab("Bush", BushPrefabPath, bush, BushHeight);
 
             ViewCatalog catalog = LoadOrCreate<ViewCatalog>(ViewCatalogPath);
             catalog.FighterViewPrefab = fighterView;
@@ -103,6 +139,17 @@ namespace Arena.Editor.Art
             catalog.FloorPrefab = floorPrefab;
             catalog.ProjectilePrefab = projectilePrefab;
             catalog.HealthBarPrefab = healthBar;
+            catalog.BreakableWallPrefab = breakablePrefab;
+            catalog.BushPrefab = bushPrefab;
+            catalog.WallHeight = WallHeight;
+            catalog.WaterHeight = WaterHeight;
+            catalog.BushSeeThroughRadius = BushSeeThroughRadius;
+            catalog.Wall = wall;
+            catalog.WallBreakable = wallBreakable;
+            catalog.Bush = bush;
+            catalog.BushSeeThrough = bushSeeThrough;
+            catalog.Water = water;
+            catalog.FighterHidden = fighterHidden;
             catalog.ProjectilePoolPrewarm = ProjectilePoolPrewarm;
             catalog.ProjectileHeight = ProjectileHeight;
             catalog.Projectile = projectile;
@@ -234,6 +281,23 @@ namespace Arena.Editor.Art
             }
         }
 
+        /// <summary>Cube of 1 × <paramref name="height"/> × 1 cells with the pivot at the bottom centre (map blocks).</summary>
+        private static GameObject BuildBlockPrefab(string name, string path, Material material, float height)
+        {
+            var root = new GameObject(name);
+            try
+            {
+                GameObject cube = CreatePart(PrimitiveType.Cube, "Cube", root.transform, material);
+                cube.transform.localScale = new Vector3(1f, height, 1f);
+                cube.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
+                return SavePrefab(root, path);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         private static GameObject BuildProjectilePrefab(Material material)
         {
             var root = new GameObject("Projectile");
@@ -320,7 +384,7 @@ namespace Arena.Editor.Art
             return prefab;
         }
 
-        private static Material SaveMaterial(string name, string shaderName, Color color)
+        private static Material SaveMaterial(string name, string shaderName, Color color, bool transparent = false)
         {
             Shader shader = Shader.Find(shaderName);
             if (shader == null) throw new InvalidOperationException("ViewAssetBuilder: shader not found: " + shaderName);
@@ -336,9 +400,27 @@ namespace Arena.Editor.Art
                 mat.shader = shader;
             }
             mat.SetColor(BaseColorProperty, color);
+            SetSurface(mat, transparent);
             mat.enableInstancing = false;
             EditorUtility.SetDirty(mat);
             return mat;
+        }
+
+        /// <summary>URP opaque / alpha-blended surface, the same switches the URP material inspector sets.</summary>
+        private static void SetSurface(Material mat, bool transparent)
+        {
+            mat.SetFloat(SurfaceProperty, transparent ? 1f : 0f);
+            mat.SetFloat(BlendProperty, 0f);
+            mat.SetFloat(SrcBlendProperty, (float)(transparent ? BlendMode.SrcAlpha : BlendMode.One));
+            mat.SetFloat(DstBlendProperty, (float)(transparent ? BlendMode.OneMinusSrcAlpha : BlendMode.Zero));
+            mat.SetFloat(SrcBlendAlphaProperty, (float)BlendMode.One);
+            mat.SetFloat(DstBlendAlphaProperty, (float)(transparent ? BlendMode.OneMinusSrcAlpha : BlendMode.Zero));
+            mat.SetFloat(ZWriteProperty, transparent ? 0f : 1f);
+            if (transparent) mat.EnableKeyword(TransparentKeyword);
+            else mat.DisableKeyword(TransparentKeyword);
+            mat.SetOverrideTag("RenderType", transparent ? "Transparent" : "Opaque");
+            mat.renderQueue = transparent ? (int)RenderQueue.Transparent : -1;
+            mat.SetShaderPassEnabled("ShadowCaster", !transparent);
         }
 
         private static void SetRef(SerializedObject so, string field, Object value)

@@ -1,4 +1,3 @@
-using Arena.Core.Defs;
 using Arena.Gameplay.Cameras;
 using NUnit.Framework;
 using UnityEngine;
@@ -11,7 +10,7 @@ namespace Arena.Tests.EditMode.Gameplay
         private const float Distance = 18f;
         private const float Offset = 2f;
         private const float Inset = 7f;
-        private static readonly ArenaBounds Bounds = ArenaBounds.FromSize(21f, 31f);
+        private static readonly Vector2 Bounds = new Vector2(21f, 31f);
 
         [Test]
         public void Team0_LooksTowardsPlusZ_FromBelowTheFocus()
@@ -60,7 +59,7 @@ namespace Arena.Tests.EditMode.Gameplay
         [Test]
         public void Focus_OnAMapShorterThanTwoInsets_IsTheCentre()
         {
-            var small = ArenaBounds.FromSize(10f, 10f);
+            var small = new Vector2(10f, 10f);
             Assert.AreEqual(5f, CameraMath.Focus(new Vector3(1f, 0f, 1f), small, false, Offset, Inset).z, 1e-5f);
         }
 

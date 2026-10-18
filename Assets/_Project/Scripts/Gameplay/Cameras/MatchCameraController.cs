@@ -1,4 +1,3 @@
-using Arena.Core.Defs;
 using Arena.Data;
 using UnityEngine;
 
@@ -12,7 +11,7 @@ namespace Arena.Gameplay.Cameras
     public sealed class MatchCameraController : MonoBehaviour
     {
         private CameraConfig _config;
-        private ArenaBounds _bounds;
+        private Vector2 _mapSize;
         private bool _rotated;
         private Quaternion _rotation;
         private Vector3 _focus;
@@ -21,21 +20,22 @@ namespace Arena.Gameplay.Cameras
         public Camera Camera => _camera != null ? _camera : (_camera = GetComponent<Camera>());
         public bool Rotated => _rotated;
 
-        public void Init(CameraConfig config, ArenaBounds bounds, bool rotated, Vector3 target)
+        /// <param name="mapSize">Map width × height in cells (world X × Z).</param>
+        public void Init(CameraConfig config, Vector2 mapSize, bool rotated, Vector3 target)
         {
             _config = config;
-            _bounds = bounds;
+            _mapSize = mapSize;
             _rotated = rotated;
             _rotation = CameraMath.Rotation(config.PitchDegrees, rotated);
             Camera.fieldOfView = config.FieldOfView;
-            _focus = CameraMath.Focus(target, bounds, rotated, config.ForwardOffset, config.EdgeInset);
+            _focus = CameraMath.Focus(target, mapSize, rotated, config.ForwardOffset, config.EdgeInset);
             Apply();
         }
 
         public void Follow(Vector3 target, float deltaTime)
         {
             if (_config == null) return;
-            Vector3 desired = CameraMath.Focus(target, _bounds, _rotated, _config.ForwardOffset, _config.EdgeInset);
+            Vector3 desired = CameraMath.Focus(target, _mapSize, _rotated, _config.ForwardOffset, _config.EdgeInset);
             _focus = Vector3.Lerp(_focus, desired, CameraMath.DampFactor(_config.FollowSharpness, deltaTime));
             Apply();
         }

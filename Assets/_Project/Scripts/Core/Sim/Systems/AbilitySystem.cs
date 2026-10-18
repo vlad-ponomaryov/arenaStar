@@ -1,6 +1,7 @@
 using System;
 using Arena.Core.Defs;
 using Arena.Core.Input;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
@@ -16,7 +17,8 @@ namespace Arena.Core.Sim.Systems
     /// Per fighter and tick, in this order: attack (burst continuation or a new press), ult, trick — so an attack and a
     /// trick pressed together both happen. A stunned fighter does nothing (its burst was cancelled by the stun); a dashing
     /// fighter starts nothing new (a burst started before the dash continues).
-    /// An ability that may affect enemies counts as attacking: restarts the regen delay and ends invisibility (D-024).
+    /// An ability that may affect enemies counts as attacking: restarts the regen delay, ends invisibility and reveals the
+    /// fighter for <see cref="CombatRules.RevealTicks"/> (D-024).
     /// </summary>
     public static class AbilitySystem
     {
@@ -60,6 +62,7 @@ namespace Arena.Core.Sim.Systems
             if (ability.Affects(TargetFilter.Enemy))
             {
                 RegenSystem.MarkInCombat(ref f, tick);
+                f.RevealedUntilTick = tick + defs.Rules.RevealTicks;
                 if (f.Invisible) StatusSystem.RemoveKind(state, slot, EffectKind.Invisibility);
             }
             events.Add(new SimEvent(SimEventType.AbilityFired, tick, slot, -1, abilityRef, f.Position, dir));
@@ -105,7 +108,8 @@ namespace Arena.Core.Sim.Systems
 
         /// <summary>
         /// Instant cone: every matching fighter whose centre is within <c>Range + its radius</c> and within half the cone
-        /// angle of <paramref name="dir"/>. Knockback pushes away from the origin.
+        /// angle of <paramref name="dir"/> and not behind a projectile-blocking tile (line of sight to its centre).
+        /// Knockback pushes away from the origin.
         /// </summary>
         public static void HitCone(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, int team, Vec2 origin,
             Vec2 dir, AbilityDef ability, int abilityRef)
@@ -113,6 +117,7 @@ namespace Arena.Core.Sim.Systems
             float cosHalf = MathF.Cos(ability.ConeAngleDegrees * 0.5f * MathUtil.DegToRad);
             var ctx = new EffectContext(ability, abilityRef, slot, team, origin, Vec2.Zero);
             int count = state.Globals.FighterCount;
+            TileGrid grid = state.Grid;
             for (int j = 0; j < count; j++)
             {
                 if (j == slot || !EffectSystem.CanAffect(state, ability, slot, team, j)) continue;
@@ -121,6 +126,7 @@ namespace Arena.Core.Sim.Systems
                 Vec2 to = t.Position - origin;
                 if (to.SqrLength > reach * reach) continue;
                 if (!to.IsZero && Vec2.Dot(to.Normalized, dir) < cosHalf) continue;
+                if (!ability.IgnoresWalls && !GridCollision.HasLineOfSight(in grid, origin, t.Position)) continue;
                 EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
             }
         }

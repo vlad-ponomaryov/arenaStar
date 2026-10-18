@@ -29,8 +29,13 @@ namespace Arena.Core.State
         /// <summary>Status effects not applied because all <c>SimLimits.MaxStatusEffects</c> slots were busy.</summary>
         public int DroppedStatuses;
 
+        /// <summary>Size of the map in <c>MatchState.Tiles</c> (copied from <c>MapDef</c> at reset).</summary>
+        public int MapWidth;
+        public int MapHeight;
+
         public bool Equals(MatchGlobals o) => Tick == o.Tick && FighterCount == o.FighterCount && Seed == o.Seed && Rng.Equals(o.Rng)
-            && DroppedProjectiles == o.DroppedProjectiles && DroppedAreas == o.DroppedAreas && DroppedStatuses == o.DroppedStatuses;
+            && DroppedProjectiles == o.DroppedProjectiles && DroppedAreas == o.DroppedAreas && DroppedStatuses == o.DroppedStatuses
+            && MapWidth == o.MapWidth && MapHeight == o.MapHeight;
         public override bool Equals(object obj) => obj is MatchGlobals other && Equals(other);
         public override int GetHashCode() => (Tick * 397) ^ FighterCount ^ Rng.GetHashCode();
     }

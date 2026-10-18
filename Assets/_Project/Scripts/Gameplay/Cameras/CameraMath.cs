@@ -1,4 +1,3 @@
-using Arena.Core.Defs;
 using Arena.Core.Math;
 using UnityEngine;
 
@@ -12,13 +11,14 @@ namespace Arena.Gameplay.Cameras
     {
         public const float RotatedYaw = 180f;
 
-        public static Vector3 Focus(Vector3 target, ArenaBounds bounds, bool rotated, float forwardOffset, float edgeInset)
+        /// <param name="mapSize">Map width (world X) and height (world Z) in cells; the map starts at the origin (D-009).</param>
+        public static Vector3 Focus(Vector3 target, Vector2 mapSize, bool rotated, float forwardOffset, float edgeInset)
         {
             float z = target.z + (rotated ? -forwardOffset : forwardOffset);
-            float lo = bounds.Min.Y + edgeInset;
-            float hi = bounds.Max.Y - edgeInset;
-            z = lo > hi ? (bounds.Min.Y + bounds.Max.Y) * 0.5f : MathUtil.Clamp(z, lo, hi);
-            return new Vector3(bounds.Center.X, 0f, z);
+            float lo = edgeInset;
+            float hi = mapSize.y - edgeInset;
+            z = lo > hi ? mapSize.y * 0.5f : MathUtil.Clamp(z, lo, hi);
+            return new Vector3(mapSize.x * 0.5f, 0f, z);
         }
 
         public static Quaternion Rotation(float pitchDegrees, bool rotated) =>

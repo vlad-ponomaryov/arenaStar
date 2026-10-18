@@ -22,4 +22,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 08805ffc16c68734e9c384e5cd5ece76, type: 2}
   - {fileID: 11400000, guid: e26065b44daa74d458a206ce8a5b14c9, type: 2}
   - {fileID: 11400000, guid: 48563381b38b9d94fa376db9d8c7c253, type: 2}
-  TempArenaSize: {x: 21, y: 31}
+  DefaultMap: {fileID: 11400000, guid: 31630bfaa678cf24f9d302ae8acf938a, type: 2}

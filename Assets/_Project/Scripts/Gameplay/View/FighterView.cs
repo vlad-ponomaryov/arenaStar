@@ -11,8 +11,21 @@ namespace Arena.Gameplay.View
         [SerializeField] private Transform _body;
         [SerializeField] private Renderer _ring;
 
+        private Renderer _bodyRenderer;
+        private Material _bodyMaterial;
+
         public Transform Body => _body;
         public Renderer Ring => _ring;
+
+        /// <summary>Swaps the shared body material (normal / hidden in a bush); no-op if unchanged.</summary>
+        public void SetBodyMaterial(Material material)
+        {
+            if (material == null || material == _bodyMaterial) return;
+            if (_bodyRenderer == null && _body != null) _bodyRenderer = _body.GetComponent<Renderer>();
+            if (_bodyRenderer == null) return;
+            _bodyRenderer.sharedMaterial = material;
+            _bodyMaterial = material;
+        }
 
         public void SetTeamMaterial(Material material)
         {

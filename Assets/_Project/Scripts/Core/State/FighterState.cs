@@ -85,6 +85,17 @@ namespace Arena.Core.State
         /// <summary>Bit per team that has marked this fighter (visible to that team, D-024).</summary>
         public uint MarkedByTeamMask;
 
+        // --- Visibility (VisibilitySystem, D-024). ---
+
+        /// <summary>The body centre is in a bush cell (set at the end of each tick).</summary>
+        public bool InBush;
+
+        /// <summary>Bit per team that sees this fighter now (own team always); recomputed at the end of each tick.</summary>
+        public uint VisibleToTeams;
+
+        /// <summary>Attacking reveals the fighter until this tick (exclusive): attack tick + <c>CombatRules.RevealTicks</c>.</summary>
+        public int RevealedUntilTick;
+
         // --- Forced movement. ---
 
         /// <summary>Knockback velocity, cells per second, applied for <see cref="KnockbackTicks"/> more ticks.</summary>
@@ -112,6 +123,9 @@ namespace Arena.Core.State
 
         public bool IsDashing => DashTicksLeft > 0;
 
+        /// <summary>True if fighters of <paramref name="team"/> see this fighter (D-024).</summary>
+        public bool IsVisibleTo(int team) => (uint)team < 32u && (VisibleToTeams & (1u << team)) != 0;
+
         public bool Equals(FighterState o)
         {
             return Active == o.Active && Alive == o.Alive && DefIndex == o.DefIndex && Team == o.Team && Level == o.Level
@@ -125,6 +139,7 @@ namespace Arena.Core.State
                 && TrickUnlocked == o.TrickUnlocked && TalentUnlocked == o.TalentUnlocked
                 && SpeedMul == o.SpeedMul && DamageTakenMul == o.DamageTakenMul && Stunned == o.Stunned
                 && Invisible == o.Invisible && MarkedByTeamMask == o.MarkedByTeamMask
+                && InBush == o.InBush && VisibleToTeams == o.VisibleToTeams && RevealedUntilTick == o.RevealedUntilTick
                 && KnockbackVelocity == o.KnockbackVelocity && KnockbackTicks == o.KnockbackTicks
                 && DashVelocity == o.DashVelocity && DashTicksLeft == o.DashTicksLeft
                 && DashAbilityRef == o.DashAbilityRef && DashHitMask == o.DashHitMask

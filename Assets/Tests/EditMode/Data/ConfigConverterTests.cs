@@ -133,7 +133,7 @@ namespace Arena.Tests.EditMode.Data
         }
 
         [Test]
-        public void Rules_And_Bounds_FromAsset()
+        public void Rules_And_Map_FromAsset()
         {
             MatchDefs defs = LoadDefs();
             Assert.AreEqual(3, defs.Rules.MaxCharges);
@@ -141,8 +141,10 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(90, defs.Rules.RespawnTicks, "respawn 3 s (GDD §5.2)");
             Assert.AreEqual(0.12f, defs.Rules.RegenFractionPerSecond, 1e-6f);
             Assert.AreEqual(0.06f, defs.Rules.LevelBonusPerLevel, 1e-6f);
-            Assert.AreEqual(21f, defs.Bounds.Width, 1e-5f);
-            Assert.AreEqual(31f, defs.Bounds.Height, 1e-5f);
+            Assert.AreEqual(21, defs.Map.Width);
+            Assert.AreEqual(31, defs.Map.Height);
+            Assert.AreEqual(2f, defs.Rules.BushRevealDistance, 1e-6f, "bush reveal distance 2 cells (GDD §5.2)");
+            Assert.AreEqual(30, defs.Rules.RevealTicks, "attack reveals for 1 s (GDD §5.2)");
             Assert.AreEqual(5236, defs.Rules.ScaleByLevel(3400, 10), "level 10 = +54 % (GDD §6)");
         }
 
@@ -153,7 +155,7 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(6, defs.Fighters.Length);
             var setup = new MatchSetup { Seed = 1, Slots = new PlayerSlotSetup[defs.Fighters.Length] };
             for (int i = 0; i < setup.Slots.Length; i++)
-                setup.Slots[i] = new PlayerSlotSetup(i, i % 2, 1, defs.Bounds.Center);
+                setup.Slots[i] = new PlayerSlotSetup(i, i % 2, 1, defs.Map.Hollow.Center);
             var sim = new MatchSimulation(defs, setup);
             var inputs = new PlayerInput[SimLimits.MaxFighters];
             for (int t = 0; t < 30; t++) sim.Tick(inputs);

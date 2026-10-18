@@ -6,8 +6,8 @@ namespace Arena.Core.Sim.Systems
 {
     /// <summary>
     /// Aim resolution in the simulation (D-007): with <see cref="InputButtons.AutoAim"/> the nearest enemy within range
-    /// (centre distance; ties → lower slot), otherwise the manual aim direction, otherwise the facing.
-    /// Visibility (bushes, invisibility) is added in S2.5: then only enemies visible to the shooter's team count.
+    /// visible to the shooter's team (bushes, invisibility: VisibilitySystem, D-024; centre distance; ties to the
+    /// lower slot), otherwise the manual aim direction, otherwise the facing.
     /// </summary>
     public static class TargetingSystem
     {
@@ -29,7 +29,7 @@ namespace Arena.Core.Sim.Systems
             return Facing(in f);
         }
 
-        /// <summary>Slot of the nearest alive enemy whose centre is within <paramref name="range"/>, or −1.</summary>
+        /// <summary>Slot of the nearest alive enemy visible to the shooter's team whose centre is within <paramref name="range"/>, or −1.</summary>
         public static int FindNearestEnemy(MatchState state, int slot, float range)
         {
             ref FighterState f = ref state.Fighters[slot];
@@ -40,7 +40,7 @@ namespace Arena.Core.Sim.Systems
             {
                 if (j == slot) continue;
                 ref FighterState e = ref state.Fighters[j];
-                if (!e.Active || !e.Alive || e.Team == f.Team) continue;
+                if (!e.Active || !e.Alive || e.Team == f.Team || !e.IsVisibleTo(f.Team)) continue;
                 float d = Vec2.SqrDistance(e.Position, f.Position);
                 if (d < best || (found < 0 && d <= best))
                 {

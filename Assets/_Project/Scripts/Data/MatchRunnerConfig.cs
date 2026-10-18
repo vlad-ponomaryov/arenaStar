@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Arena.Data
 {
     /// <summary>
-    /// Local match loop and the default (prototype) match setup: who sits in which slot and where the temporary spawns are
-    /// (until map spawn points of S2.5). Values are written by DataSeeder (D-010).
+    /// Local match loop and the default (prototype) match setup: who sits in which slot (spawns come from the map).
+    /// Values are written by DataSeeder (D-010).
     /// </summary>
     [CreateAssetMenu(fileName = "MatchRunnerConfig", menuName = "Arena/Match Runner Config")]
     public sealed class MatchRunnerConfig : ScriptableObject
@@ -28,12 +28,5 @@ namespace Arena.Data
 
         [Tooltip("Trick and talent open regardless of level (D-012: on in the prototype).")]
         public bool UnlockAllAbilities = true;
-
-        [Header("Temporary spawns (until map spawns)")]
-        [Tooltip("Distance of the spawn row from the team's own short edge of the arena, cells.")]
-        [Min(0f)] public float SpawnEdgeInset;
-
-        [Tooltip("Distance between neighbouring spawns of a team across the arena, cells.")]
-        [Min(0f)] public float SpawnSpacing;
     }
 }

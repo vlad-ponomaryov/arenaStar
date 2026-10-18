@@ -26,7 +26,9 @@ namespace Arena.Core.Sim
     ///   8. respawn;
     ///   9. attack charges;
     ///  10. regeneration;
-    ///  11. Tick++.
+    ///  11. visibility (bushes, reveal, invisibility, marks; read by views, bots and next tick's auto-aim);
+    ///  12. Tick++.
+    /// Movement, dashes and projectiles collide with the mutable map tiles in the state (walls break there).
     ///
     /// No allocations per tick: the state, the event buffer and the input scratch array are allocated once here.
     /// </summary>
@@ -66,8 +68,10 @@ namespace Arena.Core.Sim
             g.Seed = Setup.Seed;
             g.Rng = DeterministicRng.FromSeed(Setup.Seed);
             g.FighterCount = Setup.SlotCount;
+            TileSystem.Load(State, Defs.Map);
             for (int i = 0; i < Setup.SlotCount; i++)
                 SpawnSystem.SpawnFighter(State, Defs, Setup, i, Events);
+            VisibilitySystem.Run(State, Defs);
         }
 
         /// <param name="inputs">Input per fighter slot (index = slot); length ≥ <see cref="FighterCount"/>.</param>
@@ -88,6 +92,7 @@ namespace Arena.Core.Sim
             RespawnSystem.Run(State, Defs, Setup, Events);
             ChargeSystem.Run(State, Defs, Events);
             RegenSystem.Run(State, Defs);
+            VisibilitySystem.Run(State, Defs);
             State.Globals.Tick++;
         }
 

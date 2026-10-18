@@ -40,6 +40,32 @@ namespace Arena.Tests.EditMode.Core
         }
 
         [Test]
+        public void Tick_OnMapWithWallsWaterBushes_DoesNotAllocate()
+        {
+            var defs = TestMatchFactory.CreateDefsOnMap(
+                "............",
+                "..##..\"\"..~.",
+                "..%...\"\"..~.",
+                "......#.....",
+                ".~~...#..%%.",
+                "..\"\"........",
+                "............");
+            defs.Fighters[0].Attack.BreaksWalls = true;
+            var sim = TestMatchFactory.CreateWith(defs,
+                TestMatchFactory.Slot(0, 0, 1.5f, 0.5f), TestMatchFactory.Slot(1, 1, 10.5f, 6.5f), TestMatchFactory.Slot(0, 0, 5.5f, 0.5f),
+                TestMatchFactory.Slot(1, 1, 3.5f, 6.5f), TestMatchFactory.Slot(0, 0, 8.5f, 0.5f), TestMatchFactory.Slot(1, 1, 0.5f, 6.5f));
+            var inputs = TestMatchFactory.Inputs();
+            var rng = DeterministicRng.FromSeed(4);
+
+            for (int t = 0; t < WarmupTicks; t++) Step(sim, inputs, ref rng, t);
+
+            AllocationAssert.NoGcAllocations(() =>
+            {
+                for (int t = 0; t < MeasuredTicks; t++) Step(sim, inputs, ref rng, t);
+            }, MeasuredTicks + " ticks on a map");
+        }
+
+        [Test]
         public void Tick_WithShootingDeathsAndRespawns_DoesNotAllocate()
         {
             var defs = TestMatchFactory.CreateDefs();

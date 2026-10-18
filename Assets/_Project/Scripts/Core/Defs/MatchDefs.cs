@@ -1,4 +1,5 @@
 using System;
+using Arena.Core.Map;
 
 namespace Arena.Core.Defs
 {
@@ -11,8 +12,8 @@ namespace Arena.Core.Defs
         public CombatRules Rules;
         public FighterDef[] Fighters;
 
-        /// <summary>Temporary arena rectangle until the grid map (S2.5).</summary>
-        public ArenaBounds Bounds;
+        /// <summary>The map of the match (initial tiles, spawns); the mutable tiles are in <c>MatchState.Tiles</c>.</summary>
+        public MapDef Map;
 
         /// <summary>Ability slots per fighter in an ability reference (<see cref="AbilitySlot"/>).</summary>
         public const int AbilitySlotsPerFighter = 3;
@@ -55,7 +56,8 @@ namespace Arena.Core.Defs
                 Fighters[i].Validate();
                 if (IndexOfFighter(Fighters[i].Id) != i) throw new ArgumentException("MatchDefs: duplicate fighter id " + Fighters[i].Id);
             }
-            if (!Bounds.IsValid) throw new ArgumentException("MatchDefs.Bounds is empty");
+            if (Map == null) throw new ArgumentException("MatchDefs.Map is null");
+            Map.Validate();
         }
     }
 }

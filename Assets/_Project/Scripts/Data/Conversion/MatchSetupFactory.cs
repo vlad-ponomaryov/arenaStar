@@ -1,13 +1,13 @@
 using System;
 using Arena.Core.Defs;
-using Arena.Core.Math;
+using Arena.Core.Map;
 
 namespace Arena.Data.Conversion
 {
     /// <summary>
     /// Builds the prototype <see cref="MatchSetup"/> from <see cref="MatchRunnerConfig"/>: slots [0, TeamSize) are team 0
-    /// (bottom), the rest team 1 (top). Temporary spawns are rows near the short edges of <see cref="ArenaBounds"/>,
-    /// centrally symmetric (D-009), until map spawn points (S2.5). Called once per match start.
+    /// (bottom), the rest team 1 (top). The k-th fighter of a team spawns at the k-th spawn cell of that team on the map
+    /// (centre of the cell). Called once per match start.
     /// </summary>
     public static class MatchSetupFactory
     {
@@ -31,24 +31,14 @@ namespace Arena.Data.Conversion
                 if (fighterIndex < 0) throw new ArgumentException("MatchRunnerConfig: unknown fighter id '" + id + "' in slot " + i);
                 int team = i < config.TeamSize ? 0 : 1;
                 int indexInTeam = team == 0 ? i : i - config.TeamSize;
-                int teamCount = team == 0 ? MathUtil.Min(count, config.TeamSize) : count - config.TeamSize;
-                setup.Slots[i] = new PlayerSlotSetup(fighterIndex, team, config.FighterLevel,
-                    SpawnPoint(defs.Bounds, team, indexInTeam, teamCount, config.SpawnEdgeInset, config.SpawnSpacing));
+                if (!defs.Map.TryGetSpawn(team, indexInTeam, out GridCell spawn))
+                    throw new ArgumentException("Map '" + defs.Map.Id + "' has no spawn " + indexInTeam + " for team " + team + " (slot " + i + ")");
+                setup.Slots[i] = new PlayerSlotSetup(fighterIndex, team, config.FighterLevel, spawn.Center);
             }
             setup.Validate(defs);
             if (config.LocalSlot < 0 || config.LocalSlot >= count)
                 throw new ArgumentException("MatchRunnerConfig.LocalSlot " + config.LocalSlot + " out of range");
             return setup;
-        }
-
-        /// <summary>Spawn of the <paramref name="indexInTeam"/>-th fighter; team 1 mirrors team 0 through the arena centre.</summary>
-        public static Vec2 SpawnPoint(ArenaBounds bounds, int team, int indexInTeam, int teamCount, float edgeInset, float spacing)
-        {
-            float offset = (indexInTeam - (teamCount - 1) * 0.5f) * spacing;
-            Vec2 c = bounds.Center;
-            return team == 0
-                ? new Vec2(c.X + offset, bounds.Min.Y + edgeInset)
-                : new Vec2(c.X - offset, bounds.Max.Y - edgeInset);
         }
     }
 }

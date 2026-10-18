@@ -17,6 +17,8 @@ namespace Arena.Editor.Data
         public const string CombatFolder = DataRoot + "/Combat";
         public const string FightersFolder = DataRoot + "/Fighters";
         public const string FeelFolder = DataRoot + "/Feel";
+        public const string MapsFolder = DataRoot + "/Maps";
+        public const string AcornsGladePath = MapsFolder + "/Acorns_Glade.asset";
         public const string CameraConfigPath = FeelFolder + "/CameraConfig.asset";
         public const string MatchRunnerConfigPath = CombatFolder + "/MatchRunnerConfig.asset";
         public const string CombatRulesPath = CombatFolder + "/CombatRules.asset";
@@ -43,8 +45,35 @@ namespace Arena.Editor.Data
         private const int TalentUnlockLevel = 8;
         private const bool UnlockAllAbilities = true;
 
-        // Temporary arena = size of the Acorns map (GDD §5.4), until grid maps (S2.5).
-        private static readonly Vector2 TempArenaSize = new Vector2(21f, 31f);
+        // GDD §5.2: a bush hides unless an enemy is closer than 2 cells; an attack reveals for 1 s (D-024).
+        private const float BushRevealDistance = 2f;
+        private const float RevealSeconds = 1f;
+
+        // Acorns map "Glade" (original layout, 21×31, GDD §5.4–5.5): three lanes split by walls and ponds, bushes on the
+        // flanks and next to the centre (equal for both sides), breakable cover in front of each base, the hollow in the
+        // centre. Only the bottom half (team 0, rows 0–14, written top row first) and the middle row are written here;
+        // the top half is generated as the central mirror (A → B), so the map is symmetric by construction.
+        private const string AcornsGladeId = "acorns_glade";
+        private const int SpawnsPerTeam = 3;
+        private static readonly string[] AcornsGladeBottomHalf =
+        {
+            "..~~...\"\"...\"\"...~~..", // row 14
+            ".......\"\"...\"\".......",
+            ".....#..%...%..#.....",
+            "...###.........###...",
+            "..........#..........",
+            "\"\"....~~..#..~~....\"\"",
+            "\"\"\"...~~.....~~...\"\"\"",
+            "\"\"\"...##.....##...\"\"\"",
+            ".....................",
+            "..#......%%%......#..",
+            "..###...........###..",
+            ".....................",
+            "......A...A...A......",
+            "..\"\".............\"\"..",
+            "....................." // row 0
+        };
+        private const string AcornsGladeMiddleRow = "~~...#...\"H\"...#...~~"; // row 15, its own mirror
 
         // PROTO (D-013): body radii in cells.
         private const float RadiusDefault = 0.45f;
@@ -110,8 +139,6 @@ namespace Arena.Editor.Data
         private const int LocalSlot = 0;
         private const int TeamSize = 3;
         private const int FighterLevel = 1;
-        private const float SpawnEdgeInset = 3f;
-        private const float SpawnSpacing = 4f;
         private static readonly string[] SlotFighterIds = { "pix", "bruno", "chomp", "kora", "nova", "vex" };
 
         public static string FighterAssetPath(string id) => FightersFolder + "/" + AssetNameFor(id) + ".asset";
@@ -121,6 +148,7 @@ namespace Arena.Editor.Data
             ProjectConfigurator.EnsureFolder(CombatFolder);
             ProjectConfigurator.EnsureFolder(FightersFolder);
             ProjectConfigurator.EnsureFolder(FeelFolder);
+            ProjectConfigurator.EnsureFolder(MapsFolder);
 
             CombatRulesConfig rules = SeedCombatRules();
 
@@ -143,7 +171,7 @@ namespace Arena.Editor.Data
             if (db.Fighters == null) db.Fighters = new System.Collections.Generic.List<FighterConfig>();
             db.Fighters.Clear();
             db.Fighters.AddRange(fighters);
-            db.TempArenaSize = TempArenaSize;
+            db.DefaultMap = SeedAcornsGlade();
             db.Camera = SeedCamera();
             db.MatchRunner = SeedMatchRunner();
             EditorUtility.SetDirty(db);
@@ -165,6 +193,8 @@ namespace Arena.Editor.Data
             c.TrickCooldownSeconds = TrickCooldownSeconds;
             c.TrickUnlockLevel = TrickUnlockLevel;
             c.TalentUnlockLevel = TalentUnlockLevel;
+            c.BushRevealDistance = BushRevealDistance;
+            c.RevealSeconds = RevealSeconds;
             c.SlowSpeed = SlowSpeed;
             c.NormalSpeed = NormalSpeed;
             c.FastSpeed = FastSpeed;
@@ -197,10 +227,41 @@ namespace Arena.Editor.Data
             c.TeamSize = TeamSize;
             c.FighterLevel = FighterLevel;
             c.UnlockAllAbilities = UnlockAllAbilities;
-            c.SpawnEdgeInset = SpawnEdgeInset;
-            c.SpawnSpacing = SpawnSpacing;
             EditorUtility.SetDirty(c);
             return c;
+        }
+
+        private static MapConfig SeedAcornsGlade()
+        {
+            MapConfig c = LoadOrCreate<MapConfig>(AcornsGladePath);
+            c.Id = AcornsGladeId;
+            c.Rows = MirrorBottomHalf(AcornsGladeBottomHalf, AcornsGladeMiddleRow);
+            c.RequiredSpawnsPerTeam = SpawnsPerTeam;
+            c.RequireCentralSymmetry = true;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        /// <summary>
+        /// Full rows (top first) from the bottom half (top first) and the middle row: the top half is the bottom half rotated
+        /// by 180° with team 0 spawns turned into team 1 spawns.
+        /// </summary>
+        public static string[] MirrorBottomHalf(string[] bottomHalfTopFirst, string middleRow)
+        {
+            int half = bottomHalfTopFirst.Length;
+            var rows = new string[half * 2 + 1];
+            for (int i = 0; i < half; i++)
+            {
+                // Text row i (top half) mirrors bottom text row (half − 1 − i) counted from the bottom.
+                char[] chars = bottomHalfTopFirst[half - 1 - i].ToCharArray();
+                System.Array.Reverse(chars);
+                for (int k = 0; k < chars.Length; k++)
+                    if (chars[k] == Arena.Data.Conversion.MapConverter.Team0SpawnChar) chars[k] = Arena.Data.Conversion.MapConverter.Team1SpawnChar;
+                rows[i] = new string(chars);
+            }
+            rows[half] = middleRow;
+            for (int i = 0; i < half; i++) rows[half + 1 + i] = bottomHalfTopFirst[i];
+            return rows;
         }
 
         private static void SeedPixAbilities(FighterConfig c)

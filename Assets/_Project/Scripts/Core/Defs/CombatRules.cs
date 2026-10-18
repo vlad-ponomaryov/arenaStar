@@ -36,6 +36,12 @@ namespace Arena.Core.Defs
         /// <summary>Fighter level that opens the talent (8) unless the match unlocks everything (D-012).</summary>
         public int TalentUnlockLevel;
 
+        /// <summary>An enemy closer than this (cells, centre to centre) sees a fighter in a bush (2, GDD §5.2, D-024).</summary>
+        public float BushRevealDistance;
+
+        /// <summary>Ticks an attack keeps the attacker visible (1 s = 30, GDD §5.2).</summary>
+        public int RevealTicks;
+
         /// <summary>
         /// Applies the level bonus to a level-1 value: <c>round(base × (1 + bonus × (level − 1)))</c>; level below 1 counts as 1.
         /// </summary>
@@ -57,6 +63,8 @@ namespace Arena.Core.Defs
             if (TrickCooldownTicks < 0) throw new ArgumentException("CombatRules.TrickCooldownTicks must be ≥ 0");
             if (TrickUnlockLevel < 1) throw new ArgumentException("CombatRules.TrickUnlockLevel must be ≥ 1");
             if (TalentUnlockLevel < 1) throw new ArgumentException("CombatRules.TalentUnlockLevel must be ≥ 1");
+            if (BushRevealDistance < 0f) throw new ArgumentException("CombatRules.BushRevealDistance must be ≥ 0");
+            if (RevealTicks < 0) throw new ArgumentException("CombatRules.RevealTicks must be ≥ 0");
         }
     }
 }

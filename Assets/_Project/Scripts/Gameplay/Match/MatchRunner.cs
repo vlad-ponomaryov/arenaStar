@@ -3,6 +3,7 @@ using Arena.Core.Defs;
 using Arena.Core.Input;
 using Arena.Core.Math;
 using Arena.Core.Sim;
+using Arena.Core.Sim.Events;
 using Arena.Core.State;
 using Arena.Data;
 using Arena.Data.Conversion;
@@ -17,7 +18,9 @@ namespace Arena.Gameplay.Match
     /// Local (offline) implementation of the match loop (D-038): accumulates frame time, runs <see cref="MatchSimulation.Tick"/>
     /// with a fixed 1/30 s step (at most <see cref="MatchRunnerConfig.MaxTicksPerFrame"/> per frame), feeds the local player's
     /// <see cref="PlayerInput"/> from <see cref="InputCollector"/> (other slots get zero input — dummies until bots, S2.8),
-    /// then interpolates the views (D-015): fighters, projectiles (pooled), health bars; drives the camera. Thin layer: no game logic here.
+    /// then interpolates the views (D-015): map (walls break on <c>TileBroken</c>), fighters (enemies the local team does not
+    /// see are hidden, own fighters in bushes are translucent — D-024), projectiles (pooled), health bars; drives the
+    /// camera within the map. Thin layer: no game logic here.
     /// </summary>
     public sealed class MatchRunner : MonoBehaviour
     {
@@ -35,6 +38,7 @@ namespace Arena.Gameplay.Match
         private MatchSimulation _simulation;
         private AimIndicatorView _aimIndicator;
         private ProjectileViewPool _projectileViews;
+        private MapView _mapView;
         private int _maxTicksPerFrame;
         private float _accumulator;
 
@@ -46,6 +50,7 @@ namespace Arena.Gameplay.Match
         public LocalInputCollector InputCollector => _inputCollector;
 
         public MatchSimulation Simulation => _simulation;
+        public MapView MapView => _mapView;
         public int LocalSlot { get; private set; }
         public int LocalTeam { get; private set; }
 
@@ -83,7 +88,7 @@ namespace Arena.Gameplay.Match
             _keyboardMouse.Reset();
             _accumulator = 0f;
 
-            CreateFloor(defs.Bounds);
+            _mapView = MapView.Create(transform, _viewCatalog, _simulation.State.Grid);
             CreateFighterViews(setup);
             _aimIndicator = Instantiate(_viewCatalog.AimIndicatorPrefab, transform);
             _aimIndicator.name = "AimIndicator";
@@ -94,7 +99,8 @@ namespace Arena.Gameplay.Match
             _viewState.Reset(_simulation.State);
             _projectileViews.Capture(_simulation.State);
             if (_cameraController != null)
-                _cameraController.Init(_database.Camera, defs.Bounds, _inputCollector.ViewRotated, LocalWorldPosition(0f));
+                _cameraController.Init(_database.Camera, new Vector2(defs.Map.Width, defs.Map.Height), _inputCollector.ViewRotated,
+                    LocalWorldPosition(0f));
             RenderViews(0f);
         }
 
@@ -130,6 +136,9 @@ namespace Arena.Gameplay.Match
             for (int i = 0; i < count; i++) _inputs[i] = default;
             _inputs[LocalSlot] = _inputCollector.ConsumeForTick();
             _simulation.Tick(_inputs);
+            SimEventBuffer events = _simulation.Events;
+            for (int i = 0; i < events.Count; i++)
+                if (events[i].Type == SimEventType.TileBroken) _mapView.OnTileBroken(events[i].Value);
             _viewState.Capture(_simulation.State);
             _projectileViews.Capture(_simulation.State);
         }
@@ -141,11 +150,18 @@ namespace Arena.Gameplay.Match
             {
                 FighterView view = _fighterViews[i];
                 if (view == null) continue;
-                bool alive = _viewState.Alive(i);
-                view.SetVisible(alive);
-                if (alive)
-                    view.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), WorldCoords.DirectionToWorld(_viewState.Facing(i)));
+                bool shown = IsShown(i);
+                view.SetVisible(shown);
+                if (!shown) continue;
+                ref FighterState f = ref _simulation.State.Fighters[i];
+                // Own team hidden in a bush: translucent body; a revealed enemy in a bush looks normal.
+                bool hiddenAlly = f.Team == LocalTeam && (f.InBush || f.Invisible) && !IsSeenByAnotherTeam(in f);
+                view.SetBodyMaterial(hiddenAlly ? _viewCatalog.FighterHidden : _viewCatalog.FighterBody);
+                view.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), WorldCoords.DirectionToWorld(_viewState.Facing(i)));
             }
+
+            ref FighterState localFighter = ref _simulation.State.Fighters[LocalSlot];
+            _mapView.UpdateSeeThrough(_viewState.Position(LocalSlot, alpha), localFighter.Alive && localFighter.InBush);
 
             _projectileViews.Render(alpha);
 
@@ -169,9 +185,9 @@ namespace Arena.Gameplay.Match
             {
                 HealthBarView bar = _healthBars[i];
                 if (bar == null) continue;
-                bool alive = _viewState.Alive(i);
-                bar.SetVisible(alive);
-                if (!alive) continue;
+                bool shown = IsShown(i);
+                bar.SetVisible(shown);
+                if (!shown) continue;
                 ref FighterState f = ref _simulation.State.Fighters[i];
                 bar.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), facing);
                 bar.SetValues(f.MaxHealth > 0 ? (float)f.Health / f.MaxHealth : 0f, f.Charges, maxCharges);
@@ -180,14 +196,11 @@ namespace Arena.Gameplay.Match
 
         private Vector3 LocalWorldPosition(float alpha) => WorldCoords.ToWorld(_viewState.Position(LocalSlot, alpha));
 
-        private void CreateFloor(ArenaBounds bounds)
-        {
-            if (_viewCatalog.FloorPrefab == null) return;
-            GameObject floor = Instantiate(_viewCatalog.FloorPrefab, transform);
-            floor.name = "Floor";
-            floor.transform.position = WorldCoords.ToWorld(bounds.Center);
-            floor.transform.localScale = new Vector3(bounds.Width, 1f, bounds.Height);
-        }
+        /// <summary>Alive and seen by the local team (allies always, enemies by the visibility rules, D-024).</summary>
+        private bool IsShown(int slot) => _viewState.Alive(slot) && _simulation.State.Fighters[slot].IsVisibleTo(LocalTeam);
+
+        /// <summary>True if some team other than the fighter's own sees it (it is not actually hidden).</summary>
+        private static bool IsSeenByAnotherTeam(in FighterState f) => (f.VisibleToTeams & ~(1u << f.Team)) != 0;
 
         private void CreateFighterViews(MatchSetup setup)
         {

@@ -1,4 +1,5 @@
 using Arena.Core.Defs;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
@@ -10,7 +11,9 @@ namespace Arena.Core.Sim.Systems
     /// Straight projectiles in fixed slots (<see cref="SimLimits.MaxProjectiles"/>, D-004). Each tick a projectile moves
     /// <c>speed × dt</c> (not beyond its remaining range); targets touched by the swept segment (segment–circle test,
     /// radius = projectile + body) are hit nearest-first, each at most once (<see cref="ProjectileState.HitMask"/>).
-    /// Without pierce left it stops at the hit point. Walls (S2.5) will stop it too; water does not.
+    /// Without pierce left it stops at the hit point. Projectile-blocking tiles (walls, breakable walls) stop it at the
+    /// wall face, so targets behind the wall are not hit; water does not. <see cref="AbilityDef.BreaksWalls"/> breaks a
+    /// breakable wall and flies on; <see cref="AbilityDef.IgnoresWalls"/> (lobs) ignores tiles.
     /// </summary>
     public static class ProjectileSystem
     {
@@ -54,6 +57,7 @@ namespace Arena.Core.Sim.Systems
                 float step = p.Speed * SimTime.Dt;
                 if (step > p.RemainingDistance) step = p.RemainingDistance;
                 Vec2 start = p.Position;
+                bool wallHit = ability != null && !ability.IgnoresWalls && ClipByWalls(state, events, ability, in p, start, ref step);
 
                 bool stopped = false;
                 while (ability != null)
@@ -80,11 +84,27 @@ namespace Arena.Core.Sim.Systems
                 {
                     p.Position = start + p.Dir * step;
                     p.RemainingDistance -= step;
-                    if (p.RemainingDistance > MathUtil.DistanceEpsilon && ability != null) continue;
+                    if (!wallHit && p.RemainingDistance > MathUtil.DistanceEpsilon && ability != null) continue;
                 }
                 p.Active = false;
                 events.Add(new SimEvent(SimEventType.ProjectileEnded, tick, p.Owner, -1, i, p.Position, p.Dir));
             }
+        }
+
+        /// <summary>
+        /// Shortens <paramref name="step"/> to the first projectile-blocking cell on the way; returns true if a wall stops
+        /// the projectile in this tick. Wall breakers break breakable cells and continue.
+        /// </summary>
+        private static bool ClipByWalls(MatchState state, SimEventBuffer events, AbilityDef ability, in ProjectileState p, Vec2 start, ref float step)
+        {
+            TileGrid grid = state.Grid;
+            while (GridCollision.Raycast(in grid, start, p.Dir, step, out float distance, out GridCell cell))
+            {
+                if (ability.BreaksWalls && TileSystem.TryBreak(state, events, cell.Column, cell.Row, p.Owner)) continue;
+                step = distance;
+                return true;
+            }
+            return false;
         }
 
         /// <summary>Nearest not-yet-hit matching fighter touched by the segment <c>start → start + dir × step</c>, or −1.</summary>

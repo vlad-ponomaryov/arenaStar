@@ -20,11 +20,16 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(catalog.FloorPrefab);
             Assert.IsNotNull(catalog.ProjectilePrefab);
             Assert.IsNotNull(catalog.HealthBarPrefab);
+            Assert.IsNotNull(catalog.BreakableWallPrefab);
+            Assert.IsNotNull(catalog.BushPrefab);
             Assert.Greater(catalog.ProjectilePoolPrewarm, 0);
+            Assert.Greater(catalog.WallHeight, 0f);
+            Assert.Greater(catalog.BushSeeThroughRadius, 0f);
             Material[] materials =
             {
                 catalog.TeamAlly, catalog.TeamEnemy, catalog.FighterBody, catalog.Floor, catalog.AimLine, catalog.Projectile,
-                catalog.BarAlly, catalog.BarEnemy, catalog.BarBackground, catalog.BarCharge
+                catalog.BarAlly, catalog.BarEnemy, catalog.BarBackground, catalog.BarCharge,
+                catalog.Wall, catalog.WallBreakable, catalog.Bush, catalog.BushSeeThrough, catalog.Water, catalog.FighterHidden
             };
             foreach (Material m in materials)
             {
@@ -32,6 +37,14 @@ namespace Arena.Tests.EditMode.Setup
                 StringAssert.StartsWith("Universal Render Pipeline/", m.shader.name, m.name);
             }
             Assert.AreNotEqual(catalog.TeamAlly.GetColor("_BaseColor"), catalog.TeamEnemy.GetColor("_BaseColor"));
+
+            // Hiding materials are alpha-blended (D-014: swapped, not instanced); the rest stay opaque.
+            foreach (Material m in new[] { catalog.BushSeeThrough, catalog.FighterHidden })
+            {
+                Assert.AreEqual((int)UnityEngine.Rendering.RenderQueue.Transparent, m.renderQueue, m.name);
+                Assert.Less(m.GetColor("_BaseColor").a, 1f, m.name);
+            }
+            Assert.Less(catalog.Bush.renderQueue, (int)UnityEngine.Rendering.RenderQueue.Transparent);
         }
 
         [Test]
@@ -47,7 +60,7 @@ namespace Arena.Tests.EditMode.Setup
             GameObject[] prefabs =
             {
                 catalog.FighterViewPrefab.gameObject, catalog.AimIndicatorPrefab.gameObject, catalog.FloorPrefab,
-                catalog.ProjectilePrefab, catalog.HealthBarPrefab.gameObject
+                catalog.ProjectilePrefab, catalog.HealthBarPrefab.gameObject, catalog.BreakableWallPrefab, catalog.BushPrefab
             };
             foreach (GameObject p in prefabs)
                 Assert.AreEqual(0, p.GetComponentsInChildren<Collider>(true).Length, p.name + " has colliders");

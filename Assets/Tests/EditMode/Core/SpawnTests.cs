@@ -26,7 +26,7 @@ namespace Arena.Tests.EditMode.Core
                 Assert.AreEqual(f.MaxHealth, f.Health);
                 Assert.AreEqual(3, f.Charges);
                 Assert.AreEqual(setup.Slots[i].SpawnPosition, f.Position);
-                Vec2 toCentre = (sim.Defs.Bounds.Center - f.Position).Normalized;
+                Vec2 toCentre = (sim.Defs.Map.Center - f.Position).Normalized;
                 Assert.IsTrue(Vec2.Approximately(toCentre, f.Facing, 1e-5f));
             }
             for (int i = 6; i < SimLimits.MaxFighters; i++) Assert.IsFalse(sim.State.Fighters[i].Active);

@@ -1,4 +1,5 @@
 using Arena.Core.Defs;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
@@ -11,7 +12,8 @@ namespace Arena.Core.Sim.Systems
     /// <c>round(distance / speed × 30)</c> ticks (at least 1), starting in the tick of activation, ignoring its own
     /// movement input. Every matching fighter whose body touches the swept segment gets the ability's effects once
     /// (<see cref="FighterState.DashHitMask"/>); the delivery direction is the dash direction (knockback pushes forward).
-    /// Stopped by the arena edge (walls and <see cref="AbilityDef.BreaksWalls"/> — S2.5). Cancelled by stun, knockback, defeat.
+    /// Collides with walls and water like walking (slides along them); with <see cref="AbilityDef.BreaksWalls"/> every
+    /// breakable wall the body touches is broken first (Bruno's ram). Cancelled by stun, knockback, defeat.
     /// While dashing a fighter starts no other ability (<see cref="AbilitySystem.CanActivate"/>).
     /// </summary>
     public static class DashSystem
@@ -49,16 +51,33 @@ namespace Arena.Core.Sim.Systems
                 float radius = defs.Fighters[f.DefIndex].Radius;
                 Vec2 start = f.Position;
                 Vec2 dir = f.DashVelocity.Normalized;
-                f.Position = defs.Bounds.ClampCircle(start + f.DashVelocity * SimTime.Dt, radius);
+                AbilityDef ability = defs.GetAbility(f.DashAbilityRef);
+                f.Position = Move(state, events, i, start, f.DashVelocity * SimTime.Dt, radius, ability != null && ability.BreaksWalls);
                 f.Velocity = (f.Position - start) * SimLimits.TickRate;
                 f.DashTicksLeft--;
 
-                AbilityDef ability = defs.GetAbility(f.DashAbilityRef);
                 if (ability != null && ability.Effects.Length > 0)
                     HitAlong(state, defs, events, i, ability, f.DashAbilityRef, start, f.Position, dir, radius);
 
                 if (f.DashTicksLeft <= 0) Cancel(ref f);
             }
+        }
+
+        /// <summary>Sub-stepped move with collision; a wall breaker breaks touched breakable walls before colliding.</summary>
+        private static Vec2 Move(MatchState state, SimEventBuffer events, int slot, Vec2 from, Vec2 delta, float radius, bool breaksWalls)
+        {
+            TileGrid grid = state.Grid;
+            if (!breaksWalls) return GridCollision.MoveCircle(in grid, from, delta, radius);
+            int steps = GridCollision.SubstepCount(delta.Length);
+            Vec2 step = delta / steps;
+            Vec2 p = from;
+            for (int k = 0; k < steps; k++)
+            {
+                p += step;
+                TileSystem.BreakOverlapping(state, events, p, radius, slot);
+                p = GridCollision.ResolveCircle(in grid, p, radius);
+            }
+            return p;
         }
 
         private static void HitAlong(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, AbilityDef ability,

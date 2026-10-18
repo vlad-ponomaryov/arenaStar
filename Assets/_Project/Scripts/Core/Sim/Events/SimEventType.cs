@@ -42,6 +42,10 @@ namespace Arena.Core.Sim.Events
 
         /// <summary>Timed effect applied or refreshed. Source = applier (or −1), Target = affected fighter,
         /// Value = <c>EffectKind</c>, Position = target.</summary>
-        StatusApplied = 11
+        StatusApplied = 11,
+
+        /// <summary>Breakable wall destroyed (now floor). Source = breaker (or −1), Value = tile index (row × width + column),
+        /// Position = cell centre.</summary>
+        TileBroken = 12
     }
 }

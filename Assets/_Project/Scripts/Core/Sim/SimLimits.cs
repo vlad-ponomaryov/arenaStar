@@ -18,5 +18,8 @@ namespace Arena.Core.Sim
         public const int MaxStatusEffects = 128;
         public const int MaxPickups = 64;
         public const int MaxEvents = 256;
+
+        /// <summary>Tiles of the largest map: 45×45 royale (GDD §5.4) = 2025 ≤ 2048.</summary>
+        public const int MaxMapCells = 2048;
     }
 }

@@ -1,5 +1,6 @@
 using Arena.Core.Defs;
 using Arena.Core.Input;
+using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.State;
 
@@ -7,7 +8,8 @@ namespace Arena.Core.Sim.Systems
 {
     /// <summary>
     /// Instant movement without inertia (D-036): velocity = move (length ≤ 1) × fighter speed × slow (<c>SpeedMul</c>) ×
-    /// talent; the circle of the fighter is kept inside the arena. Facing follows the aim, otherwise the movement direction.
+    /// talent; the body circle collides with movement-blocking tiles (walls, water) and slides along them
+    /// (<see cref="GridCollision.MoveCircle"/>; the map edge is a wall). Facing follows the aim, otherwise the movement direction.
     /// Priority: a knockback in progress moves the fighter (even when stunned) and ignores its input; a stunned fighter
     /// stands; a dashing fighter is moved by <see cref="DashSystem"/> instead. Fighters do not collide with each other (D-026).
     /// </summary>
@@ -16,6 +18,7 @@ namespace Arena.Core.Sim.Systems
         public static void Run(MatchState state, MatchDefs defs, PlayerInput[] inputs)
         {
             int count = state.Globals.FighterCount;
+            TileGrid grid = state.Grid;
             for (int i = 0; i < count; i++)
             {
                 ref FighterState f = ref state.Fighters[i];
@@ -30,7 +33,7 @@ namespace Arena.Core.Sim.Systems
 
                 if (f.KnockbackTicks > 0)
                 {
-                    f.Position = defs.Bounds.ClampCircle(old + f.KnockbackVelocity * SimTime.Dt, def.Radius);
+                    f.Position = GridCollision.MoveCircle(in grid, old, f.KnockbackVelocity * SimTime.Dt, def.Radius);
                     f.Velocity = (f.Position - old) * SimLimits.TickRate;
                     if (--f.KnockbackTicks == 0) f.KnockbackVelocity = Vec2.Zero;
                     continue;
@@ -46,10 +49,9 @@ namespace Arena.Core.Sim.Systems
                 if (!move.IsZero)
                 {
                     float speed = def.MoveSpeed * f.SpeedMul * TalentSystem.MoveSpeedMultiplier(state, defs, i);
-                    Vec2 desired = old + move * (speed * SimTime.Dt);
-                    f.Position = defs.Bounds.ClampCircle(desired, def.Radius);
+                    f.Position = GridCollision.MoveCircle(in grid, old, move * (speed * SimTime.Dt), def.Radius);
                 }
-                // Actual displacement (stopped by the arena edge) — what views and bots should extrapolate.
+                // Actual displacement (stopped / deflected by walls) — what views and bots should extrapolate.
                 f.Velocity = (f.Position - old) * SimLimits.TickRate;
 
                 if (!aim.IsZero) f.Facing = aim.Normalized;
