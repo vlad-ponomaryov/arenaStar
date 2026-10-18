@@ -15,3 +15,4 @@
 - 09:54 — S1.2 — ок: ProjectConfigurator, SceneBuilder (Boot/Menu/Match), asmdef, URP-ассеты; compile 0 CS, тесты 6/0 — 7cb469d
 - 10:08 — S1.3 — ок: BuildScript + Tools/build-android.ps1, GameCI workflow (не запушен), итог этапа 1; compile 0 CS, тесты 12/0, APK Builds/Android/Arena.apk 31.7 MB, сборка 634 s — 888b38e
 - 10:23 — S2.1 — ок: MatchSimulation (ввод/движение/заряды/реген), MatchState+снапшот, RNG, Defs, SO-конфиги + конвертер, сидер 6 бойцов; compile 0 CS, тесты 76/0 — 9167ce8
+- 10:38 — S2.2 — ок: MatchRunner (тики 30 Гц, интерполяция), LocalInputCollector + WASD/мышь, VirtualStick/StickGesture/TapButton, HUD, камера 55° с разворотом для команды 1, ViewAssetBuilder (материалы URP, префабы капсул), SceneBuilder; compile 0 CS, тесты 110/0; Play в редакторе — утром — 40d0904
