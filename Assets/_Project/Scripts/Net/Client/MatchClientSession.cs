@@ -176,6 +176,7 @@ namespace Arena.Net.Client
             if (!Inputs.TryGet(tick, out PlayerInput input))
             {
                 input = InputQuantizer.Apply(in raw);
+                input.ViewDelayTicks = ViewDelayFor(tick);
                 Inputs.Set(tick, in input);
             }
             if (tick == 0 && Latest != null) MarginAtZero = Latest.Header.InputMarginMin;
@@ -192,6 +193,20 @@ namespace Arena.Net.Client
             Clock.CompleteTick();
         }
 
+        /// <summary>
+        /// Lag compensation (Server-Spec §2.8, D-104): how far behind the own fighter the player saw the others when making the
+        /// input of <paramref name="tick"/> — the shown world was the snapshot of the last built render tick, and the server
+        /// rewinds the targets to the end of tick <c>tick − d</c> = the snapshot of <c>tick + 1 − d</c>. 0 before the first shown
+        /// frame or while a bot drives the fighter.
+        /// </summary>
+        private byte ViewDelayFor(int tick)
+        {
+            if (Presentation == null || !Presentation.HasState || Predictor == null || Predictor.BotControlled) return 0;
+            int d = tick + 1 - Presentation.RenderTick;
+            if (d <= 0) return 0;
+            return d > byte.MaxValue ? byte.MaxValue : (byte)d;
+        }
+
         private void SendInput(int tick, long nowMicros)
         {
             int redundancy = Start.InputRedundancy;
@@ -200,7 +215,7 @@ namespace Arena.Net.Client
             int acked = Latest != null ? Latest.Header.LastAppliedInputTick : int.MinValue;
             _input.NewestTick = tick;
             _input.RequestKeyframe = _requestKeyframe;
-            _input.ViewDelayTicks = 0;
+            _input.InterpDelayTicks = Interpolation != null ? (int)Math.Ceiling(Interpolation.DelayTicks) : 0;
             int n = 0;
             for (int i = 0; i < redundancy; i++)
             {

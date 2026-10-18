@@ -11,16 +11,19 @@ namespace Arena.Core.Sim.Systems
     /// </summary>
     public static class TargetingSystem
     {
-        /// <summary>Unit direction for an ability of <paramref name="range"/> cells fired by <paramref name="slot"/>.</summary>
-        public static Vec2 ResolveAim(MatchState state, int slot, in PlayerInput input, float range)
+        /// <summary>
+        /// Unit direction for an ability of <paramref name="range"/> cells fired by <paramref name="slot"/>; auto-aim looks at the
+        /// enemies rewound by <paramref name="rewindTicks"/> (<see cref="LagCompensation"/>; 0 — where they are now).
+        /// </summary>
+        public static Vec2 ResolveAim(MatchState state, int slot, in PlayerInput input, float range, int rewindTicks = 0)
         {
             ref FighterState f = ref state.Fighters[slot];
             if (input.Has(InputButtons.AutoAim))
             {
-                int target = FindNearestEnemy(state, slot, range);
+                int target = FindNearestEnemy(state, slot, range, rewindTicks);
                 if (target >= 0)
                 {
-                    Vec2 toTarget = (state.Fighters[target].Position - f.Position).Normalized;
+                    Vec2 toTarget = (LagCompensation.TargetPosition(state, target, rewindTicks) - f.Position).Normalized;
                     if (!toTarget.IsZero) return toTarget;
                 }
                 return Facing(in f);
@@ -29,8 +32,11 @@ namespace Arena.Core.Sim.Systems
             return Facing(in f);
         }
 
-        /// <summary>Slot of the nearest alive enemy visible to the shooter's team whose centre is within <paramref name="range"/>, or −1.</summary>
-        public static int FindNearestEnemy(MatchState state, int slot, float range)
+        /// <summary>
+        /// Slot of the nearest alive enemy visible to the shooter's team whose centre is within <paramref name="range"/>, or −1;
+        /// distances to the enemies rewound by <paramref name="rewindTicks"/> (visibility — as now).
+        /// </summary>
+        public static int FindNearestEnemy(MatchState state, int slot, float range, int rewindTicks = 0)
         {
             ref FighterState f = ref state.Fighters[slot];
             int count = state.Globals.FighterCount;
@@ -41,7 +47,7 @@ namespace Arena.Core.Sim.Systems
                 if (j == slot) continue;
                 ref FighterState e = ref state.Fighters[j];
                 if (!e.Active || !e.Alive || e.Team == f.Team || !e.IsVisibleTo(f.Team)) continue;
-                float d = Vec2.SqrDistance(e.Position, f.Position);
+                float d = Vec2.SqrDistance(LagCompensation.TargetPosition(state, j, rewindTicks), f.Position);
                 if (d < best || (found < 0 && d <= best))
                 {
                     best = d;

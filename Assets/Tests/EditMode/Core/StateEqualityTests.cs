@@ -18,7 +18,7 @@ namespace Arena.Tests.EditMode.Core
         {
             typeof(FighterState), typeof(MatchGlobals), typeof(DeterministicRng), typeof(Vec2), typeof(PlayerInput),
             typeof(FighterStats), typeof(ProjectileState), typeof(AreaState), typeof(StatusEffectState),
-            typeof(PickupState), typeof(ModeState), typeof(BoxState)
+            typeof(PickupState), typeof(ModeState), typeof(BoxState), typeof(PositionSample)
         };
 
         [Test]
@@ -50,6 +50,7 @@ namespace Arena.Tests.EditMode.Core
         [Test] public void PickupState_EveryFieldInEquals() => AssertEveryFieldMatters<PickupState>();
         [Test] public void ModeState_EveryFieldInEquals() => AssertEveryFieldMatters<ModeState>();
         [Test] public void BoxState_EveryFieldInEquals() => AssertEveryFieldMatters<BoxState>();
+        [Test] public void PositionSample_EveryFieldInEquals() => AssertEveryFieldMatters<PositionSample>();
 
         private static void AssertEveryFieldMatters<T>() where T : struct, IEquatable<T>
         {

@@ -1,4 +1,5 @@
 using Arena.Core.Defs;
+using Arena.Core.Input;
 using Arena.Core.Map;
 using Arena.Core.Math;
 using Arena.Core.Sim.Effects;
@@ -15,6 +16,7 @@ namespace Arena.Core.Sim.Systems
     /// Collides with walls and water like walking (slides along them); with <see cref="AbilityDef.BreaksWalls"/> every
     /// breakable wall the body touches is broken first (Bruno's ram). Cancelled by stun, knockback, defeat.
     /// While dashing a fighter starts no other ability (<see cref="AbilitySystem.CanActivate"/>).
+    /// Touches test the other fighters rewound by the dasher's input of the tick (<c>ViewDelayTicks</c>, <see cref="LagCompensation"/>).
     /// </summary>
     public static class DashSystem
     {
@@ -62,7 +64,8 @@ namespace Arena.Core.Sim.Systems
             f.DashHitMask = 0u;
         }
 
-        public static void Run(MatchState state, MatchDefs defs, SimEventBuffer events)
+        /// <param name="inputs">The sanitized inputs of the tick (index = slot): their <c>ViewDelayTicks</c> rewind the touched targets.</param>
+        public static void Run(MatchState state, MatchDefs defs, PlayerInput[] inputs, SimEventBuffer events)
         {
             int count = state.Globals.FighterCount;
             for (int i = 0; i < count; i++)
@@ -80,7 +83,8 @@ namespace Arena.Core.Sim.Systems
                 f.DashTicksLeft--;
 
                 if (ability != null && ability.Effects.Length > 0)
-                    HitAlong(state, defs, events, i, ability, f.DashAbilityRef, start, f.Position, dir, radius);
+                    HitAlong(state, defs, events, i, ability, f.DashAbilityRef, start, f.Position, dir, radius,
+                        LagCompensation.EffectiveRewind(state, inputs[i].ViewDelayTicks));
 
                 if (f.DashTicksLeft <= 0) Cancel(ref f);
             }
@@ -104,7 +108,7 @@ namespace Arena.Core.Sim.Systems
         }
 
         private static void HitAlong(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, AbilityDef ability,
-            int abilityRef, Vec2 start, Vec2 end, Vec2 dir, float radius)
+            int abilityRef, Vec2 start, Vec2 end, Vec2 dir, float radius, int rewindTicks)
         {
             ref FighterState f = ref state.Fighters[slot];
             Vec2 seg = end - start;
@@ -118,9 +122,10 @@ namespace Arena.Core.Sim.Systems
                 if (!EffectSystem.CanAffect(state, ability, slot, f.Team, j)) continue;
                 ref FighterState t = ref state.Fighters[j];
                 float reach = radius + defs.Fighters[t.DefIndex].Radius;
-                float along = MathUtil.Clamp(Vec2.Dot(t.Position - start, segDir), 0f, length);
+                Vec2 position = LagCompensation.TargetPosition(state, j, rewindTicks);
+                float along = MathUtil.Clamp(Vec2.Dot(position - start, segDir), 0f, length);
                 Vec2 closest = start + segDir * along;
-                if (Vec2.SqrDistance(closest, t.Position) > reach * reach) continue;
+                if (Vec2.SqrDistance(closest, position) > reach * reach) continue;
                 f.DashHitMask |= 1u << j;
                 EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
             }

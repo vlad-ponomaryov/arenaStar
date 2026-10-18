@@ -92,6 +92,21 @@ namespace Arena.Tests.EditMode.Net.Server
         }
 
         [Test]
+        public void LatePress_KeepsItsViewDelay_PlusTheTicksItWasCarried()
+        {
+            var b = new SlotInputBuffer(Ahead, Repeat);
+            b.Receive(0, Move(0f), 0);
+            b.Take(0, out _);
+            b.Take(1, out _); // tick 1 missing
+            var aim = new Vec2(0.6f, 0f);
+            b.Receive(1, new PlayerInput(Vec2.Zero, aim, InputButtons.Attack, 5), 2); // late, while T = 2
+            b.Receive(2, new PlayerInput(Vec2.Zero, Vec2.Zero, InputButtons.None, 4), 2);
+            PlayerInput p = b.Take(2, out _);
+            Assert.IsTrue(p.Has(InputButtons.Attack));
+            Assert.AreEqual(6, p.ViewDelayTicks, "the player saw the targets 5 ticks before tick 1, applied at tick 2");
+        }
+
+        [Test]
         public void LatePress_WaitsForARisingEdge()
         {
             var b = new SlotInputBuffer(Ahead, Repeat);

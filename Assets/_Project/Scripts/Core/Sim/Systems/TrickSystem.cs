@@ -1,6 +1,7 @@
 using Arena.Core.Defs;
 using Arena.Core.Input;
 using Arena.Core.Math;
+using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 
@@ -38,7 +39,7 @@ namespace Arena.Core.Sim.Systems
             f.TrickReadyTick = tick + defs.Rules.TrickCooldownTicks;
             Vec2 dir = AbilitySystem.ResolveDirection(state, slot, in input, trick);
             AbilitySystem.Activate(state, defs, events, slot, trick, MatchDefs.MakeAbilityRef(f.DefIndex, AbilitySlot.Trick), dir,
-                AbilitySystem.ResolveDistance(state, slot, in input, trick));
+                AbilitySystem.ResolveDistance(state, slot, in input, trick), EffectContext.FullDamagePercent, input.ViewDelayTicks);
         }
     }
 }

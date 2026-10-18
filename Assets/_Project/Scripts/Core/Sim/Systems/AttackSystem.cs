@@ -31,7 +31,7 @@ namespace Arena.Core.Sim.Systems
                     f.BurstShotsLeft--;
                     f.NextBurstTick = tick + attack.BurstIntervalTicks;
                     AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, f.BurstDir, -1f,
-                        EffectContext.FullDamagePercent + f.ShotBonusPercent);
+                        EffectContext.FullDamagePercent + f.ShotBonusPercent, input.ViewDelayTicks);
                 }
                 return;
             }
@@ -51,7 +51,8 @@ namespace Arena.Core.Sim.Systems
                 f.ShotBonusPercent = f.BoostPercent;
             }
             AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, dir,
-                AbilitySystem.ResolveDistance(state, slot, in input, attack), EffectContext.FullDamagePercent + f.ShotBonusPercent);
+                AbilitySystem.ResolveDistance(state, slot, in input, attack), EffectContext.FullDamagePercent + f.ShotBonusPercent,
+                input.ViewDelayTicks);
         }
     }
 }

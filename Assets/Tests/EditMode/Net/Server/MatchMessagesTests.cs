@@ -20,8 +20,8 @@ namespace Arena.Tests.EditMode.Net.Server
         [Test]
         public void Input_RoundTrip_Quantized_RepeatsCostOneBit()
         {
-            var m = new InputMessage { NewestTick = -7, Count = 4, RequestKeyframe = true, ViewDelayTicks = 6 };
-            m.Inputs[0] = new PlayerInput(new Vec2(0.31f, -0.7f), new Vec2(0.123f, 0.456f), InputButtons.Attack | InputButtons.AutoAim);
+            var m = new InputMessage { NewestTick = -7, Count = 4, RequestKeyframe = true, InterpDelayTicks = 6 };
+            m.Inputs[0] = new PlayerInput(new Vec2(0.31f, -0.7f), new Vec2(0.123f, 0.456f), InputButtons.Attack | InputButtons.AutoAim, 200);
             m.Inputs[1] = new PlayerInput(new Vec2(0.31f, -0.7f), Vec2.Zero, InputButtons.None);
             m.Inputs[2] = m.Inputs[1];
             m.Inputs[3] = new PlayerInput(Vec2.Zero, Vec2.Zero, InputButtons.Trick);
@@ -36,7 +36,8 @@ namespace Arena.Tests.EditMode.Net.Server
             Assert.AreEqual(-7, back.NewestTick);
             Assert.AreEqual(4, back.Count);
             Assert.IsTrue(back.RequestKeyframe);
-            Assert.AreEqual(6, back.ViewDelayTicks);
+            Assert.AreEqual(6, back.InterpDelayTicks);
+            Assert.AreEqual(200, back.Inputs[0].ViewDelayTicks);
             for (int i = 0; i < 4; i++) Assert.AreEqual(Quantize.Input(m.Inputs[i]), back.Inputs[i], "input " + i);
             Assert.AreEqual(-9, back.TickAt(2));
 

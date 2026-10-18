@@ -66,6 +66,13 @@ namespace Arena.Server.Host
         public long Malformed;
         public long SocketResets;
 
+        // Lag compensation and suspicious traffic (§8, S3.13).
+        public long RewoundInputs;
+        public long ViewDelayClamped;
+        public long TooFarAheadInputs;
+        public long UnknownConnectionPackets;
+        public long DuplicatePackets;
+
         public long GcHeapBytes;
         public long GcGen0;
         public long GcGen2;
@@ -121,6 +128,11 @@ namespace Arena.Server.Host
             Timeouts = t.Timeouts;
             Malformed = t.DroppedMalformed + m.MalformedMessages + l.MalformedMessages;
             SocketResets = socket == null ? 0 : socket.ResetCount;
+            RewoundInputs = m.RewoundInputs;
+            ViewDelayClamped = m.ViewDelayClamped;
+            TooFarAheadInputs = m.TooFarAheadInputs;
+            UnknownConnectionPackets = t.DroppedUnknownConnection;
+            DuplicatePackets = t.DroppedDuplicates;
             GcHeapBytes = GC.GetTotalMemory(false);
             GcGen0 = GC.CollectionCount(0);
             GcGen2 = GC.CollectionCount(2);
@@ -147,6 +159,8 @@ namespace Arena.Server.Host
             Takeovers = other.Takeovers; Leaves = other.Leaves; Rejoins = other.Rejoins;
             RejectedConnections = other.RejectedConnections; RateLimited = other.RateLimited; Timeouts = other.Timeouts;
             Malformed = other.Malformed; SocketResets = other.SocketResets;
+            RewoundInputs = other.RewoundInputs; ViewDelayClamped = other.ViewDelayClamped; TooFarAheadInputs = other.TooFarAheadInputs;
+            UnknownConnectionPackets = other.UnknownConnectionPackets; DuplicatePackets = other.DuplicatePackets;
             GcHeapBytes = other.GcHeapBytes; GcGen0 = other.GcGen0; GcGen2 = other.GcGen2;
         }
 
@@ -194,6 +208,11 @@ namespace Arena.Server.Host
             Counter(sb, "arena_timeouts_total", Timeouts);
             Counter(sb, "arena_malformed_total", Malformed);
             Counter(sb, "arena_socket_resets_total", SocketResets);
+            Counter(sb, "arena_rewound_inputs_total", RewoundInputs);
+            Counter(sb, "arena_view_delay_clamped_total", ViewDelayClamped);
+            Counter(sb, "arena_too_far_ahead_inputs_total", TooFarAheadInputs);
+            Counter(sb, "arena_unknown_connection_packets_total", UnknownConnectionPackets);
+            Counter(sb, "arena_duplicate_packets_total", DuplicatePackets);
             Gauge(sb, "arena_gc_heap_bytes", GcHeapBytes);
             Counter(sb, "arena_gc_gen0_total", GcGen0);
             Counter(sb, "arena_gc_gen2_total", GcGen2);

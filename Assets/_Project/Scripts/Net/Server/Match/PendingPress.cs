@@ -13,8 +13,11 @@ namespace Arena.Net.Server.Match
         public InputButtons Buttons;
         public Vec2 Aim;
 
-        /// <summary>The tick the press was meant for (statistics).</summary>
+        /// <summary>The tick the press was meant for (statistics; the rewind grows by the ticks it was carried).</summary>
         public int Tick;
+
+        /// <summary>The press's <c>PlayerInput.ViewDelayTicks</c> (lag compensation, S3.13).</summary>
+        public byte ViewDelayTicks;
 
         /// <summary>Attack and ult carry an aim — a tick holds one of them at most (one <c>PlayerInput.Aim</c>).</summary>
         public bool IsAimed => (Buttons & (InputButtons.Attack | InputButtons.Ult)) != 0;

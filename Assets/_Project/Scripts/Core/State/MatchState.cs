@@ -28,6 +28,16 @@ namespace Arena.Core.State
         /// <summary>Per team: the team sees every enemy until this tick (exclusive) — Nova's "Owl Eye" (<c>EffectKind.TeamReveal</c>).</summary>
         public readonly int[] TeamRevealUntilTick = new int[SimLimits.MaxTeams];
 
+        /// <summary>
+        /// Lag compensation (Server-Spec §2.8): position and "alive" of every fighter slot at the end of each of the last
+        /// <see cref="SimLimits.MaxRewindTicks"/> ticks — row <c>tick % MaxRewindTicks</c>, entry <c>row × MaxFighters + slot</c>.
+        /// Written by <c>LagCompensation.Record</c>, read only through <c>LagCompensation.TargetPosition</c>.
+        /// </summary>
+        public readonly PositionSample[] PositionHistory = new PositionSample[SimLimits.MaxRewindTicks * SimLimits.MaxFighters];
+
+        /// <summary>Per history row: the tick it holds + 1 (0 — empty).</summary>
+        public readonly int[] PositionHistoryStamp = new int[SimLimits.MaxRewindTicks];
+
         /// <summary>Mode rules state (phase, timers, countdown, winner).</summary>
         public ModeState Mode;
 
@@ -54,6 +64,8 @@ namespace Arena.Core.State
             Array.Copy(other.Pickups, Pickups, Pickups.Length);
             Array.Copy(other.Boxes, Boxes, Boxes.Length);
             Array.Copy(other.TeamRevealUntilTick, TeamRevealUntilTick, TeamRevealUntilTick.Length);
+            Array.Copy(other.PositionHistory, PositionHistory, PositionHistory.Length);
+            Array.Copy(other.PositionHistoryStamp, PositionHistoryStamp, PositionHistoryStamp.Length);
             Mode = other.Mode;
             Array.Copy(other.Tiles, Tiles, Tiles.Length);
         }
@@ -79,6 +91,10 @@ namespace Arena.Core.State
                 if (Tiles[i] != other.Tiles[i]) return false;
             for (int i = 0; i < TeamRevealUntilTick.Length; i++)
                 if (TeamRevealUntilTick[i] != other.TeamRevealUntilTick[i]) return false;
+            for (int i = 0; i < PositionHistory.Length; i++)
+                if (!PositionHistory[i].Equals(other.PositionHistory[i])) return false;
+            for (int i = 0; i < PositionHistoryStamp.Length; i++)
+                if (PositionHistoryStamp[i] != other.PositionHistoryStamp[i]) return false;
             return true;
         }
 
@@ -94,6 +110,8 @@ namespace Arena.Core.State
             Array.Clear(Pickups, 0, Pickups.Length);
             Array.Clear(Boxes, 0, Boxes.Length);
             Array.Clear(TeamRevealUntilTick, 0, TeamRevealUntilTick.Length);
+            Array.Clear(PositionHistory, 0, PositionHistory.Length);
+            Array.Clear(PositionHistoryStamp, 0, PositionHistoryStamp.Length);
             Mode = default;
             Array.Clear(Tiles, 0, Tiles.Length);
         }

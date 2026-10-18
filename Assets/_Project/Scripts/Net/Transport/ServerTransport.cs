@@ -194,9 +194,11 @@ namespace Arena.Net.Transport
                 }
                 return;
             }
+            long duplicates = c.DuplicatesDropped;
             if (!c.ProcessPacket(header, _recv, length, now, _handler))
             {
-                Counters.DroppedMalformed++;
+                if (c.DuplicatesDropped != duplicates) Counters.DroppedDuplicates++;
+                else Counters.DroppedMalformed++;
                 return;
             }
             // A fresh packet from another address: prove the new path before moving the connection there (§3.2).

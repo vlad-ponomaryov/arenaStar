@@ -185,6 +185,7 @@ namespace Arena.Net.Server.Match
             long carried = buffer.PressesCarried, dropped = buffer.PressesDropped;
             _metrics.InputPackets++;
             buffer.RecordPacket(message.NewestTick, Tick);
+            _slots[slot].InterpDelayTicks = message.InterpDelayTicks;
             for (int i = 0; i < message.Count; i++) buffer.Receive(message.TickAt(i), in message.Inputs[i], Tick);
             if (message.RequestKeyframe)
             {
@@ -283,6 +284,7 @@ namespace Arena.Net.Server.Match
                     if (real) _metrics.AppliedInputTicks++;
                     else _metrics.MissingInputTicks++;
                 }
+                if (input.ViewDelayTicks != 0) input.ViewDelayTicks = LimitViewDelay(s, input.ViewDelayTicks);
                 long before = Takeover.TakeoverCount;
                 Takeover.Observe(i, real, in input);
                 _metrics.Takeovers += Takeover.TakeoverCount - before;
@@ -299,6 +301,38 @@ namespace Arena.Net.Server.Match
             if (Mode == ModeKind.LastBeast && !ended) CheckEliminations(state);
             if (ended) EnterEnded(state);
             return ended || IsSnapshotTick(Tick);
+        }
+
+        /// <summary>
+        /// The server's limit of a client's rewind (Server-Spec §2.8, §8, D-104): off — 0; else at most <c>LagCompMaxRewindMs</c>
+        /// and the estimate of how far behind the client really sees — its RTT + input margin + reported interpolation delay
+        /// (≤ <c>InterpDelayMaxMs</c>) + <c>LagCompSlackTicks</c>. A cut value is counted as suspicious. The input log records
+        /// the limited value, so a replay rewinds the same.
+        /// </summary>
+        private byte LimitViewDelay(RoomSlot s, byte requested)
+        {
+            if (!_settings.LagCompEnabled) return 0;
+            int limit = _settings.LagCompMaxRewindTicks;
+            int estimate = _settings.LagCompSlackTicks;
+            if (s.IsConnected)
+            {
+                NetConnection c = _transport.GetConnection(s.Connection);
+                if (c != null && c.Rtt.HasSample)
+                    estimate += (int)((c.Rtt.SmoothedMicros * SimLimits.TickRate + MicrosPerSecond - 1) / MicrosPerSecond);
+            }
+            int margin = s.Input.InputMarginMin(Tick, _settings.MarginWindowTicks);
+            if (margin > 0) estimate += margin;
+            int interp = s.InterpDelayTicks;
+            int interpMax = _settings.InterpDelayMaxTicks;
+            estimate += interp < 0 ? 0 : (interp > interpMax ? interpMax : interp);
+            if (estimate < limit) limit = estimate;
+            if (requested > limit)
+            {
+                _metrics.ViewDelayClamped++;
+                requested = (byte)limit;
+            }
+            if (requested > 0) _metrics.RewoundInputs++;
+            return requested;
         }
 
         private bool IsSnapshotTick(int tick)

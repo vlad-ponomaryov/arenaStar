@@ -1,6 +1,7 @@
 using Arena.Core.Defs;
 using Arena.Core.Input;
 using Arena.Core.Math;
+using Arena.Core.Sim.Effects;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 
@@ -69,7 +70,7 @@ namespace Arena.Core.Sim.Systems
             Vec2 dir = AbilitySystem.ResolveDirection(state, slot, in input, ult);
             f.Facing = dir;
             AbilitySystem.Activate(state, defs, events, slot, ult, MatchDefs.MakeAbilityRef(f.DefIndex, AbilitySlot.Ult), dir,
-                AbilitySystem.ResolveDistance(state, slot, in input, ult));
+                AbilitySystem.ResolveDistance(state, slot, in input, ult), EffectContext.FullDamagePercent, input.ViewDelayTicks);
         }
     }
 }

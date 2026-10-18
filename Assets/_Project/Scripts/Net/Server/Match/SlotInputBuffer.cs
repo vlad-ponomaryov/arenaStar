@@ -12,7 +12,9 @@ namespace Arena.Net.Server.Match
     /// <item>A late copy (t &lt; T) of a tick that was simulated without a real input loses its movement, but its presses (attack,
     /// ult, trick with their aim and <c>AutoAim</c>) go to a queue of <see cref="NetLimits.MaxPendingPresses"/> and are applied
     /// at the next tick where they make a rising edge: the button was not in the previously applied tick and the tick has no
-    /// other aimed press (one <c>PlayerInput.Aim</c>; attack before ult, as the input collector does). Presses are not lost (D-006).</item>
+    /// other aimed press (one <c>PlayerInput.Aim</c>; attack before ult, as the input collector does). Presses are not lost (D-006).
+    /// A carried aimed press keeps its <c>ViewDelayTicks</c> plus the ticks it was carried — the player saw the targets that long
+    /// ago (lag compensation, S3.13; the room limits the value afterwards).</item>
     /// <item>Countdown ticks (&lt; 0) are <see cref="Skip"/>ped: accepted for the margin, never applied (§2.3).</item>
     /// <item>The margin of every input packet (newest tick − T) is kept per server tick; <see cref="InputMarginMin"/> is the
     /// minimum over the window.</item>
@@ -212,7 +214,7 @@ namespace Arena.Net.Server.Match
                 _state[i] = InputTickState.Missed;
                 MissingTicks++;
             }
-            if (_pendingCount > 0) ApplyPending(ref input);
+            if (_pendingCount > 0) ApplyPending(ref input, tick);
             _lastAppliedButtons = input.Buttons;
             return input;
         }
@@ -234,11 +236,11 @@ namespace Arena.Net.Server.Match
                 PressesDropped++;
                 return;
             }
-            _pending[_pendingCount++] = new PendingPress { Buttons = buttons, Aim = input.Aim, Tick = tick };
+            _pending[_pendingCount++] = new PendingPress { Buttons = buttons, Aim = input.Aim, Tick = tick, ViewDelayTicks = input.ViewDelayTicks };
             PressesCarried++;
         }
 
-        private void ApplyPending(ref PlayerInput input)
+        private void ApplyPending(ref PlayerInput input, int tick)
         {
             const InputButtons aimed = InputButtons.Attack | InputButtons.Ult;
             bool aimTaken = (input.Buttons & aimed) != 0;
@@ -258,6 +260,8 @@ namespace Arena.Net.Server.Match
                 {
                     input.Buttons = (input.Buttons & ~InputButtons.AutoAim) | p.Buttons;
                     input.Aim = p.Aim;
+                    int delay = p.ViewDelayTicks + (tick - p.Tick);
+                    input.ViewDelayTicks = delay > byte.MaxValue ? byte.MaxValue : (byte)(delay < 0 ? 0 : delay);
                     aimTaken = true;
                 }
                 else input.Buttons |= p.Buttons;

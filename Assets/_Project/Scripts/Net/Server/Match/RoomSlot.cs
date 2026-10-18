@@ -13,6 +13,7 @@ namespace Arena.Net.Server.Match
             Token = token;
             View = new ClientView(slot);
             Input = new SlotInputBuffer(settings.MaxInputAheadTicks, settings.MissingInputRepeatTicks);
+            InterpDelayTicks = 0;
         }
 
         public int Slot { get; }
@@ -42,6 +43,9 @@ namespace Arena.Net.Server.Match
         public ClientView View { get; }
 
         public SlotInputBuffer Input { get; }
+
+        /// <summary>The interpolation delay the client reported in its newest <c>Input</c>, ticks (lag compensation bound, §2.8).</summary>
+        public int InterpDelayTicks;
 
         public bool IsConnected => Connection >= 0;
     }

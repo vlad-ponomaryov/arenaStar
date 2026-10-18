@@ -55,6 +55,9 @@ namespace Arena.Net.Server.Diagnostics
         /// <summary>Stop sending inputs (the server's bot takeover) while true.</summary>
         public bool Silent;
 
+        /// <summary>The interpolation delay the client reports in every <c>Input</c> (lag compensation tests, S3.13).</summary>
+        public int ReportedInterpDelayTicks;
+
         /// <summary>Do not answer <c>MatchStart</c> with <c>ClientReady</c> (load timeout tests).</summary>
         public bool WithholdReady;
 
@@ -140,7 +143,7 @@ namespace Arena.Net.Server.Diagnostics
             int acked = Latest != null ? Latest.Header.LastAppliedInputTick : int.MinValue;
             _input.NewestTick = tick;
             _input.RequestKeyframe = _requestKeyframe;
-            _input.ViewDelayTicks = 0;
+            _input.InterpDelayTicks = ReportedInterpDelayTicks;
             int n = 0;
             for (int i = 0; i < redundancy; i++)
             {

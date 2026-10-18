@@ -6,9 +6,10 @@ namespace Arena.Net.Protocol
 {
     /// <summary>
     /// <c>Input</c> (unreliable, client → server, every prediction tick, Server-Spec §2.4): the newest input tick, the last
-    /// <see cref="Count"/> inputs newest first (tick = <see cref="NewestTick"/> − i), flags and <c>ViewDelayTicks</c> for lag
-    /// compensation (S3.13). An input: move 2 × int8, aim "present" bit + 2 × int16, buttons 4 bits (7 B); an input equal to the
-    /// one written before it — 1 bit. Values are quantized on write (<see cref="Quantize.Input"/>). Preallocated, no allocations.
+    /// <see cref="Count"/> inputs newest first (tick = <see cref="NewestTick"/> − i), flags and the client's interpolation delay
+    /// (<see cref="InterpDelayTicks"/> — the server's bound of lag compensation, §2.8). An input: move 2 × int8, aim "present"
+    /// bit + 2 × int16, buttons 4 bits, <c>ViewDelayTicks</c> varint (≈ 8 B); an input equal to the one written before it — 1 bit.
+    /// Values are quantized on write (<see cref="Quantize.Input"/>). Preallocated, no allocations.
     /// </summary>
     public sealed class InputMessage
     {
@@ -20,8 +21,8 @@ namespace Arena.Net.Protocol
         /// <summary>The client lost its snapshot baseline: send a key frame (§4.4).</summary>
         public bool RequestKeyframe;
 
-        /// <summary>round(Tpred − renderTick) at the moment of the input (§2.8; used from S3.13).</summary>
-        public int ViewDelayTicks;
+        /// <summary>The client's interpolation delay, whole ticks rounded up (§2.8: the server bounds the rewind with it).</summary>
+        public int InterpDelayTicks;
 
         /// <summary>Inputs, newest first: <c>Inputs[i]</c> is for tick <see cref="NewestTick"/> − i.</summary>
         public readonly PlayerInput[] Inputs = new PlayerInput[NetLimits.MaxInputsPerPacket];
@@ -35,7 +36,7 @@ namespace Arena.Net.Protocol
             int count = Count < 1 ? 1 : (Count > Inputs.Length ? Inputs.Length : Count);
             w.WriteBits((uint)(count - 1), NetProtocol.InputCountBits);
             w.WriteBool(RequestKeyframe);
-            w.WriteVarUInt((uint)(ViewDelayTicks < 0 ? 0 : ViewDelayTicks));
+            w.WriteVarUInt((uint)(InterpDelayTicks < 0 ? 0 : InterpDelayTicks));
             for (int i = 0; i < count; i++)
             {
                 if (i > 0)
@@ -54,8 +55,9 @@ namespace Arena.Net.Protocol
             NewestTick = r.ReadVarInt();
             Count = (int)r.ReadBits(NetProtocol.InputCountBits) + 1;
             RequestKeyframe = r.ReadBool();
-            ViewDelayTicks = (int)r.ReadVarUInt();
-            if (r.IsOverflow || Count > Inputs.Length) return false;
+            uint interp = r.ReadVarUInt();
+            if (r.IsOverflow || Count > Inputs.Length || interp > MaxDelayValue) return false;
+            InterpDelayTicks = (int)interp;
             for (int i = 0; i < Count; i++)
             {
                 if (i > 0 && r.ReadBool())
@@ -63,7 +65,7 @@ namespace Arena.Net.Protocol
                     Inputs[i] = Inputs[i - 1];
                     continue;
                 }
-                Inputs[i] = ReadInput(r);
+                if (!ReadInput(r, out Inputs[i])) return false;
             }
             return !r.IsOverflow;
         }
@@ -82,9 +84,13 @@ namespace Arena.Net.Protocol
                 w.WriteInt16(ay);
             }
             w.WriteBits((uint)(input.Buttons & InputButtons.All), NetProtocol.InputButtonBits);
+            w.WriteVarUInt(input.ViewDelayTicks);
         }
 
-        private static PlayerInput ReadInput(BitReader r)
+        /// <summary>A delay field (a byte in <c>PlayerInput</c>); a larger value is garbage — the packet is dropped.</summary>
+        private const uint MaxDelayValue = byte.MaxValue;
+
+        private static bool ReadInput(BitReader r, out PlayerInput input)
         {
             sbyte mx = r.ReadSByte();
             sbyte my = r.ReadSByte();
@@ -96,7 +102,9 @@ namespace Arena.Net.Protocol
                 aim = Quantize.FromAim(ax, ay);
             }
             var buttons = (InputButtons)r.ReadBits(NetProtocol.InputButtonBits);
-            return new PlayerInput(Quantize.FromMove(mx, my), aim, buttons);
+            uint delay = r.ReadVarUInt();
+            input = new PlayerInput(Quantize.FromMove(mx, my), aim, buttons, (byte)(delay > MaxDelayValue ? 0 : delay));
+            return delay <= MaxDelayValue;
         }
     }
 }

@@ -41,7 +41,9 @@ namespace Arena.Core.Sim.Systems
 
         /// <summary>
         /// Direction of an activation: movement input (else facing) for <see cref="AbilityDef.UsesMoveDirection"/>;
-        /// otherwise auto-aim / manual aim / facing within the ability's <see cref="AbilityDef.Range"/> (D-007).
+        /// otherwise auto-aim / manual aim / facing within the ability's <see cref="AbilityDef.Range"/> (D-007). The auto-aim of
+        /// an instant contact delivery (<see cref="IsRewound"/>) looks at the targets rewound by the input's
+        /// <c>ViewDelayTicks</c> — the same positions its hit test uses (<see cref="LagCompensation"/>).
         /// </summary>
         public static Vec2 ResolveDirection(MatchState state, int slot, in PlayerInput input, AbilityDef ability)
         {
@@ -51,8 +53,13 @@ namespace Arena.Core.Sim.Systems
                 Vec2 facing = state.Fighters[slot].Facing;
                 return facing.IsZero ? Vec2.Up : facing;
             }
-            return TargetingSystem.ResolveAim(state, slot, in input, ability.Range);
+            int rewind = IsRewound(ability.Delivery) ? LagCompensation.EffectiveRewind(state, input.ViewDelayTicks) : 0;
+            return TargetingSystem.ResolveAim(state, slot, in input, ability.Range, rewind);
         }
+
+        /// <summary>Instant contact deliveries whose targets are rewound for lag compensation (Server-Spec §2.8): cone, self area, dash.</summary>
+        public static bool IsRewound(DeliveryKind delivery) =>
+            delivery == DeliveryKind.MeleeCone || delivery == DeliveryKind.SelfArea || delivery == DeliveryKind.Dash;
 
         /// <summary>
         /// Throw distance of a <see cref="DeliveryKind.Lob"/> (cells, ≤ <see cref="AbilityDef.Range"/>): auto-aim — the
@@ -75,9 +82,11 @@ namespace Arena.Core.Sim.Systems
 
         /// <summary>Delivers one shot of <paramref name="ability"/> from the fighter in <paramref name="slot"/> along the unit
         /// <paramref name="dir"/>; <paramref name="distance"/> is the throw distance of a lob (negative = full range);
-        /// <paramref name="damagePercent"/> scales its damage (a boosted attack shot). Dashes ignore the percent.</summary>
+        /// <paramref name="damagePercent"/> scales its damage (a boosted attack shot). Dashes ignore the percent.
+        /// <paramref name="viewDelayTicks"/> — the input's <c>ViewDelayTicks</c>: a cone or a self area tests rewound targets
+        /// (<see cref="LagCompensation"/>; dash touches take it from each tick's input in <see cref="DashSystem.Run"/>).</summary>
         public static void Activate(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, AbilityDef ability,
-            int abilityRef, Vec2 dir, float distance = -1f, int damagePercent = EffectContext.FullDamagePercent)
+            int abilityRef, Vec2 dir, float distance = -1f, int damagePercent = EffectContext.FullDamagePercent, int viewDelayTicks = 0)
         {
             ref FighterState f = ref state.Fighters[slot];
             int tick = state.Globals.Tick;
@@ -98,13 +107,15 @@ namespace Arena.Core.Sim.Systems
                     ProjectileSystem.TrySpawn(state, slot, f.Team, f.Position, dir, ability, abilityRef, damagePercent);
                     break;
                 case DeliveryKind.MeleeCone:
-                    HitCone(state, defs, events, slot, f.Team, f.Position, dir, ability, abilityRef, damagePercent);
+                    HitCone(state, defs, events, slot, f.Team, f.Position, dir, ability, abilityRef, damagePercent,
+                        LagCompensation.EffectiveRewind(state, viewDelayTicks));
                     break;
                 case DeliveryKind.Dash:
                     DashSystem.Start(state, slot, ability, abilityRef, dir);
                     break;
                 case DeliveryKind.SelfArea:
-                    HitSelfArea(state, defs, events, slot, f.Team, f.Position, ability, abilityRef, damagePercent);
+                    HitSelfArea(state, defs, events, slot, f.Team, f.Position, ability, abilityRef, damagePercent,
+                        LagCompensation.EffectiveRewind(state, viewDelayTicks));
                     break;
                 case DeliveryKind.SelfBuff:
                     var ctx = new EffectContext(ability, abilityRef, slot, f.Team, f.Position, dir, damagePercent);
@@ -164,10 +175,11 @@ namespace Arena.Core.Sim.Systems
         /// <summary>
         /// Instant cone: every matching fighter whose centre is within <c>Range + its radius</c> and within half the cone
         /// angle of <paramref name="dir"/> and not behind a projectile-blocking tile (line of sight to its centre).
-        /// Knockback pushes away from the origin.
+        /// Knockback pushes away from the origin. Fighters are tested where they were <paramref name="rewindTicks"/> ago
+        /// (<see cref="LagCompensation.TargetPosition"/>; 0 — now), walls and boxes — as they are now.
         /// </summary>
         public static void HitCone(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, int team, Vec2 origin,
-            Vec2 dir, AbilityDef ability, int abilityRef, int damagePercent = EffectContext.FullDamagePercent)
+            Vec2 dir, AbilityDef ability, int abilityRef, int damagePercent = EffectContext.FullDamagePercent, int rewindTicks = 0)
         {
             float cosHalf = MathF.Cos(ability.ConeAngleDegrees * 0.5f * MathUtil.DegToRad);
             var ctx = new EffectContext(ability, abilityRef, slot, team, origin, Vec2.Zero, damagePercent);
@@ -178,10 +190,11 @@ namespace Arena.Core.Sim.Systems
                 if (j == slot || !EffectSystem.CanAffect(state, ability, slot, team, j)) continue;
                 ref FighterState t = ref state.Fighters[j];
                 float reach = ability.Range + defs.Fighters[t.DefIndex].Radius;
-                Vec2 to = t.Position - origin;
+                Vec2 position = LagCompensation.TargetPosition(state, j, rewindTicks);
+                Vec2 to = position - origin;
                 if (to.SqrLength > reach * reach) continue;
                 if (!to.IsZero && Vec2.Dot(to.Normalized, dir) < cosHalf) continue;
-                if (!ability.IgnoresWalls && !GridCollision.HasLineOfSight(in grid, origin, t.Position)) continue;
+                if (!ability.IgnoresWalls && !GridCollision.HasLineOfSight(in grid, origin, position)) continue;
                 EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
             }
             BoxSystem.DamageCone(state, defs, events, in ctx, origin, dir, ability.Range, cosHalf, ability.IgnoresWalls);
@@ -189,10 +202,11 @@ namespace Arena.Core.Sim.Systems
 
         /// <summary>
         /// Instant circle of <see cref="AbilityDef.Range"/> around the caster: every matching fighter whose body touches it
-        /// (the caster itself if an effect has the Self filter). Knockback pushes away from the caster.
+        /// (the caster itself if an effect has the Self filter). Knockback pushes away from the caster. Other fighters are tested
+        /// where they were <paramref name="rewindTicks"/> ago (<see cref="LagCompensation.TargetPosition"/>; 0 — now).
         /// </summary>
         public static void HitSelfArea(MatchState state, MatchDefs defs, SimEventBuffer events, int slot, int team, Vec2 origin,
-            AbilityDef ability, int abilityRef, int damagePercent = EffectContext.FullDamagePercent)
+            AbilityDef ability, int abilityRef, int damagePercent = EffectContext.FullDamagePercent, int rewindTicks = 0)
         {
             var ctx = new EffectContext(ability, abilityRef, slot, team, origin, Vec2.Zero, damagePercent);
             int count = state.Globals.FighterCount;
@@ -201,7 +215,8 @@ namespace Arena.Core.Sim.Systems
                 if (!EffectSystem.CanAffect(state, ability, slot, team, j)) continue;
                 ref FighterState t = ref state.Fighters[j];
                 float reach = ability.Range + defs.Fighters[t.DefIndex].Radius;
-                if (Vec2.SqrDistance(t.Position, origin) > reach * reach) continue;
+                Vec2 position = j == slot ? t.Position : LagCompensation.TargetPosition(state, j, rewindTicks);
+                if (Vec2.SqrDistance(position, origin) > reach * reach) continue;
                 EffectSystem.ApplyAbility(state, defs, events, in ctx, j);
             }
             BoxSystem.DamageCircle(state, defs, events, in ctx, origin, ability.Range);

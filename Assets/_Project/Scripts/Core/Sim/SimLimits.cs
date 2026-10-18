@@ -22,6 +22,12 @@ namespace Arena.Core.Sim
         public const int MaxBoxes = 64;
         public const int MaxEvents = 256;
 
+        /// <summary>
+        /// Ticks of <c>MatchState.PositionHistory</c> (lag compensation, Server-Spec §2.8): 12 ticks = 400 ms, above the rewind
+        /// limit of 350 ms (<c>LagCompMaxRewindMs</c>).
+        /// </summary>
+        public const int MaxRewindTicks = 12;
+
         /// <summary>Tiles of the largest map: 45×45 royale (GDD §5.4) = 2025 ≤ 2048.</summary>
         public const int MaxMapCells = 2048;
     }

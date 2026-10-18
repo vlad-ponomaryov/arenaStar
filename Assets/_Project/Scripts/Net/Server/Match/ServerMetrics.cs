@@ -30,6 +30,12 @@ namespace Arena.Net.Server.Match
         public long PressesCarried;
         public long PressesDropped;
 
+        /// <summary>Inputs simulated with a rewind (lag compensation, S3.13).</summary>
+        public long RewoundInputs;
+
+        /// <summary>Suspicious: inputs whose <c>ViewDelayTicks</c> was above the server's limit and was cut (§8).</summary>
+        public long ViewDelayClamped;
+
         public long Takeovers;
         public long Leaves;
 

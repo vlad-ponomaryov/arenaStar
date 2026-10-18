@@ -46,12 +46,13 @@ namespace Arena.Tests.EditMode.Net.Client
         private DeterministicRng _frames;
 
         public MatchClientRig(ModeKind mode, int[] playerSlots, int seed = 7, NetworkConditions conditions = null,
-            ClientMatchSettings clientSettings = null, int[] fighters = null)
+            ClientMatchSettings clientSettings = null, int[] fighters = null, ServerSettings serverSettings = null, int slotCount = -1,
+            int teamSize = 0)
         {
             Network = new InMemoryNetwork(seed);
             Network.DefaultConditions = conditions ?? new NetworkConditions();
             Bundle = SnapshotMatchRig.LoadBundle();
-            ServerSettings settings = MatchServerRig.CreateSettings();
+            ServerSettings settings = serverSettings ?? MatchServerRig.CreateSettings();
             var transport = TransportSettings.CreateDefault();
             ulong hash = 0x5EEDu;
             Host = new MatchHost(Network.CreateSocket(MatchServerRig.ServerAddress), transport, settings, Bundle, hash,
@@ -60,7 +61,8 @@ namespace Arena.Tests.EditMode.Net.Client
             ContentModeMaps maps = Bundle.MapsFor(mode);
             int mapIndex = maps.MapIndices[0];
             var defs = Bundle.CreateMatchDefs(mapIndex, mode);
-            int slots = mode == ModeKind.LastBeast
+            int slots = slotCount > 0 ? slotCount
+                : mode == ModeKind.LastBeast
                 ? defs.Map.SpawnCount(Arena.Core.Map.MapSpawn.SharedTeam)
                 : defs.Map.SpawnCount(0) + defs.Map.SpawnCount(1);
             if (slots > Arena.Core.Sim.SimLimits.MaxFighters) slots = Arena.Core.Sim.SimLimits.MaxFighters;
@@ -68,7 +70,7 @@ namespace Arena.Tests.EditMode.Net.Client
             for (int i = 0; i < slots; i++) slotFighters[i] = -1;
             for (int k = 0; k < playerSlots.Length; k++)
                 slotFighters[playerSlots[k]] = fighters != null ? fighters[k] : k % Bundle.Fighters.Length;
-            Room = Host.CreateMatch(MatchRoomRequest.FromBundle(Bundle, mapIndex, mode, slotFighters, seed), Network.NowMicros);
+            Room = Host.CreateMatch(MatchRoomRequest.FromBundle(Bundle, mapIndex, mode, slotFighters, seed, teamSize), Network.NowMicros);
 
             Clients = new NetClient[playerSlots.Length];
             Sessions = new MatchClientSession[playerSlots.Length];

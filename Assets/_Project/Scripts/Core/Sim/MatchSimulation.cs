@@ -30,6 +30,8 @@ namespace Arena.Core.Sim
     ///   9. attack charges;
     ///  10. regeneration;
     ///  11. visibility (bushes, reveal, invisibility, marks; read by views, bots and next tick's auto-aim);
+    ///  11a. position history for lag compensation (<see cref="LagCompensation"/>; instant contact hits of 4–5 rewind the
+    ///       other fighters by the input's <c>ViewDelayTicks</c>);
     ///  12. Tick++.
     /// Prediction mode (<see cref="MatchGlobals.Predicting"/>, Server-Spec §2.5): only the predicted fighter acts; steps 8a and
     /// 10 are skipped and the match RNG is not used (each system documents its branch).
@@ -99,7 +101,7 @@ namespace Arena.Core.Sim
             StatusSystem.Run(State);
             MovementSystem.Run(State, Defs, _inputs);
             AbilitySystem.Run(State, Defs, _inputs, Events);
-            DashSystem.Run(State, Defs, Events);
+            DashSystem.Run(State, Defs, _inputs, Events);
             ProjectileSystem.Run(State, Defs, Events);
             AreaSystem.Run(State, Defs, Events);
             RespawnSystem.Run(State, Defs, Setup, Events);
@@ -111,6 +113,7 @@ namespace Arena.Core.Sim
             ChargeSystem.Run(State, Defs, Events);
             if (!State.Globals.Predicting) RegenSystem.Run(State, Defs);
             VisibilitySystem.Run(State, Defs);
+            LagCompensation.Record(State);
             State.Globals.Tick++;
         }
 

@@ -28,6 +28,10 @@
     "MissingInputRepeatTicks": 6,
     "MarginWindowTicks": 30,
     "InputRedundancy": 4,
+    "LagCompEnabled": true,            // lag compensation of melee / self area / dash touches (Server-Spec §2.8)
+    "LagCompMaxRewindMs": 350,
+    "InterpDelayMaxMs": 200,
+    "LagCompSlackTicks": 2,
     "BotTakeoverSeconds": 1.5,
     "AfkSeconds": 30,
     "FillBotDifficulty": "Novice",

@@ -11,6 +11,9 @@ namespace Arena.Net.Transport
         public long DroppedMalformed;
         public long DroppedOversize;
         public long DroppedUnknownConnection;
+
+        /// <summary>Replays and duplicates of an accepted packet (the replay window, S3.13: counted apart from malformed).</summary>
+        public long DroppedDuplicates;
         public long DroppedRateLimited;
         public long Challenges;
         public long Accepted;
