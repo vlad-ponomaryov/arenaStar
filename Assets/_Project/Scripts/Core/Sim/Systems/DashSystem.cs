@@ -39,6 +39,7 @@ namespace Arena.Core.Sim.Systems
         /// </summary>
         public static void StartPull(MatchState state, int slot, Vec2 direction, float distance, float speed)
         {
+            if (state.Globals.Predicting) return; // a hook pull is not predicted: it comes with the server state (§2.5)
             ref FighterState f = ref state.Fighters[slot];
             if (!f.Active || !f.Alive || f.Stunned || speed <= 0f || distance <= MathUtil.DistanceEpsilon) return;
             Vec2 dir = direction.Normalized;
@@ -66,6 +67,7 @@ namespace Arena.Core.Sim.Systems
             int count = state.Globals.FighterCount;
             for (int i = 0; i < count; i++)
             {
+                if (!state.Globals.Simulates(i)) continue;
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active || !f.Alive || f.DashTicksLeft <= 0) continue;
 

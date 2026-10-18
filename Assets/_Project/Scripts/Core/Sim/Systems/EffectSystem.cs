@@ -9,18 +9,23 @@ namespace Arena.Core.Sim.Systems
     /// Applies an ability's effects to one target (D-011): each effect checks its <see cref="TargetFilter"/> against the
     /// relation source → target, then a small static handler runs per <see cref="EffectKind"/> (<c>Arena.Core.Sim.Effects</c>).
     /// A new effect kind = one enum value + one handler + one <c>case</c> here; fighters only combine kinds in data.
+    /// In prediction mode only effects of the predicted fighter on itself apply, except damage and healing (Server-Spec §2.5).
     /// Effects run in the order of <see cref="AbilityDef.Effects"/>; a target defeated by an earlier effect ignores the rest.
     /// </summary>
     public static class EffectSystem
     {
         public static void ApplyAbility(MatchState state, MatchDefs defs, SimEventBuffer events, in EffectContext ctx, int target)
         {
+            bool predicting = state.Globals.Predicting;
+            // Prediction (§2.5 rule 2): only the own fighter's effects on itself, and never damage or healing.
+            if (predicting && (ctx.Source != state.Globals.PredictedSlot || target != ctx.Source)) return;
             TargetFilter relation = Relation(ctx.Source, ctx.SourceTeam, target, state.Fighters[target].Team);
             EffectDef[] effects = ctx.Ability.Effects;
             for (int i = 0; i < effects.Length; i++)
             {
                 EffectDef e = effects[i];
                 if ((e.Filter & relation) == 0) continue;
+                if (predicting && (e.Kind == EffectKind.Damage || e.Kind == EffectKind.Heal)) continue;
                 if (!state.Fighters[target].Alive) return;
                 Apply(state, defs, events, in ctx, e, target);
             }

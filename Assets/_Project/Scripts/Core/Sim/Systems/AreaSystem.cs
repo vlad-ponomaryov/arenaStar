@@ -71,7 +71,8 @@ namespace Arena.Core.Sim.Systems
                             if (!a.Triggered) Trigger(state, defs, events, ref a, i, ability);
                             break;
                         case AreaKind.Mine:
-                            if (!a.Triggered && ability != null && EnemyInside(state, defs, in a))
+                            // Prediction: mines never go off in the shadow — the blast comes from the server (§2.5).
+                            if (!a.Triggered && ability != null && !state.Globals.Predicting && EnemyInside(state, defs, in a))
                             {
                                 Trigger(state, defs, events, ref a, i, ability);
                                 a.Active = false;

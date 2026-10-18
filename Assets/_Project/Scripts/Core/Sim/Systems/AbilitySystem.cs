@@ -27,6 +27,7 @@ namespace Arena.Core.Sim.Systems
             int count = state.Globals.FighterCount;
             for (int i = 0; i < count; i++)
             {
+                if (!state.Globals.Simulates(i)) continue;
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active || !f.Alive || f.Stunned) continue;
                 AttackSystem.Update(state, defs, in inputs[i], events, i);

@@ -16,6 +16,7 @@ namespace Arena.Core.Sim.Systems
     ///     <see cref="CombatRules.BushRevealDistance"/>.
     /// Areas (<see cref="AreaState.VisibleToTeams"/>): visible to all, except <see cref="AbilityDef.HiddenFromEnemies"/> ones
     /// (Chomp's mine, D-030) — own team, plus teams with an alive fighter strictly closer than the reveal distance.
+    /// In prediction mode only the predicted fighter is recomputed; other fighters and areas are left as shown (Server-Spec §2.5).
     /// </summary>
     public static class VisibilitySystem
     {
@@ -29,6 +30,7 @@ namespace Arena.Core.Sim.Systems
 
             for (int i = 0; i < count; i++)
             {
+                if (!state.Globals.Simulates(i)) continue;
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active) continue;
                 f.InBush = TileRules.IsBush(grid.Get(GridCell.Of(f.Position)));
@@ -41,6 +43,7 @@ namespace Arena.Core.Sim.Systems
 
             for (int i = 0; i < count; i++)
             {
+                if (!state.Globals.Simulates(i)) continue;
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active)
                 {
@@ -57,6 +60,7 @@ namespace Arena.Core.Sim.Systems
                 }
                 f.VisibleToTeams = mask;
             }
+            if (state.Globals.Predicting) return; // prediction: masks of other fighters and of areas come from the server (§2.5 rule 5)
 
             AreaState[] areas = state.Areas;
             for (int i = 0; i < areas.Length; i++)

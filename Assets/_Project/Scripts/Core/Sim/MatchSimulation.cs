@@ -31,6 +31,8 @@ namespace Arena.Core.Sim
     ///  10. regeneration;
     ///  11. visibility (bushes, reveal, invisibility, marks; read by views, bots and next tick's auto-aim);
     ///  12. Tick++.
+    /// Prediction mode (<see cref="MatchGlobals.Predicting"/>, Server-Spec §2.5): only the predicted fighter acts; steps 8a and
+    /// 10 are skipped and the match RNG is not used (each system documents its branch).
     /// Once the mode has ended (<see cref="ModePhase.Ended"/>) Tick only clears the events: input is ignored and the state
     /// stands still (the results screen reads it).
     /// Movement, dashes and projectiles collide with the mutable map tiles in the state (walls break there).
@@ -101,10 +103,13 @@ namespace Arena.Core.Sim
             ProjectileSystem.Run(State, Defs, Events);
             AreaSystem.Run(State, Defs, Events);
             RespawnSystem.Run(State, Defs, Setup, Events);
-            AcornsRules.Run(State, Defs, Events);
-            LastBeastRules.Run(State, Defs, Events);
+            if (!State.Globals.Predicting)
+            {
+                AcornsRules.Run(State, Defs, Events);
+                LastBeastRules.Run(State, Defs, Events);
+            }
             ChargeSystem.Run(State, Defs, Events);
-            RegenSystem.Run(State, Defs);
+            if (!State.Globals.Predicting) RegenSystem.Run(State, Defs);
             VisibilitySystem.Run(State, Defs);
             State.Globals.Tick++;
         }
@@ -113,6 +118,11 @@ namespace Arena.Core.Sim
         {
             for (int i = 0; i < count; i++)
             {
+                if (!State.Globals.Simulates(i))
+                {
+                    _inputs[i] = default;
+                    continue; // prediction: other fighters are still targets, their buttons are not touched
+                }
                 ref FighterState f = ref State.Fighters[i];
                 PlayerInput input = f.Active && f.Alive ? inputs[i].Sanitized() : default;
                 _inputs[i] = input;

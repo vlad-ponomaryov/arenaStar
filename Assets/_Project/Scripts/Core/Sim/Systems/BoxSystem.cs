@@ -133,7 +133,8 @@ namespace Arena.Core.Sim.Systems
         public static void Damage(MatchState state, MatchDefs defs, SimEventBuffer events, int box, int source, int amount)
         {
             ref BoxState b = ref state.Boxes[box];
-            if (!b.Active || amount <= 0) return;
+            // Prediction: boxes are not damaged in the shadow (berries would use the match RNG, §2.5 rule 4).
+            if (!b.Active || amount <= 0 || state.Globals.Predicting) return;
             int dealt = amount < b.Health ? amount : b.Health;
             b.Health -= dealt;
             TileGrid grid = state.Grid;

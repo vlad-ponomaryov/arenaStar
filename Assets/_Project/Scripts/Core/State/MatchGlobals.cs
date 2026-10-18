@@ -36,9 +36,24 @@ namespace Arena.Core.State
         public int MapWidth;
         public int MapHeight;
 
+        /// <summary>
+        /// Prediction mode of the client's shadow simulation (Server-Spec §2.5, D-080): only <see cref="PredictedSlot"/> acts —
+        /// input, statuses, movement, abilities, dashes, charges, respawn and visibility touch that fighter only; effects apply
+        /// only from it to itself and never damage or heal; hook pulls, mines, boxes, regeneration, mode rules and the match RNG
+        /// stand still. False (the default after <c>Clear()</c>) = the normal simulation, unchanged.
+        /// </summary>
+        public bool Predicting;
+
+        /// <summary>The fighter slot that acts in prediction mode (valid only while <see cref="Predicting"/>).</summary>
+        public int PredictedSlot;
+
+        /// <summary>True if the systems run the fighter in <paramref name="slot"/> this tick (always, unless predicting another slot).</summary>
+        public bool Simulates(int slot) => !Predicting || slot == PredictedSlot;
+
         public bool Equals(MatchGlobals o) => Tick == o.Tick && FighterCount == o.FighterCount && Seed == o.Seed && Rng.Equals(o.Rng)
             && DroppedProjectiles == o.DroppedProjectiles && DroppedAreas == o.DroppedAreas && DroppedStatuses == o.DroppedStatuses && DroppedPickups == o.DroppedPickups
-            && MapWidth == o.MapWidth && MapHeight == o.MapHeight;
+            && MapWidth == o.MapWidth && MapHeight == o.MapHeight
+            && Predicting == o.Predicting && PredictedSlot == o.PredictedSlot;
         public override bool Equals(object obj) => obj is MatchGlobals other && Equals(other);
         public override int GetHashCode() => (Tick * 397) ^ FighterCount ^ Rng.GetHashCode();
     }

@@ -64,6 +64,7 @@ namespace Arena.Core.Sim.Systems
             {
                 ref ProjectileState p = ref items[i];
                 if (!p.Active) continue;
+                if (state.Globals.Predicting && p.Owner != state.Globals.PredictedSlot) continue; // the shadow flies own projectiles only
 
                 AbilityDef ability = defs.GetAbility(p.AbilityRef);
                 float step = p.Speed * SimTime.Dt;

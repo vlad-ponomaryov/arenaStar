@@ -19,6 +19,7 @@ namespace Arena.Core.Sim.Systems
             int tick = state.Globals.Tick;
             for (int i = 0; i < count; i++)
             {
+                if (!state.Globals.Simulates(i)) continue;
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active || f.Alive || tick < f.RespawnTick) continue;
                 SpawnSystem.Respawn(state, defs, setup, i, events);

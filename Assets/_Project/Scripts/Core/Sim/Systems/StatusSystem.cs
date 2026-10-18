@@ -19,6 +19,15 @@ namespace Arena.Core.Sim.Systems
         {
             int tick = state.Globals.Tick;
             StatusEffectState[] items = state.Statuses;
+            if (state.Globals.Predicting)
+            {
+                // Prediction: only the own fighter's statuses expire and are folded in; other fighters keep their fields.
+                int own = state.Globals.PredictedSlot;
+                for (int i = 0; i < items.Length; i++)
+                    if (items[i].Active && items[i].Target == own && tick >= items[i].ExpireTick) items[i].Active = false;
+                Recompute(state, own);
+                return;
+            }
             for (int i = 0; i < items.Length; i++)
                 if (items[i].Active && tick >= items[i].ExpireTick) items[i].Active = false;
             RecomputeAll(state);

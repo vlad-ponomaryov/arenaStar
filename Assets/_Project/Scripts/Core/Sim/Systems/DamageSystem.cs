@@ -26,7 +26,7 @@ namespace Arena.Core.Sim.Systems
             bool chargesUlt = false, int abilityRef = -1)
         {
             ref FighterState t = ref state.Fighters[target];
-            if (!t.Active || !t.Alive || amount <= 0) return 0;
+            if (!t.Active || !t.Alive || amount <= 0 || state.Globals.Predicting) return 0; // no damage in prediction (§2.5)
             if (source >= 0 && source != target && state.Fighters[source].Team == t.Team) return 0;
             if (t.DamageTakenMul != 1f) amount = MathUtil.RoundToInt(amount * t.DamageTakenMul);
             if (amount <= 0) return 0;
@@ -47,7 +47,7 @@ namespace Arena.Core.Sim.Systems
         public static int ApplyHeal(MatchState state, SimEventBuffer events, int source, int target, int amount)
         {
             ref FighterState t = ref state.Fighters[target];
-            if (!t.Active || !t.Alive || amount <= 0) return 0;
+            if (!t.Active || !t.Alive || amount <= 0 || state.Globals.Predicting) return 0; // no healing in prediction (§2.5)
 
             int missing = t.MaxHealth - t.Health;
             int healed = amount < missing ? amount : missing;

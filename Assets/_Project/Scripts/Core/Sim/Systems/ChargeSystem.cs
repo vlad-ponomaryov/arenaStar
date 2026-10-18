@@ -17,6 +17,7 @@ namespace Arena.Core.Sim.Systems
             int maxCharges = defs.Rules.MaxCharges;
             for (int i = 0; i < count; i++)
             {
+                if (!state.Globals.Simulates(i)) continue;
                 ref FighterState f = ref state.Fighters[i];
                 if (!f.Active || !f.Alive) continue;
 

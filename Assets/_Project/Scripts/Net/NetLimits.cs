@@ -73,5 +73,11 @@ namespace Arena.Net
 
         /// <summary>View events journaled per tick; the rest of a tick is dropped and counted.</summary>
         public const int MaxJournalEventsPerTick = 64;
+
+        /// <summary>Bins of the client's prediction-error histogram (<c>PredictionErrorStats</c>); the last bin holds everything above.</summary>
+        public const int PredictionErrorBins = 1024;
+
+        /// <summary>Width of one histogram bin, cells (1/1024 cell = the snapshot position step): the histogram covers 1 cell.</summary>
+        public const float PredictionErrorBinCells = 1f / 1024f;
     }
 }
