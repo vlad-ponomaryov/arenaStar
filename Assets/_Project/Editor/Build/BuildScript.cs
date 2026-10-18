@@ -37,6 +37,24 @@ namespace Arena.Editor.Build
             EditorApplication.Exit(exitCode);
         }
 
+        /// <summary>Build from the editor menu (Arena/Build Android APK): same as <see cref="BuildAndroid"/> without exiting.</summary>
+        public static bool BuildFromEditor(bool development)
+        {
+            var args = new BuildArgs
+            {
+                Development = development, OutputPath = development ? DefaultDevelopmentOutputPath : DefaultOutputPath
+            };
+            try
+            {
+                return Build(args);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Arena.Editor.Build.BuildScript: build threw " + e);
+                return false;
+            }
+        }
+
         /// <summary>Pure parser for the custom command line arguments (tested in BuildScriptTests).</summary>
         public static BuildArgs ParseArgs(string[] args)
         {
