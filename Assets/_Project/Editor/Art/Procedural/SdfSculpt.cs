@@ -17,6 +17,10 @@ namespace Arena.Editor.Art.Procedural
         private const int MaxBudgetIterations = 12;
         /// <summary>The fine sculpt has ≈ this many times the budget's triangles before the simplification.</summary>
         public const int Oversample = 8;
+        /// <summary>Big (hero, D-122) budgets oversample less: at least this many times ...</summary>
+        public const int MinOversample = 3;
+        /// <summary>... and no more fine triangles than this unless <see cref="MinOversample"/> needs them.</summary>
+        public const int MaxFineTriangles = 60000;
         /// <summary>Width of a paint border, units: crisp at the gameplay distance, no stair-steps (A.1b2).</summary>
         public const float PaintEdge = 0.05f;
 
@@ -87,7 +91,7 @@ namespace Arena.Editor.Art.Procedural
         {
             Bounds volume = VolumeBounds();
             Func<Vector3, float> field = Distance;
-            int fineTarget = budget * Oversample;
+            int fineTarget = Mathf.Max(budget * MinOversample, Mathf.Min(budget * Oversample, MaxFineTriangles));
             float step = Mathf.Max(MinStep, Mathf.Sqrt(2f * SurfaceGuess(volume) / Mathf.Max(1, fineTarget)));
             var fine = new MeshBuilderBuffer();
             int fineTris = 0;

@@ -184,5 +184,15 @@ namespace Arena.Gameplay.View
                         return FighterVisuals[i].Prefab;
             return FighterViewPrefab;
         }
+
+        /// <summary>Showcase prefab of the fighter for menus (D-122): its hero model, else the match prefab.</summary>
+        public FighterView FighterHeroPrefab(string fighterId)
+        {
+            if (FighterVisuals != null && !string.IsNullOrEmpty(fighterId))
+                for (int i = 0; i < FighterVisuals.Length; i++)
+                    if (FighterVisuals[i].HeroPrefab != null && string.Equals(FighterVisuals[i].FighterId, fighterId, System.StringComparison.Ordinal))
+                        return FighterVisuals[i].HeroPrefab;
+            return FighterPrefab(fighterId);
+        }
     }
 }

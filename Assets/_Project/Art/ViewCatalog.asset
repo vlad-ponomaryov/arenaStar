@@ -21,6 +21,7 @@ MonoBehaviour:
   FighterVisuals:
   - FighterId: pix
     Prefab: {fileID: 7434505735102882889, guid: e6065e26022b9ce4ca44f130da65a49b, type: 3}
+    HeroPrefab: {fileID: 6600160668504146452, guid: cd54b5195bf3f054d8179ace9dfd0b3e, type: 3}
   LogPrefab: {fileID: 7862282338162344235, guid: ec593e0984357a648bf684441dbb6448, type: 3}
   LogThickness: 0.5
   LobBombPrefab: {fileID: 3311351156427285967, guid: 5258f7fb4ea0fcf46a05824c0480affc, type: 3}

@@ -8,5 +8,7 @@ namespace Arena.Gameplay.View
     {
         public string FighterId;
         public FighterView Prefab;
+        /// <summary>Showcase model for menus, fighter select and results (finer, about 15-30k triangles, D-122); null = <see cref="Prefab"/>.</summary>
+        public FighterView HeroPrefab;
     }
 }

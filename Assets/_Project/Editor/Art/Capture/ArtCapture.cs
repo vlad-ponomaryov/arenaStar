@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Arena.Data;
+using Arena.Editor.Art.Fighters;
 using Arena.Editor.Build;
 using Arena.Editor.Data;
 using Arena.Gameplay.Cameras;
@@ -21,7 +22,7 @@ namespace Arena.Editor.Art.Capture
     /// <c>Tools/unity-method.ps1 -Graphics -Method Arena.Editor.Art.Capture.ArtCapture.CaptureAll [-Extra '-artStep A.1a']</c>.
     /// Opens the Match scene (its camera and light, nothing saved), builds the <see cref="CaptureStage"/> and writes PNGs to
     /// <c>Tools/out/art/&lt;step&gt;/</c>: lineup (team 0 camera), lineup_team1 (the other side), lineup_zoom2 (the same view at 2×
-    /// around the fighters), states_zoom2 (fighter 0 hit flash, fighter 1 ghost), model_<id> (sheets of the procedural models), silhouettes64 (black fills, fighter 64 px high, gameplay angle and straight from above), map (top view)
+    /// around the fighters), states_zoom2 (fighter 0 hit flash, fighter 1 ghost), model_<id> (sheets of the procedural models), model_<id>_hero (the showcase LOD, large), silhouettes64 (black fills, fighter 64 px high, gameplay angle and straight from above), map (top view)
     /// and protan/deutan versions of lineup, lineup_team1 and map.
     /// </summary>
     public static class ArtCapture
@@ -41,6 +42,12 @@ namespace Arena.Editor.Art.Capture
         private static readonly Color SilhouetteBackground = Color.white;
         // Model sheets: far from the stage, 480×600 cells; views as (fighter yaw from facing the camera, camera pitch).
         private static readonly Vector3 SheetSpot = new Vector3(-100f, 0f, 0f);
+        /// <summary>Hero shots (D-122): match model 3/4, hero model 3/4, hero model front (yaw, pitch).</summary>
+        private static readonly Vector2[] HeroViews = { new Vector2(-30f, 10f), new Vector2(-30f, 10f), new Vector2(0f, 8f) };
+        private const int HeroCellWidth = 800;
+        private const int HeroCellHeight = 1000;
+        private const int HeroSupersample = 2;
+        private const float HeroDistance = 4.0f;
         private static readonly Vector2[] SheetViews = { new Vector2(0f, 8f), new Vector2(-35f, 12f), new Vector2(180f, 8f), new Vector2(0f, 89f), new Vector2(0f, 55f) };
         private const int SheetCellWidth = 480;
         private const int SheetCellHeight = 600;
@@ -92,6 +99,7 @@ namespace Arena.Editor.Art.Capture
                 SaveWithColorBlind(RenderMap(camera, stage), dir, "map");
                 SaveSilhouettes(camera, config, stage, dir);
                 SaveModelSheets(camera, config, stage, dir);
+                SaveHeroShots(camera, config, stage, dir);
             }
             finally
             {
@@ -188,6 +196,86 @@ namespace Arena.Editor.Art.Capture
             {
                 camera.fieldOfView = fov;
             }
+        }
+
+        /// <summary>
+        /// For every fighter with a hero model (D-122): <c>model_&lt;id&gt;_hero.png</c> — the match model at 3/4, the hero model at 3/4
+        /// and from the front, large (800 × 1000 per view, 2× supersampled) as on the fighter select screen.
+        /// </summary>
+        private static void SaveHeroShots(Camera camera, CameraConfig config, CaptureStage stage, string dir)
+        {
+            PlaceGameplay(camera, config, stage, false);
+            float fov = camera.fieldOfView;
+            camera.fieldOfView = SheetFieldOfView;
+            try
+            {
+                for (int i = 0; i < stage.FighterCount; i++)
+                {
+                    FighterView game = stage.Fighter(i);
+                    if (game.Rig == null) continue;
+                    string id = stage.FighterId(i);
+                    var heroPrefab = AssetDatabase.LoadAssetAtPath<FighterView>(FighterModelBuilder.PrefabPath(id, FighterModelQuality.Hero));
+                    if (heroPrefab == null) continue;
+                    FighterView hero = Object.Instantiate(heroPrefab);
+                    Vector3 home = game.transform.position;
+                    Quaternion homeRotation = game.transform.rotation;
+                    var sheet = new Texture2D(HeroCellWidth * HeroViews.Length, HeroCellHeight, TextureFormat.RGBA32, false);
+                    try
+                    {
+                        for (int v = 0; v < HeroViews.Length; v++)
+                        {
+                            FighterView shown = v == 0 ? game : hero;
+                            FighterView parked = v == 0 ? hero : game;
+                            parked.transform.position = SheetSpot + Vector3.right * 50f;
+                            Vector2 yawPitch = HeroViews[v];
+                            shown.SetPose(SheetSpot, Quaternion.Euler(0f, yawPitch.x, 0f) * Vector3.back);
+                            Quaternion rotation = Quaternion.Euler(yawPitch.y, 0f, 0f);
+                            Vector3 target = SheetSpot + Vector3.up * shown.Rig.TopHeight * 0.5f;
+                            camera.transform.SetPositionAndRotation(target - rotation * Vector3.forward * HeroDistance, rotation);
+                            Texture2D big = Render(camera, HeroCellWidth * HeroSupersample, HeroCellHeight * HeroSupersample);
+                            Blit(sheet, Downscale(big, HeroSupersample), v * HeroCellWidth, 0);
+                            Object.DestroyImmediate(big);
+                        }
+                        sheet.Apply();
+                        Save(sheet, dir, "model_" + id + "_hero");
+                    }
+                    finally
+                    {
+                        game.transform.SetPositionAndRotation(home, homeRotation);
+                        Object.DestroyImmediate(hero.gameObject);
+                        Object.DestroyImmediate(sheet);
+                    }
+                }
+            }
+            finally
+            {
+                camera.fieldOfView = fov;
+            }
+        }
+
+        /// <summary>Box-filter downscale by an integer factor (antialiasing of a supersampled render).</summary>
+        private static Texture2D Downscale(Texture2D src, int factor)
+        {
+            int w = src.width / factor, h = src.height / factor;
+            Color32[] from = src.GetPixels32();
+            var to = new Color32[w * h];
+            int n = factor * factor;
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                int r = 0, g = 0, b = 0, a = 0;
+                for (int dy = 0; dy < factor; dy++)
+                for (int dx = 0; dx < factor; dx++)
+                {
+                    Color32 c = from[(y * factor + dy) * src.width + x * factor + dx];
+                    r += c.r; g += c.g; b += c.b; a += c.a;
+                }
+                to[y * w + x] = new Color32((byte)(r / n), (byte)(g / n), (byte)(b / n), (byte)(a / n));
+            }
+            var result = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            result.SetPixels32(to);
+            result.Apply();
+            return result;
         }
 
         private static Texture2D RenderMap(Camera camera, CaptureStage stage)

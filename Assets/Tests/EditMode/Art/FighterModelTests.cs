@@ -34,6 +34,28 @@ namespace Arena.Tests.EditMode.Art
         }
 
         [Test]
+        public void EveryRecipe_HasAHeroModel_FinerThanTheMatchOne()
+        {
+            ViewCatalog catalog = Catalog();
+            foreach (FighterModelRecipe recipe in Recipes())
+            {
+                string id = recipe.FighterId;
+                FighterView hero = catalog.FighterHeroPrefab(id);
+                Assert.AreEqual(FighterModelBuilder.PrefabPath(id, FighterModelQuality.Hero), AssetDatabase.GetAssetPath(hero), id);
+                SkinnedMeshRenderer[] smrs = hero.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                Assert.AreEqual(1, smrs.Length, id);
+                Assert.AreSame(catalog.FighterBody, smrs[0].sharedMaterial, id);
+                Mesh mesh = smrs[0].sharedMesh;
+                Assert.AreEqual(FighterModelBuilder.MeshPath(id, FighterModelQuality.Hero), AssetDatabase.GetAssetPath(mesh), id);
+                Assert.That(mesh.triangles.Length / 3, Is.InRange(15000, 30000), id + ": showcase LOD (D-122)");
+                Assert.AreEqual(Enum.GetValues(typeof(FighterBone)).Length, smrs[0].bones.Length, id);
+                Assert.IsNotNull(hero.Rig, id);
+                Assert.AreEqual(catalog.FighterPrefab(id).Rig.TopHeight, hero.Rig.TopHeight, 0.03f, id + ": same size as the match model");
+            }
+            Assert.AreSame(catalog.FighterViewPrefab, catalog.FighterHeroPrefab("no-such-fighter"), "fallback");
+        }
+
+        [Test]
         public void Prefabs_HaveOneSkinnedRenderer_OneMaterial_AndValidSkin()
         {
             ViewCatalog catalog = Catalog();
