@@ -109,7 +109,7 @@ MonoBehaviour:
   - {x: 1, y: 1, z: 1}
   - {x: 0, y: 0, z: 0}
   - {x: 0, y: 0, z: 0}
-  TopHeight: 1.6426177
+  TopHeight: 1.6344165
   AttackStyle: 0
   UltStyle: 0
   TrickStyle: 1
@@ -834,8 +834,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 3916311271724706032}
   m_AABB:
-    m_Center: {x: 0.12039438, y: 0.81880885, z: 0.0070902705}
-    m_Extent: {x: 0.72020745, y: 1.0709515, z: 0.8448826}
+    m_Center: {x: 0.14086755, y: 0.80907416, z: -0.014674902}
+    m_Extent: {x: 0.71297306, y: 1.072945, z: 0.87317735}
   m_DirtyAABB: 0
 --- !u!1 &8712414789992744242
 GameObject:

@@ -29,7 +29,7 @@ namespace Arena.Editor.Art.Fighters.Recipes
 
         // Key points, model space (ground y = 0, facing +Z, +X = Pix's right).
         private static readonly Vector3 HeadCenter = new Vector3(0f, 1.06f, 0f);
-        private static readonly Vector3 HeadRadii = new Vector3(0.29f, 0.28f, 0.27f);
+        private static readonly Vector3 HeadRadii = new Vector3(0.305f, 0.275f, 0.27f);
         private static readonly Vector3 EyeCenterR = new Vector3(0.118f, 1.075f, 0.232f);
         private const float EyeYaw = 22f;   // eyes turned out to the sides
         private const float EyePitch = -18f; // and up towards the camera (Art-Spec §1.1.2)
@@ -63,10 +63,10 @@ namespace Arena.Editor.Art.Fighters.Recipes
                     FighterGroupSpec.Pieces("headgear", FighterBone.Head, 400, 10, HeadGear()),
                     Body(),
                     Tail(),
-                    FighterGroupSpec.Pieces("armL", FighterBone.ArmL, 150, 8, Arm(-1f)),
-                    FighterGroupSpec.Pieces("armR", FighterBone.ArmR, 150, 8, Arm(1f)),
-                    FighterGroupSpec.Pieces("legL", FighterBone.LegL, 150, 8, Leg(-1f)),
-                    FighterGroupSpec.Pieces("legR", FighterBone.LegR, 150, 8, Leg(1f)),
+                    FighterGroupSpec.Sculpt("armL", FighterBone.ArmL, 0.04f, 150, Arm(-1f)),
+                    FighterGroupSpec.Sculpt("armR", FighterBone.ArmR, 0.04f, 150, Arm(1f)),
+                    FighterGroupSpec.Sculpt("legL", FighterBone.LegL, 0.05f, 150, Leg(-1f)),
+                    FighterGroupSpec.Sculpt("legR", FighterBone.LegR, 0.05f, 150, Leg(1f)),
                     FighterGroupSpec.Pieces("blaster", FighterBone.Prop, 500, 10, BlasterParts()),
                     FighterGroupSpec.Pieces("eyeL", FighterBone.EyeL, 130, 8, Eye(-1f)),
                     FighterGroupSpec.Pieces("eyeR", FighterBone.EyeR, 130, 8, Eye(1f)),
@@ -84,31 +84,36 @@ namespace Arena.Editor.Art.Fighters.Recipes
             };
         }
 
-        /// <summary>Head with muzzle, cheek tufts and ears in one surface (no seams); face and ear colours painted on.</summary>
+        /// <summary>
+        /// Round soft head (A.1b2: a vinyl-toy ball, not a box) with muzzle, cheek fluff and ears in one surface (no seams); face and
+        /// ear colours painted on. The ears sit on top with narrow bases and the cheeks low and forward, so the outline stays round.
+        /// </summary>
         private static FighterGroupSpec Head()
         {
-            return FighterGroupSpec.Sculpt("head", FighterBone.Head, 0.06f, 1080,
+            return FighterGroupSpec.Sculpt("head", FighterBone.Head, 0.07f, 1060,
                 P.Ellipsoid(HeadCenter, HeadRadii, Fur),
-                // Cheek tufts: pointed white fluff out to the sides (the fox's face shape from the front and from above).
-                P.Cone(new Vector3(0.10f, 0.93f, 0.08f), new Vector3(0.39f, 0.86f, 0.02f), 0.12f, 0.045f, Cream),
-                P.Cone(new Vector3(-0.10f, 0.93f, 0.08f), new Vector3(-0.39f, 0.86f, 0.02f), 0.12f, 0.045f, Cream),
-                // Short pointed muzzle.
-                P.Ellipsoid(new Vector3(0f, 0.95f, 0.21f), new Vector3(0.12f, 0.085f, 0.14f), Cream),
+                // Cheek fluff: soft cream pads low on the face ending in short rounded points out to the sides.
+                P.Ellipsoid(new Vector3(0.15f, 0.95f, 0.09f), new Vector3(0.17f, 0.105f, 0.15f), Cream).Rotated(new Vector3(0f, 0f, -12f)),
+                P.Ellipsoid(new Vector3(-0.15f, 0.95f, 0.09f), new Vector3(0.17f, 0.105f, 0.15f), Cream).Rotated(new Vector3(0f, 0f, 12f)),
+                P.Cone(new Vector3(0.24f, 0.93f, 0.06f), new Vector3(0.375f, 0.875f, 0.03f), 0.075f, 0.035f, Cream),
+                P.Cone(new Vector3(-0.24f, 0.93f, 0.06f), new Vector3(-0.375f, 0.875f, 0.03f), 0.075f, 0.035f, Cream),
+                // Short soft muzzle.
+                P.Ellipsoid(new Vector3(0f, 0.955f, 0.21f), new Vector3(0.115f, 0.08f, 0.13f), Cream),
                 // Ears ≈ 0.45 of the head height, flattened front to back, tilted out.
                 Ear(1f), Ear(-1f),
                 // Paint: white lower face, cream inside the ears, dark ear tips (≈ 1/3 of the ear).
                 P.Ellipsoid(new Vector3(0f, 0.89f, 0.15f), new Vector3(0.27f, 0.11f, 0.22f), Cream).AsPaint(),
                 InnerEar(1f), InnerEar(-1f),
-                P.Sphere(new Vector3(0.28f, 1.59f, -0.05f), 0.15f, Dark).AsPaint(),
-                P.Sphere(new Vector3(-0.28f, 1.59f, -0.05f), 0.15f, Dark).AsPaint());
+                P.Sphere(new Vector3(0.30f, 1.60f, -0.05f), 0.14f, Dark).AsPaint(),
+                P.Sphere(new Vector3(-0.30f, 1.60f, -0.05f), 0.14f, Dark).AsPaint());
         }
 
         private static P Ear(float side) =>
-            P.Cone(new Vector3(0.15f * side, 1.24f, -0.03f), new Vector3(0.28f * side, 1.60f, -0.06f), 0.15f, 0.045f, Fur)
+            P.Cone(new Vector3(0.11f * side, 1.24f, -0.03f), new Vector3(0.30f * side, 1.60f, -0.06f), 0.10f, 0.035f, Fur)
                 .Squash(new Vector3(1f, 1f, 0.6f));
 
         private static P InnerEar(float side) =>
-            P.Cone(new Vector3(0.16f * side, 1.29f, 0.04f), new Vector3(0.255f * side, 1.50f, 0.01f), 0.095f, 0.025f, InnerEarColor)
+            P.Cone(new Vector3(0.14f * side, 1.31f, 0.04f), new Vector3(0.265f * side, 1.51f, 0.01f), 0.078f, 0.022f, InnerEarColor)
                 .Squash(new Vector3(1f, 1f, 0.5f)).AsPaint();
 
         /// <summary>Goggles on the forehead (two yellow rims with lenses) on a dark strap round the head, and the nose.</summary>
@@ -142,17 +147,25 @@ namespace Arena.Editor.Art.Fighters.Recipes
                 P.Ellipsoid(new Vector3(0f, 0.48f, 0.16f), new Vector3(0.165f, 0.30f, 0.14f), Cream).AsPaint());
         }
 
-        /// <summary>Huge fluffy tail: from the back out to Pix's right and up; white tip ≈ 1/3 of its length.</summary>
+        /// <summary>
+        /// Huge fluffy tail: one smooth tapering tube (round cones through the key points, A.1b2) from the back out to Pix's right
+        /// and up, ending in a soft point; white tip ≈ 1/3 of its length.
+        /// </summary>
         private static FighterGroupSpec Tail()
         {
-            return FighterGroupSpec.Sculpt("tail", FighterBone.Tail, 0.12f, 380,
-                P.Sphere(new Vector3(0.05f, 0.29f, -0.24f), 0.08f, Fur),
-                P.Ellipsoid(new Vector3(0.17f, 0.31f, -0.40f), new Vector3(0.15f, 0.14f, 0.15f), Fur),
-                P.Sphere(new Vector3(0.33f, 0.41f, -0.46f), 0.19f, Fur),
-                P.Sphere(new Vector3(0.46f, 0.59f, -0.43f), 0.175f, Fur),
-                P.Sphere(new Vector3(0.52f, 0.78f, -0.36f), 0.13f, Cream),
-                P.Cone(new Vector3(0.52f, 0.80f, -0.35f), new Vector3(0.53f, 1.00f, -0.27f), 0.125f, 0.03f, Cream),
-                P.Sphere(new Vector3(0.53f, 0.90f, -0.31f), 0.215f, Cream).AsPaint());
+            Vector3[] points =
+            {
+                new Vector3(0.05f, 0.29f, -0.22f), new Vector3(0.18f, 0.32f, -0.40f), new Vector3(0.34f, 0.43f, -0.47f),
+                new Vector3(0.47f, 0.61f, -0.44f), new Vector3(0.53f, 0.81f, -0.36f), new Vector3(0.52f, 1.01f, -0.26f)
+            };
+            float[] radii = { 0.07f, 0.145f, 0.19f, 0.18f, 0.135f, 0.035f };
+            var parts = new System.Collections.Generic.List<P>();
+            for (int i = 0; i + 1 < points.Length; i++)
+                parts.Add(P.Cone(points[i], points[i + 1], radii[i], radii[i + 1], i >= 3 ? Cream : Fur));
+            // Plump middle (the brush of the tail), blended into the tube.
+            parts.Add(P.Ellipsoid(new Vector3(0.40f, 0.52f, -0.46f), new Vector3(0.20f, 0.21f, 0.18f), Fur));
+            parts.Add(P.Sphere(new Vector3(0.53f, 0.90f, -0.31f), 0.215f, Cream).AsPaint());
+            return FighterGroupSpec.Sculpt("tail", FighterBone.Tail, 0.10f, 300, parts.ToArray());
         }
 
         /// <summary>Orange upper arm, dark forearm and paw; both paws on the blaster (right on the grip, left under the barrel).</summary>

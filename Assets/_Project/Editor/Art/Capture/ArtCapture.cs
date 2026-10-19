@@ -204,7 +204,8 @@ namespace Arena.Editor.Art.Capture
         }
 
         /// <summary>
-        /// Row 1: each fighter from the gameplay angle (orthographic), black on white, 64 px high in a 96 px cell; row 2: the same
+        /// Row 1: each fighter from the gameplay angle (orthographic), black on white, its body (without tail and item) 64 px high
+        /// in a 96 px cell; row 2: the same
         /// fighter straight from above at the same scale. The ring, the blob shadow and the map are hidden.
         /// </summary>
         private static void SaveSilhouettes(Camera camera, CameraConfig config, CaptureStage stage, string dir)
@@ -220,6 +221,7 @@ namespace Arena.Editor.Art.Capture
             camera.orthographic = true;
             stage.MapRoot.SetActive(false);
             var saved = new List<KeyValuePair<Renderer, Material[]>>();
+            var points = new List<Vector3>();
             try
             {
                 for (int i = 0; i < n; i++) stage.Fighter(i).gameObject.SetActive(false);
@@ -228,11 +230,12 @@ namespace Arena.Editor.Art.Capture
                     FighterView view = stage.Fighter(i);
                     view.gameObject.SetActive(true);
                     view.SetPose(view.transform.position, Vector3.back);
-                    Bounds bounds = Blacken(view, black, saved);
+                    Blacken(view, black, saved, points);
                     Quaternion side = CameraMath.Rotation(config.PitchDegrees, false);
-                    camera.orthographicSize = OrthoSizeFor(bounds, side);
-                    Blit(sheet, RenderOrtho(camera, bounds.center, side), i * SilhouetteCellPx, SilhouetteCellPx);
-                    Blit(sheet, RenderOrtho(camera, bounds.center, Quaternion.Euler(90f, 0f, 0f)), i * SilhouetteCellPx, 0);
+                    Quaternion top = Quaternion.Euler(90f, 0f, 0f);
+                    camera.orthographicSize = OrthoSizeFor(points, side);
+                    Blit(sheet, RenderOrtho(camera, ScreenCentre(points, side), side), i * SilhouetteCellPx, SilhouetteCellPx);
+                    Blit(sheet, RenderOrtho(camera, ScreenCentre(points, top), top), i * SilhouetteCellPx, 0);
                     Restore(saved);
                     view.gameObject.SetActive(false);
                 }
@@ -255,11 +258,10 @@ namespace Arena.Editor.Art.Capture
             Object.DestroyImmediate(sheet);
         }
 
-        /// <summary>Swaps every renderer of the fighter except the ring and the shadow to black; returns their world bounds.</summary>
-        private static Bounds Blacken(FighterView view, Material black, List<KeyValuePair<Renderer, Material[]>> saved)
+        /// <summary>Swaps every renderer of the fighter except the ring and the shadow to black; collects its body points.</summary>
+        private static void Blacken(FighterView view, Material black, List<KeyValuePair<Renderer, Material[]>> saved, List<Vector3> points)
         {
-            var bounds = new Bounds(view.transform.position, Vector3.zero);
-            bool first = true;
+            points.Clear();
             foreach (Renderer r in view.GetComponentsInChildren<Renderer>(true))
             {
                 if (r == view.Ring || r == view.Shadow) { saved.Add(new KeyValuePair<Renderer, Material[]>(r, null)); r.enabled = false; continue; }
@@ -267,24 +269,38 @@ namespace Arena.Editor.Art.Capture
                 var mats = new Material[r.sharedMaterials.Length];
                 for (int m = 0; m < mats.Length; m++) mats[m] = black;
                 r.sharedMaterials = mats;
-                Bounds rb = RendererBounds(r);
-                if (first) { bounds = rb; first = false; }
-                else bounds.Encapsulate(rb);
+                AddBodyPoints(r, points);
             }
-            return bounds;
+            if (points.Count == 0) points.Add(view.transform.position);
         }
 
-        /// <summary>World bounds; a skinned model's own mesh bounds at rest (its renderer bounds carry a culling margin).</summary>
-        private static Bounds RendererBounds(Renderer r)
+        /// <summary>
+        /// World points of the fighter's body: a skinned model's rest-pose vertices without the tail and the held item (A.1b2: a big
+        /// tail or a long weapon must not shrink the fighter in the 64 px check, and the measure is the real outline, not a box
+        /// whose empty corners shrink a non-convex model), other renderers by their bounds' corners.
+        /// </summary>
+        private static void AddBodyPoints(Renderer r, List<Vector3> points)
         {
-            if (!(r is SkinnedMeshRenderer smr) || smr.sharedMesh == null || smr.rootBone == null) return r.bounds;
-            Bounds local = smr.sharedMesh.bounds;
-            Matrix4x4 m = smr.rootBone.localToWorldMatrix;
-            var world = new Bounds(m.MultiplyPoint3x4(local.min), Vector3.zero);
+            if (r is SkinnedMeshRenderer smr && smr.sharedMesh != null)
+            {
+                Mesh mesh = smr.sharedMesh;
+                Vector3[] vertices = mesh.vertices;
+                BoneWeight[] weights = mesh.boneWeights;
+                Matrix4x4 m = smr.transform.localToWorldMatrix;
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    if (weights.Length == vertices.Length)
+                    {
+                        var bone = (FighterBone)weights[i].boneIndex0;
+                        if (bone == FighterBone.Tail || bone == FighterBone.Prop) continue;
+                    }
+                    points.Add(m.MultiplyPoint3x4(vertices[i]));
+                }
+                return;
+            }
+            Bounds b = r.bounds;
             for (int i = 0; i < 8; i++)
-                world.Encapsulate(m.MultiplyPoint3x4(new Vector3((i & 1) == 0 ? local.min.x : local.max.x,
-                    (i & 2) == 0 ? local.min.y : local.max.y, (i & 4) == 0 ? local.min.z : local.max.z)));
-            return world;
+                points.Add(new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z));
         }
 
         private static void Restore(List<KeyValuePair<Renderer, Material[]>> saved)
@@ -298,20 +314,34 @@ namespace Arena.Editor.Art.Capture
             saved.Clear();
         }
 
-        /// <summary>Orthographic size that makes the bounds' vertical extent on screen (camera up axis) 64 px of a 96 px cell.</summary>
-        private static float OrthoSizeFor(Bounds b, Quaternion rotation)
+        /// <summary>Orthographic size that makes the points' vertical extent on screen (camera up axis) 64 px of a 96 px cell.</summary>
+        private static float OrthoSizeFor(List<Vector3> points, Quaternion rotation)
         {
-            Vector3 up = rotation * Vector3.up;
-            float min = float.MaxValue, max = float.MinValue;
-            for (int i = 0; i < 8; i++)
+            Extent(points, rotation * Vector3.up, out float min, out float max);
+            float extent = Mathf.Max(max - min, 0.01f);
+            return extent * SilhouetteCellPx / (2f * SilhouetteHeightPx);
+        }
+
+        /// <summary>A point whose screen position is the middle of the points' screen extent.</summary>
+        private static Vector3 ScreenCentre(List<Vector3> points, Quaternion rotation)
+        {
+            Vector3 up = rotation * Vector3.up, right = rotation * Vector3.right, forward = rotation * Vector3.forward;
+            Extent(points, up, out float upMin, out float upMax);
+            Extent(points, right, out float rightMin, out float rightMax);
+            Extent(points, forward, out float forwardMin, out float forwardMax);
+            return up * ((upMin + upMax) * 0.5f) + right * ((rightMin + rightMax) * 0.5f) + forward * ((forwardMin + forwardMax) * 0.5f);
+        }
+
+        private static void Extent(List<Vector3> points, Vector3 axis, out float min, out float max)
+        {
+            min = float.MaxValue;
+            max = float.MinValue;
+            foreach (Vector3 p in points)
             {
-                var corner = new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z);
-                float d = Vector3.Dot(corner, up);
+                float d = Vector3.Dot(p, axis);
                 min = Mathf.Min(min, d);
                 max = Mathf.Max(max, d);
             }
-            float extent = Mathf.Max(max - min, 0.01f);
-            return extent * SilhouetteCellPx / (2f * SilhouetteHeightPx);
         }
 
         private static Texture2D RenderOrtho(Camera camera, Vector3 centre, Quaternion rotation)
