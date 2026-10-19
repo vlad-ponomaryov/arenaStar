@@ -21,3 +21,6 @@
 - Отчёт оркестратору — до 150 слов: что сделано, хэши, compile/tests, путь к скриншотам, что не сделано.
 
 ## Заметки шагов
+- (A.0) Скриншоты: `Tools/unity-method.ps1 -Graphics -Method Arena.Editor.Art.Capture.ArtCapture.CaptureAll -Extra '-artStep A.x'` (≈ 20 с) → `Tools/out/art/A.x/`. Стенд — `Editor/Art/Capture/CaptureStage.cs` (раскладка карты, `ResolvePrefab` — A.1a переключает на `FighterVisuals` по id); свет и камера — из сцены Match, поэтому `MatchLightRig` (A.1a) нужно применить и на стенде (в рантайме он не сработает в edit mode).
+- (A.0) Рендер с графикой и PlayMode переписывают `Art/Materials/BerryBox.mat`, `BlobShadow.mat` (служебные поля URP) и `QualitySettings.asset` — `git checkout --` их, если шаг не меняет материалы сознательно (после пересборки `ViewAssetBuilder` смотри diff).
+- (A.0) На «до»: команда 1 видит бойцов в тени (lineup_team1), при дейтеранопии зелёный куст сливается с полом (map_deutan) — ориентиры для A.1a/A.3a. `ShaderSanityTests` требует, чтобы любой `.shader` в `Assets/_Project` назывался `Arena/*`.
