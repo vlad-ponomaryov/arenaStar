@@ -54,6 +54,7 @@
 | `Tools/unity-method.ps1 -Method <Ns.Class.Method> [-TimeoutMinutes 15]` | Запустить Editor-метод (`-executeMethod … -quit`): сидер данных, сборщик сцен/префабов, настройки | 0 ок · 1 метод упал/исключение в логе · 2 сбой Unity · 3 Unity занят |
 | `Tools/build-android.ps1 [-Development] [-Install] [-TimeoutMinutes 60]` | `Arena.Editor.Build.BuildScript.BuildAndroid` → `Builds/Android/Arena.apk` (`Arena-dev.apk` с `-Development`). Итог: путь, размер, время. `-Install` — `adb install -r`, если подключён телефон (ночью не использовать) | 0 ок · 1 сборка упала · 2 сбой Unity · 3 Unity занят |
 | `Tools/phone.ps1 [-Build] [-Dev] [-Log] [-Watch] [-Pair ip:port -Code N] [-Connect ip:port] [-Reinstall]` | Без Unity: поставить свежий APK на телефон (adb по Wi-Fi/USB, сам находит телефон через mDNS) и запустить; `-Log` — лог игры с телефона в `Tools/out/phone-log.txt`. Подробно — `Docs/Phone-Testing.md` | 0 ок · 1 adb/установка упала · 2 нет телефона/APK · 3 сборка упала |
+| `Tools/desk.ps1 -Action Phone\|PhoneBuild\|PhoneLog\|ServerStart\|ServerStop` | Для ярлыков человека на рабочем столе (создаёт `Tools/make-shortcuts.ps1`): телефон, лог, LAN-сервер старт/перезапуск/стоп. Ждёт Enter в конце — агентам не запускать, им `phone.ps1` / `server-run.ps1` | — |
 
 Общая логика (поиск процесса, запуск Unity с таймаутом, разбор лога) — в `Tools/UnityCommon.ps1` (dot-source).
 Путь к Unity можно переопределить переменной окружения `ARENA_UNITY`.

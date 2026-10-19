@@ -4,7 +4,32 @@
 adb берётся из Android SDK внутри Unity (`...\AndroidPlayer\SDK\platform-tools\adb.exe`), Unity для установки не нужен.
 Пакет игры — `com.arena.prototype`.
 
-## Каждый раз
+## Ярлыки на рабочем столе (проще всего)
+
+Создаются один раз командой `powershell -ExecutionPolicy Bypass -File Tools\make-shortcuts.ps1` (уже сделано).
+Каждый открывает окно с результатом; закрыть — Enter.
+
+| Ярлык | Что делает |
+| --- | --- |
+| **Arena - на телефон** | Ставит самую свежую готовую сборку на телефон и запускает игру (секунд 20) |
+| **Arena - собрать и на телефон** | Сначала собирает новую сборку (несколько минут), потом ставит. Если Unity занят агентом — ставит последнюю готовую |
+| **Arena - лог телефона** | Сохраняет лог игры и открывает его в Блокноте — после вылета/ошибки, потом сказать агенту «посмотри лог телефона» |
+| **Arena - сервер старт** | Запускает сервер для игры по сети (если уже был запущен — перезапускает). Окно сервера держать открытым, пока играете |
+| **Arena - сервер стоп** | Останавливает сервер (или просто закрыть окно сервера) |
+
+За ярлыками — `Tools/desk.ps1 -Action Phone|PhoneBuild|PhoneLog|ServerStart|ServerStop`.
+
+## Сервер и брандмауэр (один раз)
+
+Игра по сети ищет сервер на этом ПК (UDP 7777, Server-Spec §10.1). Чтобы телефон до него достучался — в PowerShell
+**от имени администратора** (делает человек):
+```
+Set-NetConnectionProfile -Name "WIFI-111" -NetworkCategory Private
+New-NetFirewallRule -DisplayName "Arena server" -Direction Inbound -Protocol UDP -LocalPort 7777 -Action Allow -Profile Private
+```
+Без этого в логе телефона: `[Net] no LAN server answered`. Ярлык «сервер старт» предупреждает, если правила нет.
+
+## Каждый раз (из консоли)
 
 ```
 powershell -ExecutionPolicy Bypass -File Tools\phone.ps1
