@@ -1,0 +1,59 @@
+using System;
+using UnityEngine;
+
+namespace Arena.Gameplay.View
+{
+    /// <summary>
+    /// Look of the runtime map meshes (Art-Spec §2.1, A.3a): wall chamfer and vertex colours, floor occlusion near walls, the
+    /// meadow frame around the arena. Colours are authored in sRGB; <see cref="MapMeshBuilder"/> writes them linear into the
+    /// vertices (the project renders in linear space). Seeded by <c>ViewAssetBuilder</c>, stored in <see cref="ViewCatalog"/>.
+    /// </summary>
+    [Serializable]
+    public struct MapMeshStyle
+    {
+        [Tooltip("Chamfer of the wall's upper edges (world units): the top is inset by it and a 45° strip goes down to the side.")]
+        [Min(0f)] public float WallBevel;
+
+        [Tooltip("Top of a wall (light stone).")]
+        public Color WallTop;
+
+        [Tooltip("Chamfer colour = top blended towards white by this (a light rim: the block reads rounded, like a toy).")]
+        [Range(0f, 1f)] public float WallBevelHighlight;
+
+        [Tooltip("Sides of a wall (warm wood).")]
+        public Color WallSide;
+
+        [Tooltip("Side colour multiplier at the wall's foot (contact occlusion), 1 = none.")]
+        [Range(0f, 1f)] public float WallFootShade;
+
+        [Tooltip("Random brightness spread per wall cell (± fraction), so long walls read as separate blocks.")]
+        [Range(0f, 0.2f)] public float WallCellVariation;
+
+        [Tooltip("Floor vertices per cell side (≥ 1): finer = tighter occlusion near walls.")]
+        [Min(1)] public int FloorSubdivisions;
+
+        [Tooltip("Floor darkening right at a wall (0 = none, 1 = black).")]
+        [Range(0f, 1f)] public float FloorWallOcclusion;
+
+        [Tooltip("Distance from a wall over which the floor occlusion fades out, world units.")]
+        [Min(0.01f)] public float FloorOcclusionRadius;
+
+        [Tooltip("Colour the floor occlusion tends to (cool green, not black: shadows are coloured, Art-Spec §1.1).")]
+        public Color FloorOcclusionColor;
+
+        [Tooltip("Meadow frame around the arena: width beyond the map edge, world units.")]
+        [Min(0f)] public float MeadowMargin;
+
+        [Tooltip("Outer part of the meadow frame fading to MeadowEdge, world units (≤ MeadowMargin).")]
+        [Min(0f)] public float MeadowFade;
+
+        [Tooltip("Vertex colour of the meadow's outer edge (multiplies the meadow material; fades into the camera background).")]
+        public Color MeadowEdge;
+
+        [Tooltip("Vertex colour of the meadow right at the arena edge (a soft dark border around the play field).")]
+        public Color MeadowInner;
+
+        [Tooltip("Width of the darker border of the meadow along the arena edge, world units.")]
+        [Min(0f)] public float MeadowInnerWidth;
+    }
+}

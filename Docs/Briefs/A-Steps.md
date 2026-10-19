@@ -44,3 +44,10 @@
   основание уха внутри контура головы. Сравнение до/после — `Tools/out/art/A.1b2/compare_model_pix.png`. Силуэты 64 px теперь по телу.
 - (A.1b2) Hero-LOD (D-122): `ViewAssetBuilder.BuildAll` строит и `Fighter_<id>_hero` (≈ 23k треуг.); меню/выбор/итоги (A.6/A.7) берут
   `catalog.FighterHeroPrefab(id)`. Бюджеты `Pieces`-групп в hero только информативны (лог «900/780» — не ошибка), тест проверяет 15–30k.
+- (A.3a) Окружение: `Arena/ToonEnv` (мировые XZ-UV, `_MapContrast`, макро-сэмпл) — для кустов/воды/ящиков A.3b бери его же или
+  include; меши — через `MapMeshBuilder` (рантайм, вершинные цвета линейные, α = 0), параметры — `MapMeshStyle` (`ViewCatalog.MapStyle`).
+  Новые Flow-текстуры — `FlowImageImporter.ImportTileable` (доски 002 и корзина 001 для A.3b — тем же вызовом).
+- (A.3a) Ловушка стенда: в `lineup.png` (1×) материалы URP Lit (куст, вода) иногда рисуются коричневыми, в `lineup_zoom2`/`map` — верно;
+  у `Arena/*` такого нет. A.3b переводит их на `Arena/*` — проблема уйдёт; сравнивай по zoom2.
+- (A.3a) Луг — 14 клеток вокруг карты (`FloorPrefab` теперь луг, меш в `MapView`); декор A.4 ставь на нём, вне поля. Край карты у стен —
+  открытые боковины (тест `SharedSides_AreSkipped_MapEdgeSides_AreBuilt`).

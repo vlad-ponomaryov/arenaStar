@@ -51,6 +51,8 @@ namespace Arena.Editor.Art
         private const string LitShader = "Universal Render Pipeline/Lit";
         public const string ToonCharacterShader = "Arena/ToonCharacter";
         public const string ToonCharacterGhostShader = "Arena/ToonCharacterGhost";
+        public const string ToonEnvShader = "Arena/ToonEnv";
+        public const string GrassTexturePath = FlowImageImporter.TargetFolder + "/Grass.png";
         private const string FlashProperty = "_Flash";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
         private const string BaseColorProperty = "_BaseColor";
@@ -76,7 +78,6 @@ namespace Arena.Editor.Art
         private const float TelegraphThickness = 0.01f;
         private const float TelegraphZoneHeight = 0.03f;
         private const float TelegraphFillHeight = 0.04f;
-        private static readonly Color FloorColor = new Color(0.42f, 0.55f, 0.36f, 1f);
         private static readonly Color AimLineColor = new Color(1f, 1f, 1f, 1f);
         private static readonly Color ProjectileColor = new Color(0.55f, 0.88f, 1f, 1f);
         private static readonly Color BarBackgroundColor = new Color(0.08f, 0.08f, 0.1f, 1f);
@@ -84,7 +85,6 @@ namespace Arena.Editor.Art
 
         // Map (S2.5): walls grey-brown, breakable walls lighter wood, bushes dark green, water blue; translucent variants for
         // hiding (D-014, D-024).
-        private static readonly Color WallColor = new Color(0.45f, 0.40f, 0.36f, 1f);
         private static readonly Color WallBreakableColor = new Color(0.72f, 0.55f, 0.34f, 1f);
         private static readonly Color BushColor = new Color(0.16f, 0.45f, 0.18f, 1f);
         private static readonly Color BushSeeThroughColor = new Color(0.16f, 0.45f, 0.18f, 0.35f);
@@ -181,7 +181,46 @@ namespace Arena.Editor.Art
         private const float BlobShadowSoftStart = 0.55f; // fraction of the radius where the edge starts to fade
         private const float BlobShadowDiameter = 1.15f;
         private const float BlobShadowHeight = 0.01f;
-        private static readonly Color BlobShadowColor = new Color(0f, 0f, 0f, 0.45f);
+        private static readonly Color BlobShadowColor = new Color32(0x22, 0x30, 0x1E, 0x66); // dark green α 0.4 (Art-Spec §1.3)
+
+        // Environment (A.3a, Art-Spec §1.3, §2.1): Arena/ToonEnv; floor and meadow = Flow grass 002 in world UV (D-123), walls = vertex
+        // colours only. Grass texture: seam feathering, 1024 → 512, mean moved towards the floor palette (#A8CF86 / #9AC377).
+        private const string GrassSource = FlowImageImporter.SourceRoot + "/2026-10-19_tex-grass/002.png";
+        private const int GrassTextureSize = 512;
+        private const int GrassSeamFeatherPx = 24;
+        private const float GrassMaxGain = 1.15f;
+        private static readonly Color GrassTargetMean = new Color32(0xA3, 0xCB, 0x81, 0xFF);
+        private const float FloorWorldTiling = 7f;    // cells per grass tile: soft patches every ≈ 3–4 cells
+        private const float FloorMacroTiling = 23f;   // the larger turned sample that breaks the repetition
+        private const float FloorMacroStrength = 0.3f;
+        private static readonly Color FloorTint = new Color(0.94f, 0.94f, 0.94f, 1f);   // compensates light + ambient (on screen ≈ palette)
+        private static readonly Color MeadowTint = new Color(0.64f, 0.76f, 0.62f, 1f);  // grass × this ≈ #6E9E58 (darker meadow)
+        private const float FloorContrast = 1f;
+        private const float MeadowContrast = 0.5f;   // the meadow is calmer than the arena floor: the eye stays on the play field
+        private static readonly Color WallMaterialTint = new Color(0.93f, 0.93f, 0.93f, 1f); // light + ambient brighten the cream top
+        private static readonly MapMeshStyle MapStyle = new MapMeshStyle
+        {
+            WallBevel = 0.08f,
+            WallTop = new Color32(0xF3, 0xE3, 0xC3, 0xFF),
+            WallSide = new Color32(0xB9, 0x8A, 0x5E, 0xFF),
+            WallBevelHighlight = 0.45f,
+            WallFootShade = 0.72f,
+            WallCellVariation = 0.04f,
+            FloorSubdivisions = 2,
+            FloorWallOcclusion = 0.5f,
+            FloorOcclusionRadius = 0.75f,
+            FloorOcclusionColor = new Color32(0x6A, 0x80, 0x7A, 0xFF),
+            MeadowMargin = 14f,
+            MeadowFade = 6f,
+            MeadowEdge = new Color32(0xBC, 0xC4, 0xCC, 0xFF),
+            MeadowInner = new Color32(0xC8, 0xD2, 0xC8, 0xFF),
+            MeadowInnerWidth = 0.6f
+        };
+        private const string WorldTilingProperty = "_WorldTiling";
+        private const string MacroTilingProperty = "_MacroTiling";
+        private const string MacroStrengthProperty = "_MacroStrength";
+        private const string MapMeanLuminanceProperty = "_MapMeanLuminance";
+        private const string MapContrastProperty = "_MapContrast";
 
         // Aim line: 1 unit long along +Z from the pivot (root Z scale = range).
         private const float AimLineWidth = 0.15f;
@@ -199,14 +238,17 @@ namespace Arena.Editor.Art
             Material ally = SaveMaterial("TeamAlly", UnlitShader, AllyColor);
             Material enemy = SaveMaterial("TeamEnemy", UnlitShader, EnemyColor);
             Material body = SaveToonMaterial("FighterBody", ToonCharacterShader, BodyColor, 0f);
-            Material floor = SaveMaterial("Floor", LitShader, FloorColor);
+            (Texture2D grass, float grassMean) = FlowImageImporter.ImportTileable(GrassSource, GrassTexturePath, GrassTextureSize,
+                GrassTargetMean, GrassMaxGain, GrassSeamFeatherPx);
+            Material floor = SaveEnvMaterial("Floor", FloorTint, grass, grassMean, FloorContrast);
+            Material meadow = SaveEnvMaterial("Meadow", MeadowTint, grass, grassMean, MeadowContrast);
             Material aimLine = SaveMaterial("AimLine", UnlitShader, AimLineColor);
             Material projectile = SaveMaterial("Projectile", UnlitShader, ProjectileColor);
             Material barAlly = SaveMaterial("BarAlly", UnlitShader, AllyColor);
             Material barEnemy = SaveMaterial("BarEnemy", UnlitShader, EnemyColor);
             Material barBackground = SaveMaterial("BarBackground", UnlitShader, BarBackgroundColor);
             Material barCharge = SaveMaterial("BarCharge", UnlitShader, BarChargeColor);
-            Material wall = SaveMaterial("Wall", LitShader, WallColor);
+            Material wall = SaveEnvMaterial("Wall", WallMaterialTint, null, 1f, 1f);
             Material wallBreakable = SaveMaterial("WallBreakable", LitShader, WallBreakableColor);
             Material bush = SaveMaterial("Bush", LitShader, BushColor);
             Material bushSeeThrough = SaveMaterial("BushSeeThrough", LitShader, BushSeeThroughColor, true);
@@ -231,7 +273,7 @@ namespace Arena.Editor.Art
             Mesh fallbackCapsule = BuildFallbackCapsuleMesh();
             FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine, blobShadow, fallbackCapsule);
             AimIndicatorView aimIndicator = BuildAimIndicatorPrefab(aimLine);
-            GameObject floorPrefab = BuildFloorPrefab(floor);
+            GameObject floorPrefab = BuildMeadowPrefab(meadow);
             GameObject projectilePrefab = BuildProjectilePrefab(projectile);
             HealthBarView healthBar = BuildHealthBarPrefab(barAlly, barBackground, barCharge);
             GameObject breakablePrefab = BuildBlockPrefab("BreakableWall", BreakableWallPrefabPath, wallBreakable, WallHeight);
@@ -313,6 +355,8 @@ namespace Arena.Editor.Art
             catalog.Bush = bush;
             catalog.BushSeeThrough = bushSeeThrough;
             catalog.Water = water;
+            catalog.Meadow = meadow;
+            catalog.MapStyle = MapStyle;
             catalog.FighterHidden = fighterHidden;
             catalog.ProjectilePoolPrewarm = ProjectilePoolPrewarm;
             catalog.ProjectileHeight = ProjectileHeight;
@@ -598,7 +642,38 @@ namespace Arena.Editor.Art
             }
         }
 
-        private static GameObject BuildFloorPrefab(Material floor) => BuildQuadPrefab("Floor", FloorPrefabPath, floor);
+        /// <summary>Meadow around the arena (A.3a): an empty MeshFilter (MapView assigns MapMeshBuilder.BuildMeadow) and a renderer.</summary>
+        private static GameObject BuildMeadowPrefab(Material meadow)
+        {
+            var root = new GameObject("Meadow");
+            try
+            {
+                root.AddComponent<MeshFilter>();
+                var renderer = root.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = meadow;
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+                return SavePrefab(root, FloorPrefabPath);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>Arena/ToonEnv material (reset to the shader defaults), optional world-UV map and its mean luminance.</summary>
+        private static Material SaveEnvMaterial(string name, Color tint, Texture2D map, float mapMeanLuminance, float contrast)
+        {
+            Material mat = SaveToonMaterial(name, ToonEnvShader, tint, 0f);
+            mat.SetTexture(BaseMapProperty, map);
+            mat.SetFloat(MapMeanLuminanceProperty, map != null ? Mathf.Max(0.05f, mapMeanLuminance) : 1f);
+            mat.SetFloat(WorldTilingProperty, FloorWorldTiling);
+            mat.SetFloat(MacroTilingProperty, FloorMacroTiling);
+            mat.SetFloat(MacroStrengthProperty, map != null ? FloorMacroStrength : 0f);
+            mat.SetFloat(MapContrastProperty, contrast);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
 
         /// <summary>Quad of 1×1 cell on the XZ plane facing up, centred (floor, fog strips).</summary>
         private static GameObject BuildQuadPrefab(string name, string path, Material material)

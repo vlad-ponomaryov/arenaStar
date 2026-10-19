@@ -5,7 +5,8 @@ using UnityEngine;
 namespace Arena.Gameplay.View
 {
     /// <summary>
-    /// Thin view of the map (D-014): the floor is one scaled quad, walls one combined mesh, water one combined sheet;
+    /// Thin view of the map (D-014, A.3a): a meadow frame around the arena (FloorPrefab), the floor grid with occlusion near walls,
+    /// chamfered walls as one combined mesh, water one combined sheet;
     /// breakable walls and berry boxes (S3.14) are separate cubes (switched off when the simulation reports <c>TileBroken</c>), bushes are low
     /// cubes whose material turns see-through around the local fighter while it hides in a bush.
     /// Built once at match start from the state's tiles; no allocations per frame. All map renderers sit under one "Static"
@@ -77,15 +78,17 @@ namespace Arena.Gameplay.View
             int cells = grid.Width * grid.Height;
             _breakables = new GameObject[cells];
 
+            MapMeshStyle style = catalog.MapStyle;
             if (catalog.FloorPrefab != null)
             {
-                GameObject floor = Instantiate(catalog.FloorPrefab, root);
-                floor.name = "Floor";
-                floor.transform.position = new Vector3(grid.Width * 0.5f, 0f, grid.Height * 0.5f);
-                floor.transform.localScale = new Vector3(grid.Width, 1f, grid.Height);
+                GameObject meadow = Instantiate(catalog.FloorPrefab, root);
+                meadow.name = "Meadow";
+                var filter = meadow.GetComponentInChildren<MeshFilter>();
+                if (filter != null) filter.sharedMesh = MapMeshBuilder.BuildMeadow(grid.Width, grid.Height, in style, "Meadow");
             }
 
-            CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, "Walls"), catalog.Wall);
+            CreateMeshObject("Floor", root, MapMeshBuilder.BuildFloor(in grid, TileType.Wall, in style, "Floor"), catalog.Floor);
+            CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, in style, "Walls"), catalog.Wall);
             CreateMeshObject("Water", root, MapMeshBuilder.BuildSheet(in grid, TileType.Water, catalog.WaterHeight, "Water"), catalog.Water);
 
             int bushCount = 0;

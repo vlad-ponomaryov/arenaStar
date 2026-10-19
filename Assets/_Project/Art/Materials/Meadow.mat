@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Meadow
+  m_Shader: {fileID: 4800000, guid: 240d2fc771cac9e4f8e1b3e51d7c2a72, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 088ca5dfc14593a4ba667f6815821fad, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AmbientStrength: 0.25
+    - _MacroStrength: 0.3
+    - _MacroTiling: 23
+    - _MapContrast: 0.5
+    - _MapMeanLuminance: 0.48927775
+    - _RimPower: 3
+    - _RimStrength: 0.12
+    - _RimTopBias: 0.6
+    - _SpecSize: 0.99
+    - _SpecSoftness: 0.01
+    - _SpecStrength: 0
+    - _StepCenter: 0.1
+    - _StepSoftness: 0.12
+    - _WorldTiling: 7
+    m_Colors:
+    - _BaseColor: {r: 0.64, g: 0.76, b: 0.62, a: 1}
+    - _RimColor: {r: 1, g: 0.965, b: 0.878, a: 1}
+    - _ShadeColor: {r: 0.6119999, g: 0.5759999, b: 0.784, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -13,7 +13,7 @@ namespace Arena.Gameplay.View
         public FighterView FighterViewPrefab;
         public AimIndicatorView AimIndicatorPrefab;
 
-        [Tooltip("Ground quad of 1×1 cell on the XZ plane, centred; scaled to the arena size at runtime.")]
+        [Tooltip("Meadow around the arena (A.3a): MeshFilter + MeshRenderer with the meadow material; MapView gives it the frame mesh (MapMeshBuilder.BuildMeadow).")]
         public GameObject FloorPrefab;
 
         [Tooltip("Unit-diameter projectile view (sphere), scaled to the projectile's hit diameter.")]
@@ -114,6 +114,9 @@ namespace Arena.Gameplay.View
         [Tooltip("While the local fighter is in a bush, bushes within this radius (cells) turn see-through.")]
         [Min(0f)] public float BushSeeThroughRadius;
 
+        [Tooltip("Wall chamfer and colours, floor occlusion near walls, meadow frame (A.3a, MapMeshBuilder).")]
+        public MapMeshStyle MapStyle;
+
         [Header("Materials")]
         [Tooltip("Ring under the local player's team (blue, D-029).")]
         public Material TeamAlly;
@@ -153,6 +156,9 @@ namespace Arena.Gameplay.View
         public Material Bush;
         public Material BushSeeThrough;
         public Material Water;
+
+        [Tooltip("Meadow frame around the arena (darker grass, Arena/ToonEnv, A.3a).")]
+        public Material Meadow;
 
         [Tooltip("Body of an own-team fighter hidden in a bush (translucent, D-014, D-024).")]
         public Material FighterHidden;

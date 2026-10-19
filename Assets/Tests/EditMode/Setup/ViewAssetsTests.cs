@@ -73,6 +73,36 @@ namespace Arena.Tests.EditMode.Setup
         }
 
         [Test]
+        public void Environment_UsesToonEnv_GrassInWorldUv_AndMapStyleIsSeeded()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
+            foreach (Material m in new[] { catalog.Floor, catalog.Wall, catalog.Meadow })
+            {
+                Assert.IsNotNull(m);
+                Assert.AreEqual(ViewAssetBuilder.ToonEnvShader, m.shader.name, m.name);
+                Assert.Less(m.renderQueue, (int)UnityEngine.Rendering.RenderQueue.Transparent, m.name);
+            }
+            var grass = AssetDatabase.LoadAssetAtPath<Texture2D>(ViewAssetBuilder.GrassTexturePath);
+            Assert.IsNotNull(grass, ViewAssetBuilder.GrassTexturePath);
+            Assert.LessOrEqual(grass.width, 512, "world textures 256–512 (Art-Spec §7)");
+            Assert.AreEqual(TextureWrapMode.Repeat, grass.wrapMode);
+            Assert.AreEqual(grass, catalog.Floor.GetTexture("_BaseMap"));
+            Assert.AreEqual(grass, catalog.Meadow.GetTexture("_BaseMap"));
+            Assert.Greater(catalog.Floor.GetFloat("_WorldTiling"), 1f);
+
+            MapMeshStyle s = catalog.MapStyle;
+            Assert.Greater(s.WallBevel, 0f);
+            Assert.Greater(s.WallTop.grayscale, s.WallSide.grayscale, "wall top lighter than sides");
+            Assert.Greater(s.FloorWallOcclusion, 0f);
+            Assert.GreaterOrEqual(s.FloorSubdivisions, 1);
+            Assert.Greater(s.MeadowMargin, 0f);
+
+            MeshFilter meadowFilter = catalog.FloorPrefab.GetComponentInChildren<MeshFilter>();
+            Assert.IsNotNull(meadowFilter, "the meadow prefab gets its frame mesh at runtime");
+            Assert.AreEqual(catalog.Meadow, catalog.FloorPrefab.GetComponentInChildren<MeshRenderer>().sharedMaterial);
+        }
+
+        [Test]
         public void FighterBody_UsesToonShaders_AndFallbackCapsuleHasVertexColours()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);

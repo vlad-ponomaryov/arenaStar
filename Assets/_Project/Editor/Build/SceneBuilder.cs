@@ -45,6 +45,8 @@ namespace Arena.Editor.Build
         private static readonly Color AmbientEquator = new Color32(0xE2, 0xE8, 0xD0, 0xFF);
         private static readonly Color AmbientGround = new Color32(0x7F, 0x9A, 0x6A, 0xFF);
         private static readonly Color BackgroundColor = new Color(0.12f, 0.14f, 0.18f, 1f);
+        // Match camera background = the forest beyond the meadow (Art-Spec §1.3, A.3a): the meadow frame fades into it.
+        private static readonly Color MatchBackgroundColor = new Color32(0x4F, 0x7A, 0x45, 0xFF);
 
         public static string ScenePath(string sceneName) => ScenesFolder + "/" + sceneName + ".unity";
 
@@ -109,6 +111,7 @@ namespace Arena.Editor.Build
             var catalog = LoadRequired<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
             var style = LoadRequired<UiStyle>(ViewAssetBuilder.UiStylePath);
             var camera = CreateCamera("MatchCamera");
+            camera.backgroundColor = MatchBackgroundColor;
             camera.fieldOfView = MatchCameraFieldOfView;
             var pitch = Quaternion.Euler(MatchCameraPitch, 0f, 0f);
             camera.transform.SetPositionAndRotation(pitch * new Vector3(0f, 0f, -MatchCameraDistance), pitch);

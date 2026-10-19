@@ -50,6 +50,22 @@ MonoBehaviour:
   WallHeight: 1.2
   WaterHeight: 0.02
   BushSeeThroughRadius: 2.5
+  MapStyle:
+    WallBevel: 0.08
+    WallTop: {r: 0.9529412, g: 0.8901961, b: 0.7647059, a: 1}
+    WallBevelHighlight: 0.45
+    WallSide: {r: 0.7254902, g: 0.5411765, b: 0.36862746, a: 1}
+    WallFootShade: 0.72
+    WallCellVariation: 0.04
+    FloorSubdivisions: 2
+    FloorWallOcclusion: 0.5
+    FloorOcclusionRadius: 0.75
+    FloorOcclusionColor: {r: 0.41568628, g: 0.5019608, b: 0.47843137, a: 1}
+    MeadowMargin: 14
+    MeadowFade: 6
+    MeadowEdge: {r: 0.7372549, g: 0.76862746, b: 0.8, a: 1}
+    MeadowInner: {r: 0.78431374, g: 0.8235294, b: 0.78431374, a: 1}
+    MeadowInnerWidth: 0.6
   TeamAlly: {fileID: 2100000, guid: 89d46a19bb4786245b570381bc47fa54, type: 2}
   TeamEnemy: {fileID: 2100000, guid: c8caa291b8137274eae2ca5c5297b215, type: 2}
   TeamEnemyAlt: {fileID: 2100000, guid: 992c1e09d9da09343a18aef4d9697214, type: 2}
@@ -74,6 +90,7 @@ MonoBehaviour:
   Bush: {fileID: 2100000, guid: 70e97cbb7bb0d7747816bbdf194dfd5c, type: 2}
   BushSeeThrough: {fileID: 2100000, guid: 9c8a73d056f15c148a3ad4606df273fc, type: 2}
   Water: {fileID: 2100000, guid: 0d4df32ed6fd251439688df8fa4b9f9a, type: 2}
+  Meadow: {fileID: 2100000, guid: db61df72120f7ee409cb609388e20069, type: 2}
   FighterHidden: {fileID: 2100000, guid: 6166a5b68f6e1144fb70bd82458488f9, type: 2}
   Acorn: {fileID: 2100000, guid: 90c3b679bce8b744481ccc16c39aaa64, type: 2}
   AcornGolden: {fileID: 2100000, guid: b442733606964a44e9f9cda8cd208b8f, type: 2}
