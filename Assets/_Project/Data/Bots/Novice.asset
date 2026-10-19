@@ -21,3 +21,8 @@ MonoBehaviour:
   TrickMisuseChance: 0.02
   EmptyBushShotChance: 0.06
   RetreatThresholdJitter: 0.12
+  LeadFraction: 0
+  FocusHealthWeightCells: 0
+  DodgeChance: 0
+  DodgeLookaheadSeconds: 0
+  DodgeMarginCells: 0

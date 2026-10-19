@@ -46,6 +46,35 @@ namespace Arena.Bots
         }
 
         /// <summary>
+        /// Perceived enemy with the lowest "distance + <paramref name="healthWeight"/> × health fraction" (F1: a Normal bot focuses
+        /// the weak — an enemy at half health counts <paramref name="healthWeight"/>/2 cells nearer than a healthy one; ties to
+        /// the lower slot), or −1. <paramref name="distance"/> — its centre distance. Weight 0 picks like <see cref="FindNearestEnemy"/>.
+        /// </summary>
+        public static int FindFocusTarget(MatchState state, int botSlot, float viewRadius, float healthWeight, out float distance)
+        {
+            int count = state.Globals.FighterCount;
+            Vec2 p = state.Fighters[botSlot].Position;
+            int best = -1;
+            float bestScore = float.PositiveInfinity;
+            distance = 0f;
+            for (int j = 0; j < count; j++)
+            {
+                if (!CanSee(state, botSlot, j, viewRadius)) continue;
+                ref FighterState e = ref state.Fighters[j];
+                float d = Vec2.Distance(e.Position, p);
+                float health = e.MaxHealth > 0 ? (float)e.Health / e.MaxHealth : 1f;
+                float score = d + healthWeight * health;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = j;
+                    distance = d;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>
         /// Objective point of the mode: Acorns — the nearest acorn on the map, otherwise the hollow; Last Beast — the nearest
         /// berry that is not in the fog, otherwise none (S3.14: the bots break boxes and explore instead of rushing the centre —
     /// the fog brings them together); no mode — the map centre.

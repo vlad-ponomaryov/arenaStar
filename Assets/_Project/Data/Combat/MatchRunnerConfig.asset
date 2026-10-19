@@ -25,5 +25,5 @@ MonoBehaviour:
   TeamSize: 3
   FighterLevel: 1
   UnlockAllAbilities: 1
-  DefaultBots: 0
+  DefaultBots: 2
   RandomBotFighters: 1

@@ -34,6 +34,27 @@ namespace Arena.Bots.Defs
         /// <summary>The retreat threshold is shifted per life by a uniform random amount in [−jitter, +jitter].</summary>
         public float RetreatThresholdJitter;
 
+        /// <summary>
+        /// Lead on a moving target (F1, Normal): a projectile attack/ult aims at the target's position after the flight time
+        /// times this fraction of its velocity (0 — at the target, 1 — full linear lead).
+        /// </summary>
+        public float LeadFraction;
+
+        /// <summary>
+        /// Focus on the weak (F1): the target is the perceived enemy with the lowest "distance + this × health fraction", in
+        /// cells (0 — the nearest enemy).
+        /// </summary>
+        public float FocusHealthWeightCells;
+
+        /// <summary>Chance per decision (0.2 s) that the bot sidesteps enemy projectiles until the next decision (0 — never).</summary>
+        public float DodgeChance;
+
+        /// <summary>A projectile is a threat when it reaches the bot within this many ticks.</summary>
+        public int DodgeLookaheadTicks;
+
+        /// <summary>…and passes closer than its radius + the bot's radius + this margin, cells.</summary>
+        public float DodgeMarginCells;
+
         public void Validate()
         {
             if (AimSpreadDegrees < 0f || AimSpreadDegrees > 180f)
@@ -45,6 +66,11 @@ namespace Arena.Bots.Defs
             RequireChance(TrickMisuseChance, nameof(TrickMisuseChance));
             RequireChance(EmptyBushShotChance, nameof(EmptyBushShotChance));
             RequireChance(RetreatThresholdJitter, nameof(RetreatThresholdJitter));
+            RequireChance(LeadFraction, nameof(LeadFraction));
+            RequireChance(DodgeChance, nameof(DodgeChance));
+            if (FocusHealthWeightCells < 0f) throw new ArgumentException("BotDifficultyDef " + Difficulty + ": FocusHealthWeightCells must be ≥ 0");
+            if (DodgeLookaheadTicks < 0) throw new ArgumentException("BotDifficultyDef " + Difficulty + ": DodgeLookaheadTicks must be ≥ 0");
+            if (DodgeMarginCells < 0f) throw new ArgumentException("BotDifficultyDef " + Difficulty + ": DodgeMarginCells must be ≥ 0");
         }
 
         private void RequireChance(float value, string name)

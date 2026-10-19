@@ -325,6 +325,11 @@ namespace Arena.Net.Content
             w.WriteFloat(d.TrickMisuseChance);
             w.WriteFloat(d.EmptyBushShotChance);
             w.WriteFloat(d.RetreatThresholdJitter);
+            w.WriteFloat(d.LeadFraction);
+            w.WriteFloat(d.FocusHealthWeightCells);
+            w.WriteFloat(d.DodgeChance);
+            w.WriteVarInt(d.DodgeLookaheadTicks);
+            w.WriteFloat(d.DodgeMarginCells);
         }
 
         private static void WritePresence(BitWriter w, object value) => w.WriteBool(value != null);

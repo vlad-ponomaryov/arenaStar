@@ -31,10 +31,11 @@ namespace Arena.Tests.EditMode.Data
                 Assert.AreSame(db.Fighters[i], db.FindFighter(id));
             }
 
-            Assert.AreEqual(3, AssetDatabase.FindAssets("t:ScriptableObject", new[] { DataSeeder.BotsFolder }).Length, "Novice, Easy, Behaviour");
-            Assert.AreEqual(2, db.BotDifficulties.Count);
+            Assert.AreEqual(4, AssetDatabase.FindAssets("t:ScriptableObject", new[] { DataSeeder.BotsFolder }).Length, "Novice, Easy, Medium, Behaviour");
+            Assert.AreEqual(3, db.BotDifficulties.Count);
             Assert.AreEqual(DataSeeder.BotNovicePath, AssetDatabase.GetAssetPath(db.FindBotDifficulty(Arena.Bots.BotDifficulty.Novice)));
             Assert.AreEqual(DataSeeder.BotEasyPath, AssetDatabase.GetAssetPath(db.FindBotDifficulty(Arena.Bots.BotDifficulty.Easy)));
+            Assert.AreEqual(DataSeeder.BotMediumPath, AssetDatabase.GetAssetPath(db.FindBotDifficulty(Arena.Bots.BotDifficulty.Medium)));
             Assert.AreEqual(DataSeeder.BotBehaviourPath, AssetDatabase.GetAssetPath(db.BotBehaviour));
         }
     }

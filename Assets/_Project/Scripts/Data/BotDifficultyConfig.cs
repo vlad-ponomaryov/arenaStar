@@ -36,5 +36,21 @@ namespace Arena.Data
 
         [Tooltip("The retreat health threshold is shifted per life by a random amount within ± this.")]
         [Range(0f, 1f)] public float RetreatThresholdJitter;
+
+        [Header("Skill (F1: Normal)")]
+        [Tooltip("Lead on moving targets for projectile attacks and ults: fraction of the target velocity × flight time.")]
+        [Range(0f, 1f)] public float LeadFraction;
+
+        [Tooltip("Focus the weak: target = lowest 'distance + this × health fraction' (cells); 0 — the nearest enemy.")]
+        [Min(0f)] public float FocusHealthWeightCells;
+
+        [Tooltip("Chance per decision to sidestep enemy projectiles until the next decision.")]
+        [Range(0f, 1f)] public float DodgeChance;
+
+        [Tooltip("A projectile that reaches the bot within this many seconds is a threat.")]
+        [Min(0f)] public float DodgeLookaheadSeconds;
+
+        [Tooltip("…when it passes closer than its radius + the bot radius + this margin (cells).")]
+        [Min(0f)] public float DodgeMarginCells;
     }
 }

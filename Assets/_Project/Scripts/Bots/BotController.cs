@@ -183,6 +183,7 @@ namespace Arena.Bots
             b.UltPending = false;
             b.TrickPending = false;
             b.BushShotPending = false;
+            b.Dodging = false;
             b.NextDecisionTick = tick; // decide right after the respawn
             RollRetreatShift(ref b, _difficulty[slot]);
             ClearSeen(slot);
@@ -239,7 +240,10 @@ namespace Arena.Bots
             b.TrickPending = false;
             b.BushShotPending = false;
 
-            int target = Perception.FindNearestEnemy(state, slot, _behaviour.ViewRadius, out float distance);
+            float distance;
+            int target = difficulty.FocusHealthWeightCells > 0f
+                ? Perception.FindFocusTarget(state, slot, _behaviour.ViewRadius, difficulty.FocusHealthWeightCells, out distance)
+                : Perception.FindNearestEnemy(state, slot, _behaviour.ViewRadius, out distance);
             int avoided = -1;
             if (target >= 0 && IsCautious(state, defs) && distance > _behaviour.CautiousEngageDistance && !Provoked(slot, target, tick))
             {
@@ -329,6 +333,8 @@ namespace Arena.Bots
             if (target < 0 && !wantsRetreat && action != BotAction.CheckBush && difficulty.EmptyBushShotChance > 0f
                 && b.Rng.NextFloat01() < difficulty.EmptyBushShotChance)
                 b.BushShotPending = FindRandomBush(state.Grid, f.Position, fireRange, ref b.Rng, out b.BushShotPoint);
+            // Last roll of the decision: difficulties without dodging draw nothing (their matches stay as they were).
+            b.Dodging = difficulty.DodgeChance > 0f && b.Rng.NextFloat01() < difficulty.DodgeChance;
         }
 
         private void DecideUlt(MatchState state, MatchDefs defs, int slot, int tick, int target, float distance)
@@ -745,6 +751,7 @@ namespace Arena.Bots
                 && (def.Attack.IgnoresWalls || Perception.HasClearShot(state.Grid, position, b.Goal)))
                 move = Vec2.Zero; // in range of the bush: stop and check it
             else move = FollowPath(slot, position, b.Goal); // an attack target out of sight: its last known position
+            if (b.Dodging && FindDodge(state, defs, slot, out Vec2 dodge)) move = dodge;
 
             // One press per tick: ult, else trick, else attack.
             if (b.UltPending)
@@ -753,7 +760,8 @@ namespace Arena.Bots
                 else if (AbilitySystem.CanActivate(in f) && UltSystem.IsCharged(defs, in f) && !f.IsHeld(InputButtons.Ult))
                 {
                     b.UltPending = false;
-                    Vec2 toTarget = state.Fighters[target].Position - position;
+                    ref FighterState t = ref state.Fighters[target];
+                    Vec2 toTarget = BotAim.LeadPoint(position, t.Position, t.Velocity, def.Ult, _difficulty[slot].LeadFraction) - position;
                     Vec2 ultAim = BotAim.ForAbility(BotAim.Apply(toTarget, _difficulty[slot].AimSpreadDegrees, ref b.Rng), def.Ult,
                         toTarget.Length);
                     if (!ultAim.IsZero) return new PlayerInput(move, ultAim, InputButtons.Ult);
@@ -793,6 +801,36 @@ namespace Arena.Bots
                 return new PlayerInput(move, aim, InputButtons.Attack);
             }
             return new PlayerInput(move, Vec2.Zero, InputButtons.None);
+        }
+
+        /// <summary>
+        /// Sidestep (F1, Normal): the nearest enemy projectile that reaches the bot within <c>DodgeLookaheadTicks</c> and passes
+        /// closer than its radius + the bot's radius + <c>DodgeMarginCells</c> — move away from its line (perpendicular; dead
+        /// centre — to the strafe side). False if nothing threatens.
+        /// </summary>
+        private bool FindDodge(MatchState state, MatchDefs defs, int slot, out Vec2 dodge)
+        {
+            dodge = Vec2.Zero;
+            ref FighterState f = ref state.Fighters[slot];
+            BotDifficultyDef d = _difficulty[slot];
+            float radius = defs.Fighters[f.DefIndex].Radius;
+            float lookSeconds = SimTime.TicksToSeconds(d.DodgeLookaheadTicks);
+            float bestAlong = float.PositiveInfinity;
+            ProjectileState[] projectiles = state.Projectiles;
+            for (int i = 0; i < projectiles.Length; i++)
+            {
+                ref ProjectileState p = ref projectiles[i];
+                if (!p.Active || p.Team == f.Team) continue;
+                Vec2 rel = f.Position - p.Position;
+                float along = Vec2.Dot(rel, p.Dir);
+                if (along <= 0f || along >= bestAlong || along > p.Speed * lookSeconds || along > p.RemainingDistance + radius) continue;
+                Vec2 side = rel - p.Dir * along;
+                float reach = p.Radius + radius + d.DodgeMarginCells;
+                if (side.SqrLength > reach * reach) continue;
+                bestAlong = along;
+                dodge = side.IsZero ? new Vec2(-p.Dir.Y, p.Dir.X) * _brains[slot].StrafeSign : side.Normalized;
+            }
+            return bestAlong < float.PositiveInfinity;
         }
 
         private static bool IsBox(MatchState state, GridCell cell) => state.Grid.Get(cell.Column, cell.Row) == TileType.BerryBox;
@@ -852,7 +890,8 @@ namespace Arena.Bots
             int damage = FireDecision.EstimateAttackDamage(def, f.Level, defs.Rules);
             if (!FireDecision.ShouldSpendCharge(f.Charges, t.Health, damage, distance, _behaviour.LastChargeEnemyDistance)) return false;
 
-            aim = BotAim.ForAbility(BotAim.Apply(t.Position - f.Position, difficulty.AimSpreadDegrees, ref b.Rng), def.Attack, distance);
+            Vec2 aimPoint = BotAim.LeadPoint(f.Position, t.Position, t.Velocity, def.Attack, difficulty.LeadFraction);
+            aim = BotAim.ForAbility(BotAim.Apply(aimPoint - f.Position, difficulty.AimSpreadDegrees, ref b.Rng), def.Attack, distance);
             if (aim.IsZero) return false;
             b.NextShotTick = tick + _behaviour.MinShotIntervalTicks;
             return true;

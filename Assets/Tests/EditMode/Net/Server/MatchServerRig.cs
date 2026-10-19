@@ -69,6 +69,8 @@ namespace Arena.Tests.EditMode.Net.Server
         {
             ServerSettings s = ServerSettings.CreateDefault();
             s.RecordInputLog = true;
+            // The network tests were tuned on Novice fill bots (full-length matches); the default is Medium since F1 (D-107).
+            s.FillBotDifficulty = Arena.Bots.BotDifficulty.Novice;
             return s;
         }
 

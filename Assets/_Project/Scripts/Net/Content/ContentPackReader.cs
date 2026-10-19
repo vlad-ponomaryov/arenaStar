@@ -318,6 +318,11 @@ namespace Arena.Net.Content
             d.TrickMisuseChance = r.ReadFloat();
             d.EmptyBushShotChance = r.ReadFloat();
             d.RetreatThresholdJitter = r.ReadFloat();
+            d.LeadFraction = r.ReadFloat();
+            d.FocusHealthWeightCells = r.ReadFloat();
+            d.DodgeChance = r.ReadFloat();
+            d.DodgeLookaheadTicks = r.ReadVarInt();
+            d.DodgeMarginCells = r.ReadFloat();
             return d;
         }
 

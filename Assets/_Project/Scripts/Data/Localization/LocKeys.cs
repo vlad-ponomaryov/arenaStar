@@ -13,6 +13,7 @@ namespace Arena.Data.Localization
         public const string MenuVersion = "menu.version";
         public const string BotsNovice = "bots.novice";
         public const string BotsEasy = "bots.easy";
+        public const string BotsMedium = "bots.medium";
         public const string LanguageEn = "language.en";
         public const string LanguageRu = "language.ru";
         public const string ModeAcorns = "mode.acorns";
@@ -90,7 +91,7 @@ namespace Arena.Data.Localization
 
         public static readonly string[] All =
         {
-            MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, LanguageEn, LanguageRu, ModeAcorns,
+            MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, BotsMedium, LanguageEn, LanguageRu, ModeAcorns,
             HudHoldAlly, HudHoldEnemy, ResultsVictory, ResultsDefeat, ResultsDraw, ResultsMvp, ResultsAgain, ResultsMenu,
             ResultsKills, ResultsDeaths, ResultsDamage, ResultsAcorns, MenuSettings, SettingsTitle, SettingsMirror, SettingsVibration,
             SettingsAimMagnet, SettingsColorblind, SettingsBatterySaver, SettingsOn, SettingsOff, SettingsClose, HudFps,

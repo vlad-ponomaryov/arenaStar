@@ -30,7 +30,7 @@ namespace Arena.UI.Menu
     /// </summary>
     public sealed class MenuScreen : MonoBehaviour
     {
-        private static readonly BotDifficulty[] BotChoices = { BotDifficulty.Novice, BotDifficulty.Easy };
+        private static readonly BotDifficulty[] BotChoices = { BotDifficulty.Novice, BotDifficulty.Easy, BotDifficulty.Medium };
         private static readonly ModeKind[] TrainingModes = { ModeKind.Acorns, ModeKind.LastBeast };
 
         [SerializeField] private GameDatabase _database;
@@ -93,7 +93,7 @@ namespace Arena.UI.Menu
             FrameRateApplier.Apply(PlayerSettingsStore.SharedFor(_database.Feel).Current, _database.Feel);
             MatchLaunchParams last = SceneFlow.Current;
             _fighterId = last != null ? last.FighterId : DefaultFighterId();
-            _bots = last != null ? last.Bots : BotChoices[0];
+            _bots = last != null ? last.Bots : _database.MatchRunner != null ? _database.MatchRunner.DefaultBots : BotChoices[0];
             _trainingMode = last != null && !last.Online ? last.Mode : TrainingModes[0];
             Loc.LanguageChanged += Rebuild;
             Rebuild();
@@ -205,6 +205,16 @@ namespace Arena.UI.Menu
         }
 
         /// <summary>Error text of a failed search (§12.4).</summary>
+        public static string BotsKey(BotDifficulty bots)
+        {
+            switch (bots)
+            {
+                case BotDifficulty.Novice: return LocKeys.BotsNovice;
+                case BotDifficulty.Easy: return LocKeys.BotsEasy;
+                default: return LocKeys.BotsMedium;
+            }
+        }
+
         public static string FailureKey(OnlineFailure failure)
         {
             switch (failure)
@@ -257,7 +267,7 @@ namespace Arena.UI.Menu
             {
                 BotDifficulty bots = BotChoices[i];
                 _botButtons[i] = UiFactory.CreateButton("Bots_" + bots, botRow, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
-                    Loc.Get(bots == BotDifficulty.Novice ? LocKeys.BotsNovice : LocKeys.BotsEasy), () => SelectBots(bots), out _);
+                    Loc.Get(BotsKey(bots)), () => SelectBots(bots), out _);
             }
 
             _trainingModeButtons = new Button[TrainingModes.Length];

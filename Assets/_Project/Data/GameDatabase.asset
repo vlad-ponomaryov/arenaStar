@@ -34,5 +34,6 @@ MonoBehaviour:
   BotDifficulties:
   - {fileID: 11400000, guid: 185f72a3a0c39f44386e16e965c4b507, type: 2}
   - {fileID: 11400000, guid: f46717d0a704f4e4581f8a0a2fbd4432, type: 2}
+  - {fileID: 11400000, guid: 06ca579bb61f2094696f40d379350710, type: 2}
   BotBehaviour: {fileID: 11400000, guid: 35810c262d4d60e46a805fdf1ca47aee, type: 2}
   Net: {fileID: 11400000, guid: 6ecd977101b556e4eaa0ba22dc7a6775, type: 2}

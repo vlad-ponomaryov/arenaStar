@@ -129,7 +129,12 @@ namespace Arena.Data.Conversion
                 TrickUseChance = c.TrickUseChance,
                 TrickMisuseChance = c.TrickMisuseChance,
                 EmptyBushShotChance = c.EmptyBushShotChance,
-                RetreatThresholdJitter = c.RetreatThresholdJitter
+                RetreatThresholdJitter = c.RetreatThresholdJitter,
+                LeadFraction = c.LeadFraction,
+                FocusHealthWeightCells = c.FocusHealthWeightCells,
+                DodgeChance = c.DodgeChance,
+                DodgeLookaheadTicks = SimTime.SecondsToTicks(c.DodgeLookaheadSeconds),
+                DodgeMarginCells = c.DodgeMarginCells
             };
             def.Validate();
             return def;

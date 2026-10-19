@@ -37,6 +37,7 @@ namespace Arena.Editor.Data
         public const string BotsFolder = DataRoot + "/Bots";
         public const string BotNovicePath = BotsFolder + "/Novice.asset";
         public const string BotEasyPath = BotsFolder + "/Easy.asset";
+        public const string BotMediumPath = BotsFolder + "/Medium.asset";
         public const string BotBehaviourPath = BotsFolder + "/Behaviour.asset";
         public const string NetFolder = DataRoot + "/Net";
         public const string NetConfigPath = NetFolder + "/NetConfig.asset";
@@ -65,6 +66,8 @@ namespace Arena.Editor.Data
         private const float NoviceReaction = 0.6f;
         private const float EasySpread = 15f;
         private const float EasyReaction = 0.45f;
+        private const float MediumSpread = 8f; // GDD §7 "Средний" (F1: "Normal" in the menu)
+        private const float MediumReaction = 0.3f;
         private const float BotDecisionSeconds = 0.2f;
         private const float BotRetreatHealth = 0.35f;
 
@@ -89,7 +92,8 @@ namespace Arena.Editor.Data
         private const float BotWanderScore = 0.1f;
         private const int BotPathNodeLimit = 2048;
         private const int BotMaxPathLength = 64;
-        private const BotDifficulty DefaultBots = BotDifficulty.Novice;
+        // F1 (D-107): offline training and online fill bots play Normal (Medium) by default.
+        private const BotDifficulty DefaultBots = BotDifficulty.Medium;
 
         // PROTO (D-058): ult / trick / mistakes by difficulty — chances per decision (5 per second) while the situation fits;
         // "misuse" = the ult at a lone tanky target in its zone / the trick at any perceived enemy; empty-bush shots without
@@ -107,6 +111,22 @@ namespace Arena.Editor.Data
         private const float EasyTrickMisuse = 0.01f;
         private const float EasyBushShot = 0.03f;
         private const float EasyRetreatJitter = 0.06f;
+        // GDD §7: Medium "as the situation demands"; F1: lead on moving targets, focus on the weak, sidestepping projectiles.
+        private const float MediumUltChance = 0.85f;
+        private const float MediumUltMisuse = 0.01f;
+        private const float MediumTrickChance = 0.8f;
+        private const float MediumTrickMisuse = 0.005f;
+        private const float MediumBushShot = 0.02f;
+        private const float MediumRetreatJitter = 0.03f;
+        private const float MediumLead = 0.8f;
+        private const float MediumFocusHealthCells = 2.5f;
+        private const float MediumDodgeChance = 0.8f;
+        private const float MediumDodgeLookaheadSeconds = 0.5f;
+        private const float MediumDodgeMarginCells = 0.3f;
+        // Novice and Easy keep the stage-2 play: no lead, the nearest target, no dodging.
+        private const float NoLead = 0f;
+        private const float NoFocus = 0f;
+        private const float NoDodge = 0f;
 
         // PROTO (D-058): ult at 2+ enemies (GDD §7); "focused" = hit by 2+ enemies within 1.5 s (GDD §7); escape roll with an
         // enemy within 5 cells; "close" = 2.5 cells; heal below 60 %; mine within 1.5 cells of the objective; memory of a lost
@@ -206,6 +226,7 @@ namespace Arena.Editor.Data
             new[] { LocKeys.MenuVersion, "Version", "Версия" },
             new[] { LocKeys.BotsNovice, "Novice", "Новичок" },
             new[] { LocKeys.BotsEasy, "Easy", "Лёгкий" },
+            new[] { LocKeys.BotsMedium, "Normal", "Средний" },
             new[] { LocKeys.LanguageEn, "English", "English" },
             new[] { LocKeys.LanguageRu, "Русский", "Русский" },
             new[] { LocKeys.ModeAcorns, "Acorns", "Жёлуди" },
@@ -593,9 +614,14 @@ namespace Arena.Editor.Data
             if (db.BotDifficulties == null) db.BotDifficulties = new System.Collections.Generic.List<BotDifficultyConfig>();
             db.BotDifficulties.Clear();
             db.BotDifficulties.Add(SeedBotDifficulty(BotNovicePath, BotDifficulty.Novice, NoviceSpread, NoviceReaction,
-                NoviceUltChance, NoviceUltMisuse, NoviceTrickChance, NoviceTrickMisuse, NoviceBushShot, NoviceRetreatJitter));
+                NoviceUltChance, NoviceUltMisuse, NoviceTrickChance, NoviceTrickMisuse, NoviceBushShot, NoviceRetreatJitter,
+                NoLead, NoFocus, NoDodge, NoDodge, NoDodge));
             db.BotDifficulties.Add(SeedBotDifficulty(BotEasyPath, BotDifficulty.Easy, EasySpread, EasyReaction,
-                EasyUltChance, EasyUltMisuse, EasyTrickChance, EasyTrickMisuse, EasyBushShot, EasyRetreatJitter));
+                EasyUltChance, EasyUltMisuse, EasyTrickChance, EasyTrickMisuse, EasyBushShot, EasyRetreatJitter,
+                NoLead, NoFocus, NoDodge, NoDodge, NoDodge));
+            db.BotDifficulties.Add(SeedBotDifficulty(BotMediumPath, BotDifficulty.Medium, MediumSpread, MediumReaction,
+                MediumUltChance, MediumUltMisuse, MediumTrickChance, MediumTrickMisuse, MediumBushShot, MediumRetreatJitter,
+                MediumLead, MediumFocusHealthCells, MediumDodgeChance, MediumDodgeLookaheadSeconds, MediumDodgeMarginCells));
             db.BotBehaviour = SeedBotBehaviour();
             EditorUtility.SetDirty(db);
 
@@ -803,7 +829,8 @@ namespace Arena.Editor.Data
         }
 
         private static BotDifficultyConfig SeedBotDifficulty(string path, BotDifficulty difficulty, float spread, float reaction,
-            float ultChance, float ultMisuse, float trickChance, float trickMisuse, float bushShot, float retreatJitter)
+            float ultChance, float ultMisuse, float trickChance, float trickMisuse, float bushShot, float retreatJitter, float lead,
+            float focusHealthCells, float dodgeChance, float dodgeLookaheadSeconds, float dodgeMarginCells)
         {
             BotDifficultyConfig c = LoadOrCreate<BotDifficultyConfig>(path);
             c.Difficulty = difficulty;
@@ -815,6 +842,11 @@ namespace Arena.Editor.Data
             c.TrickMisuseChance = trickMisuse;
             c.EmptyBushShotChance = bushShot;
             c.RetreatThresholdJitter = retreatJitter;
+            c.LeadFraction = lead;
+            c.FocusHealthWeightCells = focusHealthCells;
+            c.DodgeChance = dodgeChance;
+            c.DodgeLookaheadSeconds = dodgeLookaheadSeconds;
+            c.DodgeMarginCells = dodgeMarginCells;
             EditorUtility.SetDirty(c);
             return c;
         }

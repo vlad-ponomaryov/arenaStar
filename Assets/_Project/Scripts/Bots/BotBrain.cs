@@ -63,5 +63,8 @@ namespace Arena.Bots
 
         /// <summary>Berry box being broken (<c>BotAction.BreakBox</c>); <see cref="Goal"/> is the free cell next to it.</summary>
         public GridCell BoxCell;
+
+        /// <summary>Sidestep enemy projectiles until the next decision (rolled with <c>BotDifficultyDef.DodgeChance</c>).</summary>
+        public bool Dodging;
     }
 }
