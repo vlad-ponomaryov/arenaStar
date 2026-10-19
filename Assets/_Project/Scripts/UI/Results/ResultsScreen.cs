@@ -59,8 +59,7 @@ namespace Arena.UI.Results
         public static ResultsScreen Build(Transform parent, UiStyle style, Action onAgain, Action onMenu)
         {
             Canvas canvas = UiFactory.CreateCanvas("ResultsCanvas", parent, style, SortingOrder);
-            Image backdrop = UiFactory.CreateImage("Backdrop", canvas.transform, style.ResultsBackdropColor, null, true);
-            UiFactory.Stretch(backdrop.rectTransform);
+            UiFactory.CreateBackdrop(canvas.transform, style, style.ResultsBackdropColor, false);
             RectTransform content = UiFactory.CreateColumn("Content", canvas.transform, style.ResultsSpacing);
             UiFactory.Stretch(content);
             canvas.gameObject.SetActive(false);
@@ -88,17 +87,24 @@ namespace Arena.UI.Results
             // Once per match: the formatted place string is not a per-frame allocation.
             string title = ShownPlace > 0 ? string.Format(Loc.Get(LocKeys.ResultsPlace), NumberStringCache.Get(ShownPlace)) : Loc.Get(titleKey);
             float wide = s.ResultsNameColumnWidth + s.ResultsStatColumnWidth * 4f;
-            TitleText = UiFactory.CreateLayoutText("Title", _content, s, s.TitleFontSize, new Vector2(wide, s.TitleFontSize * 1.5f),
+            // A.6: big heading-font title (gold victory) with the outline and a drop shadow, the MVP and the table on a cream panel.
+            TitleText = UiFactory.CreateLayoutText("Title", _content, s, s.TitleFontSize, new Vector2(wide, s.TitleFontSize * 1.3f),
                 title);
+            if (ShownPlace <= 0 && titleKey == LocKeys.ResultsVictory) TitleText.color = s.VictoryTitleColor;
+            else if (ShownPlace <= 0 && titleKey == LocKeys.ResultsDefeat) TitleText.color = s.DefeatTitleColor;
+            Shadow drop = TitleText.gameObject.AddComponent<Shadow>();
+            drop.effectColor = s.TextOutlineColor;
+            drop.effectDistance = s.TextOutlineDistance * 3f;
 
+            RectTransform panel = UiFactory.CreatePanel("Panel", _content, s, s.ResultsSpacing * 0.5f, true);
             MvpSlot = defs.Acorns != null ? MvpCalculator.Compute(state, defs.Acorns) : -1;
-            BuildMvp(defs, state, localTeam);
-            BuildTable(defs, state, localTeam);
+            BuildMvp(panel, defs, state, localTeam);
+            BuildTable(panel, defs, state, localTeam);
 
             RectTransform buttons = UiFactory.CreateRow("Buttons", _content, s.ResultsSpacing, s.ResultsButtonSize.y);
             AgainButton = UiFactory.CreateButton("AgainButton", buttons, s, s.ResultsButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
                 Loc.Get(LocKeys.ResultsAgain), () => _onAgain?.Invoke(), out _);
-            MenuButton = UiFactory.CreateButton("MenuButton", buttons, s, s.ResultsButtonSize, s.ButtonColor, s.LargeFontSize,
+            MenuButton = UiFactory.CreateButton("MenuButton", buttons, s, s.ResultsButtonSize, s.SecondaryButtonColor, s.LargeFontSize,
                 Loc.Get(LocKeys.ResultsMenu), () => _onMenu?.Invoke(), out _);
 
             _shownAt = Time.unscaledTime;
@@ -114,11 +120,11 @@ namespace Arena.UI.Results
             _capsule.anchoredPosition = new Vector2(0f, jump);
         }
 
-        private void BuildMvp(MatchDefs defs, MatchState state, int localTeam)
+        private void BuildMvp(Transform parent, MatchDefs defs, MatchState state, int localTeam)
         {
             UiStyle s = _style;
             float height = s.MvpCapsuleSize.y + s.MvpBounceHeight;
-            RectTransform row = UiFactory.CreateRow("Mvp", _content, s.ResultsSpacing, height);
+            RectTransform row = UiFactory.CreateRow("Mvp", parent, s.ResultsSpacing, height);
             if (MvpSlot < 0) return;
 
             ref FighterState f = ref state.Fighters[MvpSlot];
@@ -134,17 +140,19 @@ namespace Arena.UI.Results
 
             RectTransform names = UiFactory.CreateColumn("MvpText", row, 0f);
             Vector2 lineSize = new Vector2(s.ResultsNameColumnWidth, s.MvpCapsuleSize.y * 0.5f);
-            UiFactory.CreateLayoutText("MvpLabel", names, s, s.MediumFontSize, lineSize, Loc.Get(LocKeys.ResultsMvp), TextAnchor.LowerLeft);
+            UiFactory.CreatePanelText("MvpLabel", names, s, s.MediumFontSize, lineSize, Loc.Get(LocKeys.ResultsMvp), TextAnchor.LowerLeft);
             FighterDef def = defs.Fighters[f.DefIndex];
             MvpNameText = UiFactory.CreateLayoutText("MvpName", names, s, s.TitleFontSize, lineSize, Loc.Get(def.NameKey), TextAnchor.UpperLeft);
+            UiFactory.MakeLight(MvpNameText, s, f.Team == localTeam ? s.AllyColor : EnemyColor(s));
         }
 
-        private void BuildTable(MatchDefs defs, MatchState state, int localTeam)
+        private void BuildTable(Transform parent, MatchDefs defs, MatchState state, int localTeam)
         {
             UiStyle s = _style;
-            RectTransform table = UiFactory.CreateColumn("Stats", _content, 0f);
+            RectTransform table = UiFactory.CreateColumn("Stats", parent, 0f);
             AddRow(table, "Header", Loc.Get(LocKeys.MenuFighter), Loc.Get(LocKeys.ResultsKills), Loc.Get(LocKeys.ResultsDeaths),
-                Loc.Get(LocKeys.ResultsDamage), Loc.Get(LocKeys.ResultsAcorns), s.TextColor, s.SmallFontSize);
+                Loc.Get(LocKeys.ResultsDamage), Loc.Get(LocKeys.ResultsAcorns), s.TextDarkColor, s.SmallFontSize, false);
+            int shown = 0;
 
             int count = state.Globals.FighterCount;
             // Own team first, then the enemies.
@@ -158,23 +166,32 @@ namespace Arena.UI.Results
                     Color color = f.Team == localTeam ? s.AllyColor : EnemyColor(s);
                     AddRow(table, "Row" + i, Loc.Get(defs.Fighters[f.DefIndex].NameKey), NumberStringCache.Get(st.Kills),
                         NumberStringCache.Get(st.Deaths), st.DamageDealt.ToString(), NumberStringCache.Get(st.AcornsCollected), color,
-                        s.MediumFontSize);
+                        s.MediumFontSize, shown++ % 2 == 0);
                 }
             }
         }
 
         private void AddRow(Transform table, string name, string fighter, string kills, string deaths, string damage, string acorns,
-            Color color, int fontSize)
+            Color color, int fontSize, bool stripe)
         {
             UiStyle s = _style;
             RectTransform row = UiFactory.CreateRow(name, table, 0f, s.ResultsRowHeight);
+            if (stripe)
+            {
+                Image band = UiFactory.CreateSliced("Stripe", row, s.ButtonFaceSprite, s.RowStripeColor, s.SliceScale * 2f);
+                UiFactory.Stretch(band.rectTransform);
+                UiFactory.IgnoreLayout(band.gameObject);
+                band.raycastTarget = false;
+            }
             var nameSize = new Vector2(s.ResultsNameColumnWidth, s.ResultsRowHeight);
             var statSize = new Vector2(s.ResultsStatColumnWidth, s.ResultsRowHeight);
-            UiFactory.CreateLayoutText("Fighter", row, s, fontSize, nameSize, fighter, TextAnchor.MiddleLeft).color = color;
-            UiFactory.CreateLayoutText("Kills", row, s, fontSize, statSize, kills);
-            UiFactory.CreateLayoutText("Deaths", row, s, fontSize, statSize, deaths);
-            UiFactory.CreateLayoutText("Damage", row, s, fontSize, statSize, damage);
-            UiFactory.CreateLayoutText("Acorns", row, s, fontSize, statSize, acorns);
+            Text fighterText = UiFactory.CreateLayoutText("Fighter", row, s, fontSize, nameSize, fighter, TextAnchor.MiddleLeft);
+            if (color == s.TextDarkColor) UiFactory.MakeDark(fighterText, s);
+            else UiFactory.MakeLight(fighterText, s, color);
+            UiFactory.CreatePanelText("Kills", row, s, fontSize, statSize, kills);
+            UiFactory.CreatePanelText("Deaths", row, s, fontSize, statSize, deaths);
+            UiFactory.CreatePanelText("Damage", row, s, fontSize, statSize, damage);
+            UiFactory.CreatePanelText("Acorns", row, s, fontSize, statSize, acorns);
         }
 
         private static Color EnemyColor(UiStyle s) => s.Enemy(PlayerSettingsStore.Shared.Current.ColorblindPalette);

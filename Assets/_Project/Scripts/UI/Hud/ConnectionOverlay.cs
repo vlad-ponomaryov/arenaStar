@@ -75,7 +75,10 @@ namespace Arena.UI.Hud
         public static ConnectionOverlay Build(Transform canvas, UiStyle style, OnlineMatchDriver driver, float lostSeconds,
             float windowSeconds)
         {
-            Image panel = UiFactory.CreateImage("ConnectionOverlay", canvas, style.OverlayPanelColor);
+            // A.6: cream panel with a wooden frame and dark text (a plain dark box without the skin sprites).
+            bool skinned = style.PanelSprite != null;
+            Image panel = UiFactory.CreateSliced("ConnectionOverlay", canvas, style.PanelSprite,
+                skinned ? Color.white : style.OverlayPanelColor, style.SliceScale);
             RectTransform rt = panel.rectTransform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 1f);
             rt.sizeDelta = style.OverlayBoxSize;
@@ -84,8 +87,13 @@ namespace Arena.UI.Hud
             UiFactory.Stretch(row);
             var lineSize = new Vector2(style.OverlayBoxSize.x - style.ScoreBoxSize.x, style.OverlayBoxSize.y);
             Text message = UiFactory.CreateLayoutText("Message", row, style, style.MediumFontSize, lineSize, string.Empty);
-            Text seconds = UiFactory.CreateLayoutText("Seconds", row, style, style.MediumFontSize,
+            Text seconds = UiFactory.CreateLayoutText("Seconds", row, style, style.LargeFontSize,
                 new Vector2(style.ScoreBoxSize.x * 0.5f, style.OverlayBoxSize.y), string.Empty);
+            if (skinned)
+            {
+                UiFactory.MakeDark(message, style);
+                UiFactory.MakeDark(seconds, style);
+            }
             // The buttons hang below the banner (the line is full of text): side by side, or one centred.
             Button button = UiFactory.CreateButton("ConnectionButton", rt, style, style.MenuButtonSize, style.PrimaryButtonColor,
                 style.MediumFontSize, string.Empty, null, out Text label);

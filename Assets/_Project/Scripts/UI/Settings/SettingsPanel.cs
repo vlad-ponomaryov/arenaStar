@@ -82,13 +82,12 @@ namespace Arena.UI.Settings
         private void Build(Transform root)
         {
             UiStyle s = _style;
-            Image backdrop = UiFactory.CreateImage("Backdrop", root, s.SettingsPanelColor, null, true);
-            UiFactory.Stretch(backdrop.rectTransform);
-
-            RectTransform column = UiFactory.CreateColumn("Column", root, s.MenuRowSpacing);
-            UiFactory.Stretch(column);
-            UiFactory.CreateLayoutText("Title", column, s, s.TitleFontSize, new Vector2(s.SettingsLabelWidth * 2f, s.MenuButtonSize.y),
-                Loc.Get(LocKeys.SettingsTitle));
+            UiFactory.CreateBackdrop(root, s, s.SettingsPanelColor, false);
+            // A.6: plank title on a cream panel with a wooden frame (Art-Spec §4.2).
+            RectTransform outer = UiFactory.CreateColumn("Outer", root, 0f);
+            UiFactory.Stretch(outer);
+            RectTransform column = UiFactory.CreatePanel("Column", outer, s, s.MenuRowSpacing * 0.5f, true);
+            UiFactory.CreatePlankTitle("Title", column, s, s.SettingsLabelWidth, s.LargeFontSize, Loc.Get(LocKeys.SettingsTitle));
 
             RectTransform mirror = CreateRow(column, LocKeys.SettingsMirror);
             _mirrorOff = Choice(mirror, "MirrorOff", Loc.Get(LocKeys.SettingsOff), () => SetMirrored(false));
@@ -123,7 +122,9 @@ namespace Arena.UI.Settings
         {
             UiStyle s = _style;
             RectTransform row = UiFactory.CreateRow("Row_" + labelKey, column, s.MenuItemSpacing, s.SettingsChoiceSize.y);
-            UiFactory.CreateLayoutText("Label", row, s, s.MediumFontSize, new Vector2(s.SettingsLabelWidth, s.SettingsChoiceSize.y),
+            int widest = Mathf.Max(2, _vibrationSteps.Length);
+            UiFactory.AlignRowLeft(row, s.SettingsLabelWidth + widest * (s.SettingsChoiceSize.x + s.MenuItemSpacing));
+            UiFactory.CreatePanelText("Label", row, s, s.MediumFontSize, new Vector2(s.SettingsLabelWidth, s.SettingsChoiceSize.y),
                 Loc.Get(labelKey), TextAnchor.MiddleRight);
             return row;
         }
@@ -157,8 +158,7 @@ namespace Arena.UI.Settings
 
         private void Highlight(Button button, bool selected)
         {
-            if (button == null) return;
-            ((Image)button.targetGraphic).color = selected ? _style.ButtonSelectedColor : _style.ButtonColor;
+            UiFactory.SetButtonColor(button, _style, selected ? _style.ButtonSelectedColor : _style.ButtonColor);
         }
     }
 }

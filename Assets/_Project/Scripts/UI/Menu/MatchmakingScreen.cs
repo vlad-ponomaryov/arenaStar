@@ -53,16 +53,17 @@ namespace Arena.UI.Menu
         public static MatchmakingScreen Build(Transform parent, UiStyle s, Action onCancel)
         {
             Canvas canvas = UiFactory.CreateCanvas("MatchmakingCanvas", parent, s, SortingOrder);
-            Image backdrop = UiFactory.CreateImage("Backdrop", canvas.transform, s.MatchmakingBackdropColor, null, true);
-            UiFactory.Stretch(backdrop.rectTransform);
-            RectTransform column = UiFactory.CreateColumn("Column", canvas.transform, s.MenuRowSpacing);
-            UiFactory.Stretch(column);
+            // A.6: the menu backdrop under a cream panel: plank with the mode, status, big clock, "Found N of M", "Cancel".
+            UiFactory.CreateBackdrop(canvas.transform, s, s.MatchmakingBackdropColor, true);
+            RectTransform outer = UiFactory.CreateColumn("Outer", canvas.transform, 0f);
+            UiFactory.Stretch(outer);
+            RectTransform column = UiFactory.CreatePanel("Column", outer, s, s.MenuRowSpacing * 0.5f, true);
             var line = new Vector2(s.PlayButtonSize.x * 2f, s.PlayButtonSize.y * 0.6f);
-            Text mode = UiFactory.CreateLayoutText("Mode", column, s, s.TitleFontSize, line, string.Empty);
-            Text status = UiFactory.CreateLayoutText("Status", column, s, s.LargeFontSize, line, string.Empty);
-            Text clock = UiFactory.CreateLayoutText("Clock", column, s, s.LargeFontSize, line, string.Empty);
-            Text found = UiFactory.CreateLayoutText("Found", column, s, s.MediumFontSize, line, string.Empty);
-            Button cancel = UiFactory.CreateButton("CancelButton", column, s, s.PlayButtonSize, s.ButtonColor, s.LargeFontSize,
+            Text mode = UiFactory.CreatePlankTitle("Mode", column, s, line.x, s.TitleFontSize, string.Empty);
+            Text status = UiFactory.CreatePanelText("Status", column, s, s.LargeFontSize, line, string.Empty);
+            Text clock = UiFactory.CreatePanelText("Clock", column, s, s.TitleFontSize, line, string.Empty);
+            Text found = UiFactory.CreatePanelText("Found", column, s, s.MediumFontSize, line, string.Empty);
+            Button cancel = UiFactory.CreateButton("CancelButton", column, s, s.PlayButtonSize, s.SecondaryButtonColor, s.LargeFontSize,
                 Loc.Get(LocKeys.QueueCancel), () => onCancel?.Invoke(), out _);
             canvas.gameObject.SetActive(false);
             return new MatchmakingScreen(canvas, mode, status, clock, found, cancel);

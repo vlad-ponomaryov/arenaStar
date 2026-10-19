@@ -60,6 +60,9 @@ namespace Arena.Editor.Art
         private const string BaseMapProperty = "_BaseMap";
         private const string MainTexProperty = "_MainTex";
         private const string CircleSpritePath = "UI/Skin/Knob.psd";
+        public const string FontsFolder = ArtRoot + "/Fonts";
+        public const string BodyFontPath = FontsFolder + "/Nunito-Bold.ttf";
+        public const string HeadingFontPath = FontsFolder + "/Nunito-ExtraBold.ttf";
 
         // Team palette (D-029): blue allies, red enemies with a clear brightness difference.
         private static readonly Color AllyColor = new Color(0.20f, 0.52f, 1.00f, 1f);
@@ -502,10 +505,34 @@ namespace Arena.Editor.Art
             catalog.AimLine = aimLine;
             EditorUtility.SetDirty(catalog);
 
-            SeedUiStyle(LoadOrCreate<UiStyle>(UiStylePath));
+            SeedUi(catalog);
 
             AssetDatabase.SaveAssets();
             Debug.Log("ARENA_VIEW_ASSETS_BUILT");
+        }
+
+        /// <summary>
+        /// Re-seeds only the UI style, its baked sprites and the text font of the catalog (A.6) — quick UI iterations without
+        /// rebuilding the models and the map. Run: Tools/unity-method.ps1 -Method Arena.Editor.Art.ViewAssetBuilder.BuildUi
+        /// </summary>
+        public static void BuildUi()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewCatalogPath);
+            if (catalog == null) throw new InvalidOperationException("ViewAssetBuilder: run BuildAll first, no " + ViewCatalogPath);
+            SeedUi(catalog);
+            AssetDatabase.SaveAssets();
+            Debug.Log("ARENA_UI_ASSETS_BUILT");
+        }
+
+        private static void SeedUi(ViewCatalog catalog)
+        {
+            UiStyle uiStyle = LoadOrCreate<UiStyle>(UiStylePath);
+            SeedUiStyle(uiStyle);
+            // Floating numbers use the UI heading font and outline (Arena.Gameplay does not see UiStyle, D-049).
+            catalog.TextFont = uiStyle.HeadingFont;
+            catalog.TextOutlineColor = uiStyle.TextOutlineColor;
+            catalog.TextOutlineDistance = uiStyle.TextOutlineDistance;
+            EditorUtility.SetDirty(catalog);
         }
 
         private static void SeedUiStyle(UiStyle s)
@@ -548,26 +575,30 @@ namespace Arena.Editor.Art
             s.EnemyColor = EnemyColor;
             s.EnemyColorAlt = EnemyAltColor;
 
-            // S2.10 (PROTO): FPS counter in the top-left corner, settings panel rows.
+            // S2.10 (PROTO): FPS counter in the top-left corner, settings panel rows. A.6: dim warm backdrop under the panel.
             s.FpsMargin = new Vector2(24f, 20f);
             s.FpsBoxSize = new Vector2(220f, 44f);
-            s.SettingsPanelColor = new Color(0.08f, 0.09f, 0.13f, 0.97f);
-            s.SettingsLabelWidth = 560f;
-            s.SettingsChoiceSize = new Vector2(150f, 90f);
+            s.SettingsPanelColor = new Color(0.10f, 0.12f, 0.07f, 0.72f);
+            s.SettingsLabelWidth = 520f;
+            s.SettingsChoiceSize = new Vector2(150f, 84f);
 
-            // Menu, score bar, results (S2.7, PROTO sizes at 1920×1080 — check on the phone).
+            // Menu, score bar, results (S2.7, PROTO sizes at 1920×1080 — check on the phone). A.6: palette of Art-Spec §1.3
+            // ("wood and leaves"), Nunito Bold / ExtraBold (SIL OFL 1.1).
             s.TextColor = Color.white;
-            s.TitleFontSize = 72;
-            s.LargeFontSize = 52;
-            s.MediumFontSize = 38;
+            s.TitleFontSize = 76;
+            s.LargeFontSize = 50;
+            s.MediumFontSize = 36;
             s.SmallFontSize = 28;
-            s.ButtonColor = new Color(0.22f, 0.26f, 0.34f, 0.95f);
-            s.ButtonSelectedColor = new Color(0.25f, 0.55f, 0.95f, 1f);
-            s.PrimaryButtonColor = new Color(0.30f, 0.75f, 0.40f, 1f);
-            s.MenuButtonSize = new Vector2(230f, 100f);
-            s.PlayButtonSize = new Vector2(480f, 140f);
-            s.MenuRowSpacing = 36f;
-            s.MenuItemSpacing = 18f;
+            s.ButtonColor = Hex(0xEBCB8B);
+            s.SecondaryButtonColor = Hex(0x6EC6F0);
+            s.ButtonSelectedColor = s.SecondaryButtonColor;
+            s.PrimaryButtonColor = Hex(0x4CBF56);
+            s.Font = LoadFont(BodyFontPath);
+            s.HeadingFont = LoadFont(HeadingFontPath);
+            s.MenuButtonSize = new Vector2(220f, 84f);
+            s.PlayButtonSize = new Vector2(470f, 130f);
+            s.MenuRowSpacing = 22f;
+            s.MenuItemSpacing = 14f;
             s.VersionMargin = new Vector2(24f, 24f);
             s.ScoreBarTopMargin = 20f;
             s.ScoreBoxSize = new Vector2(150f, 90f);
@@ -575,15 +606,15 @@ namespace Arena.Editor.Art
             s.ScoreBarSpacing = 12f;
             s.ScorePanelColor = new Color(0f, 0f, 0f, 0.45f);
             s.CountdownSize = new Vector2(360f, 70f);
-            s.ResultsBackdropColor = new Color(0.05f, 0.06f, 0.09f, 0.88f);
-            s.MvpCapsuleSize = new Vector2(110f, 200f);
-            s.MvpBounceHeight = 40f;
+            s.ResultsBackdropColor = new Color(0.08f, 0.10f, 0.06f, 0.72f);
+            s.MvpCapsuleSize = new Vector2(90f, 160f);
+            s.MvpBounceHeight = 30f;
             s.MvpBounceFrequency = 1.5f;
-            s.ResultsRowHeight = 52f;
+            s.ResultsRowHeight = 48f;
             s.ResultsNameColumnWidth = 360f;
-            s.ResultsStatColumnWidth = 210f;
-            s.ResultsSpacing = 24f;
-            s.ResultsButtonSize = new Vector2(400f, 120f);
+            s.ResultsStatColumnWidth = 200f;
+            s.ResultsSpacing = 20f;
+            s.ResultsButtonSize = new Vector2(380f, 120f);
 
             // Online (S3.11, PROTO sizes at 1920×1080 — check on the phone): ping badge under the FPS counter,
             // connection overlay below the score bar, matchmaking backdrop over the menu.
@@ -596,8 +627,50 @@ namespace Arena.Editor.Art
             s.OverlayPanelColor = new Color(0f, 0f, 0f, 0.6f);
             s.OverlayBoxSize = new Vector2(1100f, 90f);
             s.OverlayTopMargin = 200f;
-            s.MatchmakingBackdropColor = new Color(0.05f, 0.06f, 0.09f, 0.94f);
+            s.MatchmakingBackdropColor = new Color(0.10f, 0.12f, 0.07f, 0.94f);
+
+            // A.6 "wood and leaves" skin (Art-Spec §1.3, §4.2): palette, button geometry (canvas units), then the baked sprites.
+            s.PanelColor = Hex(0xFFF4DE);
+            s.PanelBorderColor = Hex(0x8A5A35);
+            s.SliceScale = 1.6f;
+            s.ButtonEdgeHeight = 10f;
+            s.ButtonOutline = 3.5f;
+            s.ButtonPressDepth = 0.7f;
+            s.ButtonEdgeShade = 0.72f;
+            s.PrimaryButtonEdgeColor = Hex(0x2F8F3A);
+            s.SecondaryButtonEdgeColor = Hex(0x3B8FBF);
+            s.ButtonGlossAlpha = 0.3f;
+            s.ShadowColor = WithAlpha(Hex(0x3B2A1E), 0.35f);
+            s.ShadowOffset = new Vector2(0f, -7f);
+            s.TextDarkColor = Hex(0x3B2A1E);
+            s.TextOutlineColor = Hex(0x3B2A1E);
+            s.TextOutlineDistance = new Vector2(2f, -2f);
+            s.LightFaceLuma = 0.72f;
+            s.PanelPadding = new Vector2(40f, 30f);
+            s.LeafSize = new Vector2(130f, 130f);
+            s.PlankHeight = 88f;
+            s.VictoryTitleColor = Hex(0xFFC93C);
+            s.DefeatTitleColor = new Color(0.85f, 0.88f, 0.95f, 1f);
+            s.RowStripeColor = WithAlpha(Hex(0x8A5A35), 0.12f);
+            s.BackdropTopColor = Hex(0xCDE8B5);
+            s.BackdropBottomColor = Hex(0x6E9E58);
+            s.BackdropLeafColor = WithAlpha(Hex(0x4F7A45), 0.35f);
+            s.PanelSliceScale = 1.0f;
+            s.LabelBaselineShift = 0.06f;
+            s.MenuLabelWidth = 340f;
+            s.DisabledLabelAlpha = 0.6f;
+            UiSpriteBaker.BakeAll(s);
             EditorUtility.SetDirty(s);
+        }
+
+        private static Color Hex(int rgb) =>
+            new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
+
+        private static Font LoadFont(string path)
+        {
+            var font = AssetDatabase.LoadAssetAtPath<Font>(path);
+            if (font == null) throw new InvalidOperationException("ViewAssetBuilder: font not found: " + path);
+            return font;
         }
 
         private static TelegraphView BuildTelegraphPrefab(Material zone, Material fill)

@@ -55,7 +55,10 @@ namespace Arena.Tests.EditMode.Setup
             var result = new List<T>();
             foreach (string guid in AssetDatabase.FindAssets(filter, new[] { ProjectRoot }))
             {
-                T asset = AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(guid));
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                // Fonts (A.6, Nunito) carry an importer-made "Font Material" (built-in GUI/Text Shader) — not a project material.
+                if (AssetImporter.GetAtPath(path) is TrueTypeFontImporter) continue;
+                T asset = AssetDatabase.LoadAssetAtPath<T>(path);
                 if (asset != null) result.Add(asset);
             }
             return result;

@@ -61,21 +61,23 @@ MonoBehaviour:
   EnemyColorAlt: {r: 1, g: 0.6, b: 0.1, a: 1}
   FpsMargin: {x: 24, y: 20}
   FpsBoxSize: {x: 220, y: 44}
-  SettingsPanelColor: {r: 0.08, g: 0.09, b: 0.13, a: 0.97}
-  SettingsLabelWidth: 560
-  SettingsChoiceSize: {x: 150, y: 90}
+  SettingsPanelColor: {r: 0.1, g: 0.12, b: 0.07, a: 0.72}
+  SettingsLabelWidth: 520
+  SettingsChoiceSize: {x: 150, y: 84}
   TextColor: {r: 1, g: 1, b: 1, a: 1}
-  TitleFontSize: 72
-  LargeFontSize: 52
-  MediumFontSize: 38
+  TitleFontSize: 76
+  LargeFontSize: 50
+  MediumFontSize: 36
   SmallFontSize: 28
-  ButtonColor: {r: 0.22, g: 0.26, b: 0.34, a: 0.95}
-  ButtonSelectedColor: {r: 0.25, g: 0.55, b: 0.95, a: 1}
-  PrimaryButtonColor: {r: 0.3, g: 0.75, b: 0.4, a: 1}
-  MenuButtonSize: {x: 230, y: 100}
-  PlayButtonSize: {x: 480, y: 140}
-  MenuRowSpacing: 36
-  MenuItemSpacing: 18
+  ButtonColor: {r: 0.92156863, g: 0.79607844, b: 0.54509807, a: 1}
+  ButtonSelectedColor: {r: 0.43137255, g: 0.7764706, b: 0.9411765, a: 1}
+  PrimaryButtonColor: {r: 0.29803923, g: 0.7490196, b: 0.3372549, a: 1}
+  Font: {fileID: 12800000, guid: 73e4b0f76e2fc824c8a73cd3926dddf8, type: 3}
+  HeadingFont: {fileID: 12800000, guid: 47df0c11c4a27c04fbc8663ed852f9b0, type: 3}
+  MenuButtonSize: {x: 220, y: 84}
+  PlayButtonSize: {x: 470, y: 130}
+  MenuRowSpacing: 22
+  MenuItemSpacing: 14
   VersionMargin: {x: 24, y: 24}
   ScoreBarTopMargin: 20
   ScoreBoxSize: {x: 150, y: 90}
@@ -83,15 +85,15 @@ MonoBehaviour:
   ScoreBarSpacing: 12
   ScorePanelColor: {r: 0, g: 0, b: 0, a: 0.45}
   CountdownSize: {x: 360, y: 70}
-  ResultsBackdropColor: {r: 0.05, g: 0.06, b: 0.09, a: 0.88}
-  MvpCapsuleSize: {x: 110, y: 200}
-  MvpBounceHeight: 40
+  ResultsBackdropColor: {r: 0.08, g: 0.1, b: 0.06, a: 0.72}
+  MvpCapsuleSize: {x: 90, y: 160}
+  MvpBounceHeight: 30
   MvpBounceFrequency: 1.5
-  ResultsRowHeight: 52
+  ResultsRowHeight: 48
   ResultsNameColumnWidth: 360
-  ResultsStatColumnWidth: 210
-  ResultsSpacing: 24
-  ResultsButtonSize: {x: 400, y: 120}
+  ResultsStatColumnWidth: 200
+  ResultsSpacing: 20
+  ResultsButtonSize: {x: 380, y: 120}
   PingGoodColor: {r: 0.35, g: 0.9, b: 0.4, a: 1}
   PingFairColor: {r: 1, g: 0.85, b: 0.25, a: 1}
   PingPoorColor: {r: 1, g: 0.35, b: 0.3, a: 1}
@@ -101,4 +103,42 @@ MonoBehaviour:
   OverlayPanelColor: {r: 0, g: 0, b: 0, a: 0.6}
   OverlayBoxSize: {x: 1100, y: 90}
   OverlayTopMargin: 200
-  MatchmakingBackdropColor: {r: 0.05, g: 0.06, b: 0.09, a: 0.94}
+  MatchmakingBackdropColor: {r: 0.1, g: 0.12, b: 0.07, a: 0.94}
+  PanelSprite: {fileID: 21300000, guid: ee200951622d7ed4e8f766d4761c9229, type: 3}
+  PanelColor: {r: 1, g: 0.95686275, b: 0.87058824, a: 1}
+  PanelBorderColor: {r: 0.5411765, g: 0.3529412, b: 0.20784314, a: 1}
+  ButtonEdgeSprite: {fileID: 21300000, guid: 20a6543eec4722a4a815285e85f97922, type: 3}
+  ButtonFaceSprite: {fileID: 21300000, guid: 0e22e5bceedc56a4693565c696784c7f, type: 3}
+  ButtonGlossSprite: {fileID: 21300000, guid: 2d9989bdab14aef41972a71e917ec7bf, type: 3}
+  ShadowSprite: {fileID: 21300000, guid: 814bd4d2385f20c45889745527395dfc, type: 3}
+  PlankSprite: {fileID: 21300000, guid: 2e3f300d7a6fa7849bd0c21f2dacc659, type: 3}
+  LeafSprite: {fileID: 21300000, guid: 918c791ac2d216c4aa6d26eb711fd2bf, type: 3}
+  BackdropSprite: {fileID: 21300000, guid: dfa6a83b3079ab14ca28170bb6af5c68, type: 3}
+  SliceScale: 1.6
+  ButtonEdgeHeight: 10
+  ButtonOutline: 3.5
+  ButtonPressDepth: 0.7
+  ButtonEdgeShade: 0.72
+  PrimaryButtonEdgeColor: {r: 0.18431373, g: 0.56078434, b: 0.22745098, a: 1}
+  SecondaryButtonColor: {r: 0.43137255, g: 0.7764706, b: 0.9411765, a: 1}
+  SecondaryButtonEdgeColor: {r: 0.23137255, g: 0.56078434, b: 0.7490196, a: 1}
+  ButtonGlossAlpha: 0.3
+  ShadowColor: {r: 0.23137255, g: 0.16470589, b: 0.11764706, a: 0.35}
+  ShadowOffset: {x: 0, y: -7}
+  TextDarkColor: {r: 0.23137255, g: 0.16470589, b: 0.11764706, a: 1}
+  TextOutlineColor: {r: 0.23137255, g: 0.16470589, b: 0.11764706, a: 1}
+  TextOutlineDistance: {x: 2, y: -2}
+  LightFaceLuma: 0.72
+  PanelPadding: {x: 40, y: 30}
+  LeafSize: {x: 130, y: 130}
+  PlankHeight: 88
+  VictoryTitleColor: {r: 1, g: 0.7882353, b: 0.23529412, a: 1}
+  DefeatTitleColor: {r: 0.85, g: 0.88, b: 0.95, a: 1}
+  RowStripeColor: {r: 0.5411765, g: 0.3529412, b: 0.20784314, a: 0.12}
+  BackdropTopColor: {r: 0.8039216, g: 0.9098039, b: 0.70980394, a: 1}
+  BackdropBottomColor: {r: 0.43137255, g: 0.61960787, b: 0.34509805, a: 1}
+  BackdropLeafColor: {r: 0.30980393, g: 0.47843137, b: 0.27058825, a: 0.35}
+  PanelSliceScale: 1
+  LabelBaselineShift: 0.06
+  MenuLabelWidth: 340
+  DisabledLabelAlpha: 0.6

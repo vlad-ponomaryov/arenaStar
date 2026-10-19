@@ -314,7 +314,8 @@ namespace Arena.Gameplay.Match
             source.spatialBlend = 0f;
             _sounds = new ProceduralSounds(source, _feel);
             _haptics = new Haptics(_settings.VibrationStrength, _feel.VibrationMinInterval);
-            _floatingText = new FloatingTextLayer(transform, _feel);
+            _floatingText = new FloatingTextLayer(transform, _feel, _viewCatalog.TextFont, _viewCatalog.TextOutlineColor,
+                _viewCatalog.TextOutlineDistance);
             _damageNumbers = new DamageNumberPool(_floatingText, _feel);
             _ownHealth = new OwnHealthLabel(_floatingText, _feel);
             _hitStop.Reset();

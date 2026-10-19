@@ -247,12 +247,15 @@ namespace Arena.UI.Menu
             if (_matchmakingCanvas != null) Destroy(_matchmakingCanvas);
             UiStyle s = _style;
             _canvas = UiFactory.CreateCanvas("MenuCanvas", transform, s, 0);
+            // A.6: meadow backdrop, the choices on a cream board with a wooden frame, the big actions below it.
+            UiFactory.CreateBackdrop(_canvas.transform, s, s.MatchmakingBackdropColor, true);
             RectTransform column = UiFactory.CreateColumn("Column", _canvas.transform, s.MenuRowSpacing);
             UiFactory.Stretch(column);
+            RectTransform board = UiFactory.CreatePanel("Board", column, s, s.MenuRowSpacing * 0.5f, true);
 
             int fighters = _database.Fighters.Count;
             _fighterButtons = new Button[fighters];
-            RectTransform fighterRow = CreateLabeledRow(column, LocKeys.MenuFighter);
+            RectTransform fighterRow = CreateLabeledRow(board, LocKeys.MenuFighter);
             for (int i = 0; i < fighters; i++)
             {
                 FighterConfig f = _database.Fighters[i];
@@ -262,7 +265,7 @@ namespace Arena.UI.Menu
             }
 
             _botButtons = new Button[BotChoices.Length];
-            RectTransform botRow = CreateLabeledRow(column, LocKeys.MenuBots);
+            RectTransform botRow = CreateLabeledRow(board, LocKeys.MenuBots);
             for (int i = 0; i < BotChoices.Length; i++)
             {
                 BotDifficulty bots = BotChoices[i];
@@ -271,7 +274,7 @@ namespace Arena.UI.Menu
             }
 
             _trainingModeButtons = new Button[TrainingModes.Length];
-            RectTransform trainingRow = CreateLabeledRow(column, LocKeys.MenuTrainingMode);
+            RectTransform trainingRow = CreateLabeledRow(board, LocKeys.MenuTrainingMode);
             for (int i = 0; i < TrainingModes.Length; i++)
             {
                 ModeKind mode = TrainingModes[i];
@@ -280,7 +283,7 @@ namespace Arena.UI.Menu
                     Loc.Get(mode == ModeKind.LastBeast ? LocKeys.ModeLastBeast : LocKeys.ModeAcorns), () => SelectTrainingMode(mode), out _);
             }
 
-            RectTransform languageRow = CreateLabeledRow(column, LocKeys.MenuLanguage);
+            RectTransform languageRow = CreateLabeledRow(board, LocKeys.MenuLanguage);
             _languageButtons = new[]
             {
                 UiFactory.CreateButton("Language_En", languageRow, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
@@ -289,30 +292,34 @@ namespace Arena.UI.Menu
                     Loc.Get(LocKeys.LanguageRu), () => Loc.SetLanguage(Language.Ru), out _)
             };
 
+            RectTransform regionRow = CreateLabeledRow(board, LocKeys.MenuRegion);
+            RegionButton = UiFactory.CreateButton("RegionButton", regionRow, s, new Vector2(s.MenuButtonSize.x * 2f, s.MenuButtonSize.y),
+                s.ButtonColor, s.MediumFontSize, string.Empty, NextRegion, out _regionLabel);
+            RegionPing = UiFactory.CreateLayoutText("RegionPing", regionRow, s, s.MediumFontSize, s.MenuButtonSize, "-");
+
             RejoinButton = UiFactory.CreateButton("RejoinButton", column, s, s.PlayButtonSize, s.PrimaryButtonColor, s.LargeFontSize,
                 Loc.Get(LocKeys.NetRejoin), Rejoin, out _);
             RejoinButton.gameObject.SetActive(false);
             _shownRejoin = false;
 
-            RectTransform playRow = UiFactory.CreateRow("PlayRow", column, s.MenuItemSpacing, s.PlayButtonSize.y);
+            RectTransform playRow = UiFactory.CreateRow("PlayRow", column, s.MenuItemSpacing * 2f, s.PlayButtonSize.y);
             PlayOnlineButton = UiFactory.CreateButton("PlayOnlineButton", playRow, s, s.PlayButtonSize, s.PrimaryButtonColor,
                 s.LargeFontSize, Loc.Get(LocKeys.MenuPlayOnline), () => PlayOnline(ModeKind.Acorns), out _);
-            LastBeastButton = UiFactory.CreateButton("LastBeastButton", playRow, s, s.PlayButtonSize, s.ButtonColor, s.LargeFontSize,
-                Loc.Get(LocKeys.MenuLastBeast), () => PlayOnline(ModeKind.LastBeast), out _);
-            TrainingButton = UiFactory.CreateButton("TrainingButton", playRow, s, s.PlayButtonSize, s.ButtonColor, s.LargeFontSize,
-                Loc.Get(LocKeys.MenuTraining), Play, out _);
+            LastBeastButton = UiFactory.CreateButton("LastBeastButton", playRow, s, s.PlayButtonSize, s.SecondaryButtonColor,
+                s.LargeFontSize, Loc.Get(LocKeys.MenuLastBeast), () => PlayOnline(ModeKind.LastBeast), out _);
+            TrainingButton = UiFactory.CreateButton("TrainingButton", playRow, s, s.PlayButtonSize, s.SecondaryButtonColor,
+                s.LargeFontSize, Loc.Get(LocKeys.MenuTraining), Play, out _);
 
-            RectTransform regionRow = CreateLabeledRow(column, LocKeys.MenuRegion);
-            RegionButton = UiFactory.CreateButton("RegionButton", regionRow, s, new Vector2(s.MenuButtonSize.x * 2f, s.MenuButtonSize.y),
-                s.ButtonColor, s.MediumFontSize, string.Empty, NextRegion, out _regionLabel);
-            RegionPing = UiFactory.CreateLayoutText("RegionPing", regionRow, s, s.MediumFontSize, s.MenuButtonSize, "-");
             OnlineStatus = UiFactory.CreateLayoutText("OnlineStatus", column, s, s.SmallFontSize,
                 new Vector2(s.PlayButtonSize.x * 3f, s.MenuButtonSize.y * 0.5f), string.Empty);
             _shownRegion = -1;
             _shownPingMs = int.MinValue;
             _onlineDirty = true;
-            SettingsButton = UiFactory.CreateButton("SettingsButton", column, s, s.MenuButtonSize, s.ButtonColor, s.MediumFontSize,
-                Loc.Get(LocKeys.MenuSettings), OpenSettings, out _);
+            SettingsButton = UiFactory.CreateButton("SettingsButton", _canvas.transform, s, s.MenuButtonSize, s.ButtonColor,
+                s.MediumFontSize, Loc.Get(LocKeys.MenuSettings), OpenSettings, out _);
+            RectTransform srt = (RectTransform)SettingsButton.transform;
+            srt.anchorMin = srt.anchorMax = srt.pivot = new Vector2(1f, 0f);
+            srt.anchoredPosition = new Vector2(-s.VersionMargin.x, s.VersionMargin.y);
             Settings = SettingsPanel.Create(transform, s, _database.Feel, PlayerSettingsStore.SharedFor(_database.Feel), null);
             Matchmaking = MatchmakingScreen.Build(transform, s, CancelSearch);
             _matchmakingCanvas = Matchmaking.Canvas.gameObject;
@@ -333,7 +340,10 @@ namespace Arena.UI.Menu
         {
             UiStyle s = _style;
             RectTransform row = UiFactory.CreateRow("Row_" + labelKey, column, s.MenuItemSpacing, s.MenuButtonSize.y);
-            UiFactory.CreateLayoutText("Label", row, s, s.MediumFontSize, s.MenuButtonSize, Loc.Get(labelKey), TextAnchor.MiddleRight);
+            int widest = Mathf.Max(_database.Fighters.Count, BotChoices.Length);
+            UiFactory.AlignRowLeft(row, s.MenuLabelWidth + widest * (s.MenuButtonSize.x + s.MenuItemSpacing));
+            UiFactory.CreatePanelText("Label", row, s, s.MediumFontSize, new Vector2(s.MenuLabelWidth, s.MenuButtonSize.y),
+                Loc.Get(labelKey), TextAnchor.MiddleRight);
             return row;
         }
 
@@ -348,8 +358,7 @@ namespace Arena.UI.Menu
 
         private void Highlight(Button button, bool selected)
         {
-            if (button == null) return;
-            ((Image)button.targetGraphic).color = selected ? _style.ButtonSelectedColor : _style.ButtonColor;
+            UiFactory.SetButtonColor(button, _style, selected ? _style.ButtonSelectedColor : _style.ButtonColor);
         }
     }
 }

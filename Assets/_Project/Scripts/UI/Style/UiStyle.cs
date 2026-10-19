@@ -82,7 +82,7 @@ namespace Arena.UI.Style
         [Tooltip("Size of one choice button (On/Off, vibration steps).")]
         public Vector2 SettingsChoiceSize;
 
-        [Header("Text and buttons (menu, score, results; built-in LegacyRuntime font, D-018)")]
+        [Header("Text and buttons (menu, score, results; Nunito since A.6, D-018)")]
         public Color TextColor;
         public int TitleFontSize;
         public int LargeFontSize;
@@ -95,6 +95,12 @@ namespace Arena.UI.Style
 
         [Tooltip("Main action: Play, Play again.")]
         public Color PrimaryButtonColor;
+
+        [Tooltip("Nunito Bold (A.6, SIL OFL 1.1): body text. Null — the built-in LegacyRuntime font.")]
+        public Font Font;
+
+        [Tooltip("Nunito ExtraBold: titles and numbers (font size ≥ LargeFontSize). Null — Font.")]
+        public Font HeadingFont;
 
         [Header("Menu")]
         public Vector2 MenuButtonSize;
@@ -155,7 +161,117 @@ namespace Arena.UI.Style
         [Tooltip("Matchmaking screen over the menu.")]
         public Color MatchmakingBackdropColor;
 
+        [Header("Wood and leaves skin (A.6, Art-Spec §1.3, §4.2): sprites baked by UiSpriteBaker")]
+        [Tooltip("Cream panel with a wooden frame (9-slice, coloured in the sprite) and its colours for the baker.")]
+        public Sprite PanelSprite;
+        public Color PanelColor;
+        public Color PanelBorderColor;
+
+        [Tooltip("Rounded white shape with a dark rim (9-slice): the bottom edge of a button, tinted by the edge colour.")]
+        public Sprite ButtonEdgeSprite;
+
+        [Tooltip("Rounded white face with a soft vertical shade (9-slice), tinted by the button colour.")]
+        public Sprite ButtonFaceSprite;
+
+        [Tooltip("White gloss over the top of a button face (9-slice).")]
+        public Sprite ButtonGlossSprite;
+
+        [Tooltip("Soft blurred rounded shape (9-slice): drop shadow of buttons and panels.")]
+        public Sprite ShadowSprite;
+
+        [Tooltip("Wooden plank with grain (9-slice, coloured): title of a panel.")]
+        public Sprite PlankSprite;
+
+        [Tooltip("Leaf in two greens with a dark outline: corners of the main panels.")]
+        public Sprite LeafSprite;
+
+        [Tooltip("Full-screen menu background (meadow gradient with faint leaves).")]
+        public Sprite BackdropSprite;
+
+        [Tooltip("Pixels-per-unit multiplier of the sliced button/panel sprites (bigger — smaller corners).")]
+        public float SliceScale;
+
+        [Tooltip("Height of the dark bottom edge under a button face, canvas units; pressing moves the face down onto it.")]
+        public float ButtonEdgeHeight;
+
+        [Tooltip("Rim of the edge sprite around the face (left, right, top), canvas units; the baker draws it at SliceScale.")]
+        public float ButtonOutline;
+
+        [Tooltip("Share of the edge height the face moves down while pressed.")]
+        [Range(0f, 1f)] public float ButtonPressDepth;
+
+        [Tooltip("Edge colour of a button colour without its own edge (choices): face colour × this.")]
+        [Range(0f, 1f)] public float ButtonEdgeShade;
+
+        public Color PrimaryButtonEdgeColor;
+
+        [Tooltip("Secondary action and the chosen option (sky blue) and its edge.")]
+        public Color SecondaryButtonColor;
+        public Color SecondaryButtonEdgeColor;
+
+        [Tooltip("Gloss strength over button faces (alpha of the white gloss).")]
+        [Range(0f, 1f)] public float ButtonGlossAlpha;
+
+        public Color ShadowColor;
+
+        [Tooltip("Drop shadow offset of buttons and panels, canvas units.")]
+        public Vector2 ShadowOffset;
+
+        [Tooltip("Dark text on cream panels and light buttons; outline of light text (HUD, coloured buttons).")]
+        public Color TextDarkColor;
+        public Color TextOutlineColor;
+        public Vector2 TextOutlineDistance;
+
+        [Tooltip("Faces brighter than this (luma) get dark text, others white text with the outline.")]
+        [Range(0f, 1f)] public float LightFaceLuma;
+
+        [Tooltip("Inner padding of a panel (left/right, top/bottom), canvas units.")]
+        public Vector2 PanelPadding;
+
+        public Vector2 LeafSize;
+
+        [Tooltip("Height of the plank title of a panel.")]
+        public float PlankHeight;
+
+        [Tooltip("Title colour of the results (gold) and of a defeat.")]
+        public Color VictoryTitleColor;
+        public Color DefeatTitleColor;
+
+        [Tooltip("Every second row of the results table.")]
+        public Color RowStripeColor;
+
+        [Tooltip("Menu background gradient (baker): top / bottom, and the faint leaves.")]
+        public Color BackdropTopColor;
+        public Color BackdropBottomColor;
+        public Color BackdropLeafColor;
+
+        [Tooltip("Pixels-per-unit multiplier of the panel sprite (smaller than SliceScale — a thicker wooden frame).")]
+        public float PanelSliceScale;
+
+        [Tooltip("Button labels sit this share of the font size lower than the face centre (optical centring of Nunito).")]
+        public float LabelBaselineShift;
+
+        [Tooltip("Width of the label column of a menu row (labels line up on the board).")]
+        public float MenuLabelWidth;
+
+        [Tooltip("Label alpha of a button that is not interactable (its gloss is hidden, the face greyed).")]
+        [Range(0f, 1f)] public float DisabledLabelAlpha;
+
         public Color Enemy(bool colorblind) => colorblind ? EnemyColorAlt : EnemyColor;
+
+        /// <summary>Bottom edge colour of a button face colour: the palette pair for primary/secondary, else a darker shade.</summary>
+        public Color EdgeFor(Color face)
+        {
+            if (Same(face, PrimaryButtonColor)) return PrimaryButtonEdgeColor;
+            if (Same(face, SecondaryButtonColor)) return SecondaryButtonEdgeColor;
+            return new Color(face.r * ButtonEdgeShade, face.g * ButtonEdgeShade, face.b * ButtonEdgeShade, face.a);
+        }
+
+        /// <summary>Text on a face of this colour: dark on light faces, otherwise light with the outline.</summary>
+        public bool IsLightFace(Color face) => 0.299f * face.r + 0.587f * face.g + 0.114f * face.b > LightFaceLuma;
+
+        private static bool Same(Color a, Color b) =>
+            Mathf.Abs(a.r - b.r) < 0.002f && Mathf.Abs(a.g - b.g) < 0.002f && Mathf.Abs(a.b - b.b) < 0.002f;
 
         public Color Ping(PingQuality quality)
         {

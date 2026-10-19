@@ -204,6 +204,14 @@ namespace Arena.Gameplay.View
         [Tooltip("Light yaw = camera yaw + this, degrees (lit from behind the camera, slightly from the side).")]
         public float LightYawFromCamera;
 
+        [Header("Text (A.6)")]
+        [Tooltip("Font of the floating numbers (damage, own health): Nunito ExtraBold, the same as UiStyle.HeadingFont (D-049). Null — built-in.")]
+        public Font TextFont;
+
+        [Tooltip("Outline of the floating numbers (Art-Spec §1.3: #3B2A1E) and its offset, canvas units.")]
+        public Color TextOutlineColor;
+        public Vector2 TextOutlineDistance;
+
         /// <summary>The view prefab of the fighter with <paramref name="fighterId"/>, else <see cref="FighterViewPrefab"/>.
         /// No allocations.</summary>
         public FighterView FighterPrefab(string fighterId)

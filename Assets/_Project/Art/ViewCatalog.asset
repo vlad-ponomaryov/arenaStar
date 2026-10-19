@@ -159,3 +159,6 @@ MonoBehaviour:
   Fog: {fileID: 2100000, guid: 0bdb85249dffdb34bb46f397e45736cf, type: 2}
   LightPitch: 50
   LightYawFromCamera: 35
+  TextFont: {fileID: 12800000, guid: 47df0c11c4a27c04fbc8663ed852f9b0, type: 3}
+  TextOutlineColor: {r: 0.23137255, g: 0.16470589, b: 0.11764706, a: 1}
+  TextOutlineDistance: {x: 2, y: -2}
