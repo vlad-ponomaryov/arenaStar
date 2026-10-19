@@ -1,0 +1,29 @@
+Theo (Тео) v2 — концепт персонажа (стиль и детализация). Google Flow (https://flow.google.com), проект «Arena», агент Flow, модель
+изображений Nano Banana 2.1 (по умолчанию проекта), 2026-10-19 ≈ 16:35–16:44 по местному времени. Аккаунт и условия — как в
+../2026-10-19_tex-grass/prompt.md (Условия Google от 30.07.2026, без претензий на владение; Q-019, D-111). Видео не генерировалось,
+платное (2K/4K) не использовалось; скачано «1K — исходный размер» (JPEG 896×1200), сохранено в PNG без изменения пикселей.
+Видимого водяного знака нет. Каждый раунд — новый сеанс агента, без референсов; чужие игры, студии, художники и чужие картинки
+как вход не использовались (картинку-ориентир пользователя во Flow не загружали). В игру не идёт.
+
+ОТЗЫВ ПОЛЬЗОВАТЕЛЯ НА v1 (theo_best.png из ../2026-10-19_theo):
+«честно, наш прежний рисунок выглядел гораздо круче» — как ориентир показал картинку с персонажами мобильного шутера (в проект
+не кладём). Под «прежним рисунком» понят ../2026-10-19_heroes-pix/001.png (Пикс-герой). Чем он сильнее v1: глянцевый винил вместо
+матовой «глины», насыщенный однотонный фон вместо серого, контровой свет, динамичная поза с весом на ноге, крупное оружие-предмет
+со светящейся водой и брызгами, характерное лицо (подмигивание), много мелких деталей костюма. Позже пользователь уточнил:
+много вариантов не нужно — достаточно одного хорошего, по нему видно стиль; запасной и лист A-позы не делаем.
+Прошлые правки сохранены: водомёт явно игрушечный (яркий пластик, бак, помпа, без пистолетной рукояти — частично), лицо доброе.
+
+ПРОМПТ ЛУЧШЕГО (раунд 1, новый сеанс) -> theo_v2_best.png:
+
+Generate 4 separate still image variants (images only, no video, do not use any existing images or character references from this project, this is a brand-new design), portrait 3:4. Stylized 3D render of an original hero character for our own family-friendly kids' mobile arena game. Character: Theo, a cheerful, kind and playful cartoon boy, the champion of backyard water fights. Premium glossy vinyl toy proportions: big head about one third of body height, big round expressive eyes, big hands, big chunky sneakers, short sturdy legs, thick clear readable silhouette, smooth rounded shapes. Warm tan-brown skin, short black curly hair peeking out from under a wide floppy bucket hat in bright mandarin orange (#FF7A1A) with a brim wider than his shoulders, a few colorful clothespins clipped on the brim as trophies, swim goggles with a cream strap on the front of the hat band, a small bandage on his nose. Friendly face: big warm open happy smile, bright sparkling eyes, one playfully raised eyebrow, kind and fun, not smug. Cream t-shirt (#FFF1DC) with a small round mandarin water-drop patch, graphite shorts (#2F3440) with a mandarin stripe, cream sneakers with chunky graphite soles and mandarin laces, a bandage on one knee. On his back, worn horizontally across the shoulders like a crossbar, a clear capsule water tank wider than his shoulders with rounded mandarin end caps and a level window, filled with glowing light aqua water (#8CEBFF), cream shoulder straps. A coiled cream hose runs from the tank to an oversized chunky toy squirter, obviously a bright plastic summer toy made from a garden pump: rounded bubbly shapes, glossy mandarin orange and cream plastic with graphite accents, a big clear water chamber with sloshing aqua water, a fat pump handle on top, a wide rounded flower-shaped nozzle, no trigger guard, nothing realistic. Dynamic fun pose: mid-hop leaning forward with weight on one leg, holding the big toy squirter up beside his body with both hands like a prize, a playful splash of sparkling aqua water droplets with tiny rainbow glints arcing up around him, face and chest fully visible. Three-quarter view. Style: polished stylized 3D game character render, glossy vinyl toy material with soft highlights, strong warm rim light and soft key light, rich saturated clean colors, crisp sharp details, simple smooth vertical gradient background from warm sunny yellow to soft peach. No blue, no red. Whole character in frame with margin, original character, no text, no logos, no watermark. Variants differ in pose and face.
+
+Раунд 2 (новый сеанс, тот же промпт + «clothespins in lime green and sunny yellow», «no pistol grip», «jumping with one knee
+up», «absolutely no blue and no red») дал 4 варианта в прыжке со смеющимся лицом; в репозиторий не сохранялись (по указанию
+пользователя — один вариант). Все 8 остаются в проекте Flow «Arena».
+
+ОТБОР
+- theo_v2_best.png (раунд 1, 4-й вариант): подмигивание + открытая улыбка — доброе и задорное лицо; водомёт однозначно
+  игрушечный (прозрачная колба с водой, помпа сверху, сопло-цветок, мандарин/крем); бак-перекладина, спираль шланга, прищепки
+  (зелёные, жёлтые, оранжевые — без синего), пластыри, полосы на шортах; обе ступни видны; глянец, контровой свет, градиент.
+- Минусы: поза спокойнее, чем у героя-Пикса (стоит, а не в прыжке); у водомёта остаётся короткая рукоять снизу; на шортах и
+  кроссовках оранжевый местами тянет к красно-оранжевому — в 3D держать #FF7A1A.
