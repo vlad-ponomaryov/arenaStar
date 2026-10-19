@@ -32,6 +32,9 @@ namespace Arena.Tests.EditMode.Net.Snapshots
         private const float SegmentTolerance = 0.01f;
         private const float AoiTolerance = 0.01f;
 
+        /// <summary>Quantized points (events, areas) against the server's exact ones.</summary>
+        private const float QuantizedAoiTolerance = 0.05f;
+
         private const int HistoryTicks = 16;
         private readonly uint[,] _seenBy = new uint[HistoryTicks, SimLimits.MaxFighters];
         private readonly int[] _historyTick = new int[HistoryTicks];
@@ -39,6 +42,8 @@ namespace Arena.Tests.EditMode.Net.Snapshots
         private int _hiddenTargetEvents;
         private int _checkedSegments;
         private int _checkedFighters;
+        private int _foreignEvents;
+        private int _checkedHitBits;
         private SnapshotMatchRig _rig;
 
         [SetUp]
@@ -48,6 +53,8 @@ namespace Arena.Tests.EditMode.Net.Snapshots
             _hiddenTargetEvents = 0;
             _checkedSegments = 0;
             _checkedFighters = 0;
+            _foreignEvents = 0;
+            _checkedHitBits = 0;
             for (int i = 0; i < HistoryTicks; i++) _historyTick[i] = int.MinValue;
         }
 
@@ -115,14 +122,15 @@ namespace Arena.Tests.EditMode.Net.Snapshots
             _rig.RunToEnd(maxTicks);
             Assert.IsTrue(_rig.IsEnded, mode + " match ends");
             string report = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "SNAPSHOT BUDGET {0}: {1} clients, {2} ticks, average {3:F1} B, max {4} B, key frames {5}, deferred items {6}, hidden-target events {7}, segments checked {8}, fighters checked {9}",
+                "SNAPSHOT BUDGET {0}: {1} clients, {2} ticks, average {3:F1} B, max {4} B, key frames {5}, deferred items {6}, hidden-target events {7}, segments checked {8}, fighters checked {9}, foreign events {10}, hit bits checked {11}",
                 mode, _rig.Slots, _rig.Sim.State.Globals.Tick, _rig.AverageBytes, _rig.MaxBytes, _rig.Keyframes, _rig.DeferredItems,
-                _hiddenTargetEvents, _checkedSegments, _checkedFighters);
+                _hiddenTargetEvents, _checkedSegments, _checkedFighters, _foreignEvents, _checkedHitBits);
             Debug.Log(report);
             TestContext.WriteLine(report);
             Assert.LessOrEqual(_rig.AverageBytes, AverageBudgetBytes, report);
             Assert.LessOrEqual(_rig.MaxBytes, MaxBudgetBytes, report);
             Assert.Greater(_checkedSegments, 0, "projectiles were checked");
+            Assert.Greater(_foreignEvents, 0, "events about other teams were checked");
         }
 
         private void CheckView(int slot, SnapshotFrame view, NetSnapshotEvent[] events, int eventCount)
@@ -160,12 +168,33 @@ namespace Arena.Tests.EditMode.Net.Snapshots
                 int s = view.Areas.SlotAt(i);
                 if (!state.Areas[s].Active || !state.Areas[s].IsVisibleTo(team))
                     Assert.Fail("tick " + tick + ": slot " + slot + " got hidden or stale area " + s);
+                if (aoi > 0f && state.Areas[s].Team != team && _rig.Builder.LastDeferredItems == 0)
+                {
+                    ref NetAreaView a = ref view.Areas.ItemAt(i);
+                    Vec2 at = new Vec2(Quantize.FromPosition(a.PositionX), Quantize.FromPosition(a.PositionY));
+                    Vec2 origin = new Vec2(Quantize.FromPosition(a.OriginX), Quantize.FromPosition(a.OriginY));
+                    if (Vec2.Distance(at, eye) > aoi + QuantizedAoiTolerance)
+                        Assert.Fail("tick " + tick + ": slot " + slot + " got foreign area " + s + " beyond the area of interest");
+                    if (origin != at && Vec2.Distance(origin, eye) > aoi + QuantizedAoiTolerance)
+                        Assert.Fail("tick " + tick + ": slot " + slot + " got the far origin of area " + s);
+                }
             }
             for (int i = 0; i < view.Projectiles.Count; i++)
             {
                 int s = view.Projectiles.SlotAt(i);
                 ref NetProjectileSegment seg = ref view.Projectiles.ItemAt(i);
                 ref ProjectileState p = ref state.Projectiles[s];
+                if (seg.Owner != slot && _rig.Builder.LastDeferredItems == 0)
+                {
+                    // Hits on fighters this client is not shown must not leak through the hit mask (§4.4 item 9).
+                    for (int b = 0; b < Arena.Net.Protocol.NetProtocol.HitMaskBits; b++)
+                    {
+                        if ((seg.HitMask & (1 << b)) == 0 || b == slot || b == seg.Owner) continue;
+                        if (!view.Fighters.Contains(b))
+                            Assert.Fail("tick " + tick + ": slot " + slot + " learns from projectile " + s + " that unseen fighter " + b + " was hit");
+                        _checkedHitBits++;
+                    }
+                }
                 if (seg.Ended || !p.Active || p.SpawnTick != seg.SpawnTick || _rig.Builder.LastDeferredItems != 0) continue;
                 AbilityDef ability = defs.GetAbility(seg.AbilityRef);
                 Vec2 dir = MathUtil.AngleToDir(Quantize.FromAngle(seg.Direction, Arena.Net.Protocol.NetProtocol.ProjectileAngleBits));
@@ -193,6 +222,9 @@ namespace Arena.Tests.EditMode.Net.Snapshots
                             int targetTeam = state.Fighters[e.Target].Team;
                             if (targetTeam != team && (SeenAt(e.Tick, e.Target) & (1u << team)) == 0u)
                                 Assert.Fail("tick " + tick + ": slot " + slot + " got the point of hidden target " + e.Target);
+                            if (targetTeam != team && aoi > 0f && Vec2.Distance(EventPoint(in e), eye) > aoi + QuantizedAoiTolerance)
+                                Assert.Fail("tick " + tick + ": slot " + slot + " got a " + e.Type + " event of fighter " + e.Target + " beyond the area of interest");
+                            if (targetTeam != team) _foreignEvents++;
                         }
                         break;
                     case SimEventType.UltReady:
@@ -202,6 +234,8 @@ namespace Arena.Tests.EditMode.Net.Snapshots
                         Assert.AreEqual(AbilitySlot.Ult, MatchDefs.SlotOf(e.Value), "only ults");
                         if (state.Fighters[e.Source].Team != team && (SeenAt(e.Tick, e.Source) & (1u << team)) == 0u)
                             Assert.Fail("tick " + tick + ": ult of a hidden fighter");
+                        if (state.Fighters[e.Source].Team != team && aoi > 0f && Vec2.Distance(EventPoint(in e), eye) > aoi + QuantizedAoiTolerance)
+                            Assert.Fail("tick " + tick + ": ult of fighter " + e.Source + " beyond the area of interest");
                         break;
                     default:
                         Assert.Fail("unexpected event " + e.Type);
@@ -209,6 +243,9 @@ namespace Arena.Tests.EditMode.Net.Snapshots
                 }
             }
         }
+
+        private static Vec2 EventPoint(in NetSnapshotEvent e) =>
+            new Vec2(Quantize.FromPosition(e.PointX), Quantize.FromPosition(e.PointY));
 
         private void RecordVisibility(MatchState state, int tick)
         {

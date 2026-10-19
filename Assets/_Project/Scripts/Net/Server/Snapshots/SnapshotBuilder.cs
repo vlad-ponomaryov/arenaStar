@@ -126,7 +126,8 @@ namespace Arena.Net.Server.Snapshots
             SnapshotFrame result = view.BeginFrame(tick);
             int team = state.Fighters[view.Slot].Team;
             int maxEvents = _settings.MaxEventsPerSnapshot;
-            LastEventCount = _journal.Collect(tick, _settings.EventWindowTicks, view.Slot, team, _events, maxEvents);
+            LastEventCount = _journal.Collect(tick, _settings.EventWindowTicks, view.Slot, team, state.Fighters[view.Slot].Position,
+                _aoiRadiusSq, _events, maxEvents);
             int bytes = _encoder.Encode(baseline, _target, _events, LastEventCount, result, buffer, offset, _settings.MaxSnapshotBytes);
             LastWasKeyframe = baseline == null;
             if (bytes > 0) view.CountBuilt(LastWasKeyframe);
@@ -168,9 +169,11 @@ namespace Arena.Net.Server.Snapshots
                 Push(ref n, i, ally ? -1f : d);
             }
             SortByKey(n);
+            uint shown = 1u << slot; // fighters this client may know about: itself, allies, visible enemies in the area
             for (int k = 0; k < n; k++)
             {
                 int i = _sortSlots[k];
+                shown |= 1u << i;
                 ref FighterState f = ref state.Fighters[i];
                 NetFighterView v = _fighterViews[i];
                 if (f.Team == team)
@@ -193,18 +196,35 @@ namespace Arena.Net.Server.Snapshots
             }
             SortByKey(n);
             for (int k = 0; k < n && !t.Projectiles.IsFull; k++)
-                t.Projectiles.Set(_sortSlots[k], in _projectiles.Get(_sortSlots[k]));
+            {
+                NetProjectileSegment seg = _projectiles.Get(_sortSlots[k]);
+                if (seg.Owner != slot) HideUnseenHits(ref seg, shown);
+                t.Projectiles.Set(_sortSlots[k], in seg);
+            }
 
-            // Areas visible to the team (hidden mines, D-030), nearest first.
+            // Areas visible to the team (hidden mines, D-030), nearest first; foreign ones only inside the area of interest, and
+            // their origin (where the thrower stood) only if it is inside too (F2, D-117).
             n = 0;
             AreaState[] areas = state.Areas;
             for (int i = 0; i < areas.Length; i++)
             {
                 if (!areas[i].Active || (areas[i].VisibleToTeams & teamBit) == 0u) continue;
-                Push(ref n, i, Vec2.SqrDistance(areas[i].Position, eye));
+                float d = Vec2.SqrDistance(areas[i].Position, eye);
+                if (_aoiRadiusSq > 0f && areas[i].Team != team && d > _aoiRadiusSq) continue;
+                Push(ref n, i, d);
             }
             SortByKey(n);
-            for (int k = 0; k < n && !t.Areas.IsFull; k++) t.Areas.Set(_sortSlots[k], in _areaViews[_sortSlots[k]]);
+            for (int k = 0; k < n && !t.Areas.IsFull; k++)
+            {
+                int i = _sortSlots[k];
+                NetAreaView a = _areaViews[i];
+                if (_aoiRadiusSq > 0f && areas[i].Team != team && Vec2.SqrDistance(areas[i].Origin, eye) > _aoiRadiusSq)
+                {
+                    a.OriginX = a.PositionX;
+                    a.OriginY = a.PositionY;
+                }
+                t.Areas.Set(i, in a);
+            }
 
             // Pickups, nearest first.
             n = 0;
@@ -218,6 +238,22 @@ namespace Arena.Net.Server.Snapshots
             for (int k = 0; k < n && !t.Pickups.IsFull; k++) t.Pickups.Set(_sortSlots[k], in _pickupViews[_sortSlots[k]]);
 
             Array.Copy(_changedCells, t.ChangedCells, _changedCells.Length);
+        }
+
+        /// <summary>
+        /// A foreign projectile must not tell who it hit unseen (§4.4 item 9, F2): only the hit bits of fighters this client is
+        /// shown (and the owner's own bit) stay, and the pierces spent on the others are given back.
+        /// </summary>
+        private static void HideUnseenHits(ref NetProjectileSegment seg, uint shown)
+        {
+            uint keep = shown;
+            if ((uint)seg.Owner < 32u) keep |= 1u << seg.Owner;
+            uint hidden = seg.HitMask & ~keep;
+            if (hidden == 0u) return;
+            seg.HitMask = (ushort)(seg.HitMask & keep);
+            int count = 0;
+            for (; hidden != 0u; hidden &= hidden - 1u) count++;
+            seg.PierceLeft += count;
         }
 
         private void Push(ref int n, int slot, float key)

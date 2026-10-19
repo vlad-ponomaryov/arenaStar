@@ -1,4 +1,5 @@
 using Arena.Core.Defs;
+using Arena.Core.Math;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 using Arena.Net.Serialization;
@@ -16,6 +17,8 @@ namespace Arena.Net.Server.Snapshots
     /// <item><c>UltReady</c> — to the fighter's own client only.</item>
     /// </list>
     /// Visibility is taken at the event's tick (masks after the tick, the same ones the fighter filter of that tick uses).
+    /// With an area of interest (Last Beast) a foreign event counts as seen only if its point is inside the receiver's area too
+    /// (F2, D-117: events must not work as a radar), else it is treated as hidden.
     /// Preallocated; overflowing events of a tick are dropped and counted.
     /// </summary>
     public sealed class EventJournal
@@ -72,6 +75,7 @@ namespace Arena.Net.Server.Snapshots
                 j.Event.PointX = Quantize.ToPosition(e.Position.X);
                 j.Event.PointY = Quantize.ToPosition(e.Position.Y);
                 j.Event.AbilityRef = e.AbilityRef;
+                j.Point = e.Position;
                 See(state, e.Source, out j.SourceTeam, out j.SourceSeenBy);
                 See(state, e.Target, out j.TargetTeam, out j.TargetSeenBy);
             }
@@ -81,7 +85,15 @@ namespace Arena.Net.Server.Snapshots
         /// Events of the ticks <c>(snapshotTick − windowTicks, snapshotTick]</c> for the client of <paramref name="slot"/> in
         /// <paramref name="team"/>, newest tick first, at most <paramref name="max"/>. Returns the count written.
         /// </summary>
-        public int Collect(int snapshotTick, int windowTicks, int slot, int team, NetSnapshotEvent[] output, int max)
+        public int Collect(int snapshotTick, int windowTicks, int slot, int team, NetSnapshotEvent[] output, int max) =>
+            Collect(snapshotTick, windowTicks, slot, team, Vec2.Zero, 0f, output, max);
+
+        /// <summary>
+        /// Same with the area of interest: foreign events (target or source of another team) whose point is farther than
+        /// √<paramref name="aoiRadiusSq"/> from <paramref name="eye"/> are treated as hidden; 0 — no area.
+        /// </summary>
+        public int Collect(int snapshotTick, int windowTicks, int slot, int team, Vec2 eye, float aoiRadiusSq,
+            NetSnapshotEvent[] output, int max)
         {
             if (max > output.Length) max = output.Length;
             int n = 0;
@@ -95,11 +107,12 @@ namespace Arena.Net.Server.Snapshots
                 for (int i = _bucketCount[b] - 1; i >= 0 && n < max; i--)
                 {
                     ref JournalEvent j = ref bucket[i];
+                    bool near = aoiRadiusSq <= 0f || Vec2.SqrDistance(j.Point, eye) <= aoiRadiusSq;
                     switch (j.Event.Type)
                     {
                         case SimEventType.Damaged:
                         case SimEventType.Healed:
-                            if (j.TargetTeam == team || (j.TargetSeenBy & teamBit) != 0u) output[n++] = j.Event;
+                            if (j.TargetTeam == team || (near && (j.TargetSeenBy & teamBit) != 0u)) output[n++] = j.Event;
                             else if (j.Event.Source == slot && slot >= 0)
                             {
                                 NetSnapshotEvent hidden = j.Event;
@@ -111,7 +124,7 @@ namespace Arena.Net.Server.Snapshots
                             }
                             break;
                         case SimEventType.AbilityFired:
-                            if (j.SourceTeam == team || (j.SourceSeenBy & teamBit) != 0u) output[n++] = j.Event;
+                            if (j.SourceTeam == team || (near && (j.SourceSeenBy & teamBit) != 0u)) output[n++] = j.Event;
                             break;
                         case SimEventType.UltReady:
                             if (j.Event.Source == slot && slot >= 0)

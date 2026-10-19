@@ -1,3 +1,4 @@
+using Arena.Core.Math;
 using Arena.Net.Snapshots;
 
 namespace Arena.Net.Server.Snapshots
@@ -13,5 +14,8 @@ namespace Arena.Net.Server.Snapshots
         public int TargetTeam;
         public uint SourceSeenBy;
         public uint TargetSeenBy;
+
+        /// <summary>The event point unquantized — for the area of interest (F2, D-117).</summary>
+        public Vec2 Point;
     }
 }
