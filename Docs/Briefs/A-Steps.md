@@ -84,3 +84,11 @@
   У нас 1–4 сделаны в A.3c; осталось: **A.4 — рамка** (деревья-шары, домики-грибы, фонарики, заборы, цветы на луге — главный разрыв с
   концептом), резной лист на верхах каменных блоков (сейчас мох), заборчики-штакетник как тип пропа на 1 клетку, кусты — ещё
   насыщеннее и с отдельными высокими травинками по краю (бюджет ≈ 60 треуг. свободен). Пост-эффекты — только после замера A.10.
+- (A.6) UI: стиль/спрайты — `ViewAssetBuilder.BuildUi` (только UiStyle, спрайты `Art/UI/Sprites`, шрифт каталога, ≈ 17 с); значения —
+  `SeedUiStyle`, формы — `UiSpriteBaker`. Кнопки красить только `UiFactory.SetButtonColor` (лицо, кромка, контраст подписи), не
+  `targetGraphic.color`. Панели — `UiFactory.CreatePanel` (вертикальный layout + ContentSizeFitter), ряды с подписью —
+  `UiFactory.AlignRowLeft`. Табло/стики/HP (A.7a/A.7b) пока старые — бери те же спрайты/шрифт.
+- (A.6) Скриншоты UI: `$env:ARENA_ART_STEP='A.x'; Tools/test.ps1 -Platform PlayMode -Category Capture -Graphics` → `Tools/out/art/A.x/`
+  (`UiCaptureTests`). Overlay-канвас в RT не рисуется, стек камер URP render request игнорирует, `WaitForEndOfFrame` в batchmode
+  нет — поэтому UI снимается отдельной камерой на чёрном/белом и матируется на 3D-кадр; A.8 может добавить свои кадры туда же.
+- (A.6) Шрифт-ассет TTF содержит подматериал «Font Material» (GUI/Text Shader) — `ShaderSanityTests` пропускает `TrueTypeFontImporter`.
