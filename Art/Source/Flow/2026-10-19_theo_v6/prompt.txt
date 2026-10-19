@@ -1,0 +1,27 @@
+Theo (Тео) v6 — v5 с огромным бластером, наплечными пушками и доп. деталями; 2 варианта палитры. Google Flow, проект «Arena»,
+Nano Banana 2.1; условия — как в ../2026-10-19_tex-grass/prompt.md (Q-019, D-111). База — ../2026-10-19_theo_v5/theo_v5.png. В игру не идёт.
+
+ОТЗЫВ ПОЛЬЗОВАТЕЛЯ (19.10): «бластер ещё больше; вариант золото-красный, как у Железного Человека, с той же подсветкой — будет
+круто; дополнительные пушки на плечи; ещё больше деталей».
+
+ПОЧЕМУ НЕ БУКВАЛЬНО: красно-золотая броня — узнаваемая схема Iron Man (Marvel, CLAUDE.md §1), а красный — цвет вражеской команды
+(D-115), мешает читаемости. Поэтому тёплый вариант B — золото + медь/огненный янтарь (ember copper, burnt orange) с тем же
+оранжевым свечением, мелкие тёмно-вишнёвые акценты; красный не основной; без дугового реактора, шлема-маски и линий Iron Man.
+
+СПОСОБ: редактирование изображения в редакторе Flow («Что вы хотите изменить?»). A — правка v5 (1 генерация). B — правка A
+только по цветам (1 генерация), чтобы бластер/поза/детали совпадали. Перегенераций нет. Сгенерировано 19.10 ≈18:07 и ≈18:08;
+скачано 1K (JPEG 896×1200), сохранено в PNG без изменения пикселей (Tools/art_theo_v6_sheet.py). Водяного знака не видно, SynthID — есть.
+
+ОЦЕНКА: бластер наконец сменился — огромная пушка почти во всю ширину кадра, двумя руками, без пистолетной рукояти, с рёбрами,
+энергоячейками и светящимся дулом. На плечах две мини-пушки (стоят за наплечниками, смотрят вперёд). Лицо, визор, гарнитура,
+эмблема-комета, фон — сохранены. Минусы: хват условный (правая рука лежит сверху у казённой части, левая — у бедра, пушка будто
+парит); прибавка деталей брони скромная (наручи с экранчиками, полосы, модули на поясе в основном были и в v5).
+B: броня — тёплое золото с медными кантами, читается как «золото-огненный», красного как основного нет.
+
+ЗАПРОС ПРАВКИ A (точно, как отправлен, к v5):
+
+Redraw the weapon and pose: replace the small one-handed blaster with a HUGE heavy space blaster cannon, almost as long as the boy is tall, chunky and wide, held with BOTH hands diagonally across his body at hip height: right hand on a top carry handle near the back, left hand on a front grip under the long barrel, no pistol grip. The cannon has a wide glowing orange muzzle, stacked cooling fins, glowing orange energy cells and gold trim, pearl white body. Add two compact mini cannons (small turrets) mounted on top of both shoulder pads, pointing forward, pearl white and gold with glowing orange tips. Add more armor detail: panel lines and seams, thin glowing orange strips along arms and legs, small tech modules and pouches on the belt, gauntlets with tiny glowing screens on both forearms, small vents on the chest plate. Keep the same boy, face, hair, orange monocle visor, headset with microphone, gold comet orbit emblem, pearl white and gold colors, orange glow, boots, background and 3D style. No cape.
+
+ЗАПРОС ПРАВКИ B (точно, как отправлен, к A):
+
+Change only the color scheme of the armor, the big cannon and the shoulder mini cannons: replace the pearl white with warm polished gold, and replace the gold trim with ember copper and burnt orange metal, with a few small dark cherry accent lines; keep the warm grey undersuit. Keep the same bright orange glow on all energy cells, strips, muzzles and boot soles, and the same orange monocle visor. Red must not be a main color. Keep everything else exactly the same: same boy, face, hair, pose, huge two-handed cannon, shoulder mini cannons, all armor details, headset with microphone, comet orbit emblem, background and 3D style. No cape.
