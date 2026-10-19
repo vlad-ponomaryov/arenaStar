@@ -27,7 +27,7 @@ LABEL_HEIGHT = 28
 TARGETS = {
     "sand_open": ("#F9D28A", 8.0),
     "block_top": ("#FBE6B8", 8.0),
-    "block_side": (("#D2AA74", "#E0BC86"), 12.0),   # A.3f (D-131): one stone material, lit cream-tan side (was wood #A84A14)
+    "block_side": (("#D2AA74", "#E0BC86"), 12.0),   # A.3f (D-132): one stone material, lit cream-tan side (was wood #A84A14)
     "meadow": ("#5BB56B", 12.0),
 }
 
