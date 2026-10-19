@@ -12,6 +12,7 @@ using Arena.Net.Server.Match;
 using Arena.Net.Server.Transport;
 using Arena.Net.Transport;
 using Arena.Online;
+using Arena.UI.Hud;
 using Arena.UI.Menu;
 using NUnit.Framework;
 using UnityEngine;
@@ -106,6 +107,55 @@ namespace Arena.Tests.PlayMode
             Assert.AreEqual(MenuScreen.FailureKey(OnlineFailure.MatchOver), Arena.Data.Localization.LocKeys.ErrorMatchOver);
             Assert.IsFalse(string.IsNullOrEmpty(menu.OnlineStatus.text), "the error is shown");
             Assert.IsFalse(online.CanRejoin, "the dead ticket is forgotten");
+            Assert.IsFalse(menu.RejoinButton.gameObject.activeSelf);
+        }
+
+        /// <summary>F1: the server disappears mid-match — while the client is still reconnecting "Menu" leaves the match at once.</summary>
+        [UnityTest]
+        public IEnumerator ServerGone_MidMatch_MenuButton_LeavesWhileReconnecting()
+        {
+            SceneFlow.ClearLaunchParams();
+            new RejoinStore(new PlayerPrefsKeyValueStore(), 0f).Clear();
+            yield return SceneManager.LoadSceneAsync(SceneNames.Boot, LoadSceneMode.Single);
+            MenuScreen menu = null;
+            yield return WaitFor(() => OnlineSession.Instance != null && (menu = FindMenu()) != null, "Boot loads the menu");
+            OnlineSession online = OnlineSession.Instance;
+
+            ContentBundle bundle = ContentPackReader.Read(online.Config.ContentPack.bytes, true, out ContentPackHeader header);
+            _serverSocket = new PortableUdpServerSocket(new IPEndPoint(IPAddress.Loopback, 0));
+            var node = new ServerNode(_serverSocket, TransportSettings.CreateDefault(), ServerSettings.CreateDefault(), bundle,
+                header.ContentHash, new CryptoNetRandom());
+            _pump = new GameObject("InProcessServer").AddComponent<InProcessServerPump>();
+            _pump.Node = node;
+            var server = new IPEndPoint(IPAddress.Loopback, _serverSocket.LocalEndPoint.Port);
+            int mapIndex = bundle.MapsFor(ModeKind.Acorns).MapIndices[0];
+            var fighters = new[] { 0, -1, -1, -1, -1, -1 };
+            MatchRoom room = node.Matches.CreateMatch(MatchRoomRequest.FromBundle(bundle, mapIndex, ModeKind.Acorns, fighters, Seed),
+                NetClock.NowMicros());
+            SaveTicket(online, server, room.MatchId, room.GetSlot(OwnSlot).Token);
+            yield return null;
+            menu.RejoinButton.onClick.Invoke();
+            MatchRunner runner = null;
+            yield return WaitFor(() => (runner = FindOnlineRunner()) != null, "the Match scene online");
+            var driver = (OnlineMatchDriver)runner.Driver;
+            yield return WaitFor(() => driver.Session.Latest != null && driver.BuiltTicks > 30, "snapshots and display ticks");
+            MatchHud hud = Object.FindFirstObjectByType<MatchHud>();
+            yield return WaitFor(() => hud.Connection != null, "the connection banner exists");
+            Assert.IsFalse(hud.Connection.MenuButton.gameObject.activeSelf, "healthy: no menu button");
+
+            // The server process dies: no more packets, no Disconnect.
+            Object.Destroy(_pump.gameObject);
+            _pump = null;
+            _serverSocket.Close();
+            _serverSocket = null;
+            yield return WaitFor(() => hud.Connection.State == ConnectionOverlayState.Lost
+                || hud.Connection.State == ConnectionOverlayState.GaveUp, "\"connection lost\" banner");
+            Assert.IsTrue(hud.Connection.MenuButton.gameObject.activeSelf, "Menu is available while reconnecting");
+            hud.Connection.MenuButton.onClick.Invoke();
+            yield return WaitFor(() => (menu = FindMenu()) != null, "back in the menu");
+            yield return null;
+            Assert.AreEqual(OnlinePhase.Idle, online.Phase, "the session is closed");
+            Assert.IsFalse(online.CanRejoin, "leaving on purpose forgets the ticket");
             Assert.IsFalse(menu.RejoinButton.gameObject.activeSelf);
         }
 

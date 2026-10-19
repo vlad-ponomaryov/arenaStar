@@ -90,6 +90,9 @@ namespace Arena.Online
         /// <summary>"Back to the match" after the automatic attempts gave up: tries again with a new window.</summary>
         public bool RetryRejoin() => _session.Client.RetryRejoin(_clock());
 
+        /// <summary>"Back to the match" can do something: the rejoin ticket is known and the server has not said the match is over.</summary>
+        public bool CanRetryRejoin => _session.Client.HasRejoinToken && _session.Client.ReconnectState != ReconnectState.MatchOver;
+
         /// <summary>Microseconds since the last packet from the server at <paramref name="nowMicros"/>.</summary>
         public long SilenceMicros(long nowMicros) => nowMicros - _session.Client.Transport.Connection.LastReceiveMicros;
 
