@@ -194,7 +194,7 @@ namespace Arena.Editor.Art
         private const float FloorWorldTiling = 7f;    // cells per grass tile: soft patches every ≈ 3–4 cells
         private const float FloorMacroTiling = 23f;   // the larger turned sample that breaks the repetition
         private const float FloorMacroStrength = 0.3f;
-        private static readonly Color FloorTint = new Color(0.94f, 0.94f, 0.94f, 1f);   // compensates light + ambient (on screen ≈ palette)
+        private static readonly Color FloorTint = new Color(1.02f, 0.93f, 0.72f, 1f);   // A.3b: warm sunny meadow (complements the teal bushes); light + ambient compensated
         private static readonly Color MeadowTint = new Color(0.64f, 0.76f, 0.62f, 1f);  // grass × this ≈ #6E9E58 (darker meadow)
         private const float FloorContrast = 1f;
         private const float MeadowContrast = 0.5f;   // the meadow is calmer than the arena floor: the eye stays on the play field

@@ -67,7 +67,7 @@ Material:
     - _StepSoftness: 0.12
     - _WorldTiling: 7
     m_Colors:
-    - _BaseColor: {r: 0.94, g: 0.94, b: 0.94, a: 1}
+    - _BaseColor: {r: 1.02, g: 0.93, b: 0.72, a: 1}
     - _MapShadowColor: {r: 0.56, g: 0.56, b: 0.74, a: 1}
     - _RimColor: {r: 1, g: 0.965, b: 0.878, a: 1}
     - _ShadeColor: {r: 0.6119999, g: 0.5759999, b: 0.784, a: 1}

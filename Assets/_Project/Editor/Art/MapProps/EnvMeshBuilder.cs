@@ -18,9 +18,9 @@ namespace Arena.Editor.Art.MapProps
         public const int BushVariantCount = 3;
 
         // Bush (palette: top #2FAE4F, foot #1C7A38).
-        private static readonly Color BushTop = new Color32(0x2F, 0xAE, 0x4F, 0xFF);
-        private static readonly Color BushTip = new Color32(0x5C, 0xCB, 0x5A, 0xFF);
-        private static readonly Color BushFoot = new Color32(0x1C, 0x7A, 0x38, 0xFF);
+        private static readonly Color BushTop = new Color32(0x1F, 0xB0, 0x6A, 0xFF);
+        private static readonly Color BushTip = new Color32(0x5E, 0xE0, 0x8A, 0xFF);
+        private static readonly Color BushFoot = new Color32(0x10, 0x5E, 0x40, 0xFF);
         private static readonly Color FlowerWhite = new Color32(0xFF, 0xF6, 0xE8, 0xFF);
         private static readonly Color FlowerYellow = new Color32(0xFF, 0xD8, 0x4A, 0xFF);
         private static readonly Color FlowerLilac = new Color32(0xC9, 0xA6, 0xF2, 0xFF);
