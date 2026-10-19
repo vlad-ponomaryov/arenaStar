@@ -38,6 +38,7 @@ namespace Arena.Net.Client
         private bool _readyWanted;
         private bool _requestKeyframe;
         private bool _newSnapshot;
+        private InputButtons _carriedButtons;
         private long _lastFrameMicros;
         private bool _hasFrameTime;
         private bool _hasFirstTick;
@@ -170,7 +171,8 @@ namespace Arena.Net.Client
 
         /// <summary>
         /// One prediction tick with the collected (raw) own input: quantize, remember, predict, send. A tick sent before (clock
-        /// jump back) keeps its first input.
+        /// jump back) keeps its first input; buttons pressed on such a replayed tick are carried into the first new tick (D-006:
+        /// presses are not lost, F2).
         /// </summary>
         public void Step(in PlayerInput raw, long nowMicros)
         {
@@ -178,8 +180,14 @@ namespace Arena.Net.Client
             if (!Inputs.TryGet(tick, out PlayerInput input))
             {
                 input = InputQuantizer.Apply(in raw);
+                input.Buttons |= _carriedButtons;
+                _carriedButtons = InputButtons.None;
                 input.ViewDelayTicks = ViewDelayFor(tick);
                 Inputs.Set(tick, in input);
+            }
+            else
+            {
+                _carriedButtons |= raw.Buttons & InputButtons.All & ~input.Buttons;
             }
             if (tick == 0 && Latest != null) MarginAtZero = Latest.Header.InputMarginMin;
             bool predicted = false;
@@ -355,6 +363,7 @@ namespace Arena.Net.Client
         private void ResetTimelines()
         {
             _newSnapshot = false;
+            _carriedButtons = InputButtons.None;
             Clock.Reset();
             Interpolation.Reset();
             Scheduler.Clear();

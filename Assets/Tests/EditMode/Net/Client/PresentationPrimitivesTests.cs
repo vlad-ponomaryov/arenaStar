@@ -69,6 +69,43 @@ namespace Arena.Tests.EditMode.Net.Client
             Assert.LessOrEqual(interp.ExtrapolationTicks, settings.MaxExtrapolationMs * 30f / 1000f + 1e-3f);
         }
 
+        /// <summary>
+        /// A stall of the snapshots (Wi-Fi pause, F2): the render clock holds at the extrapolation cap instead of running past the
+        /// data and hard-jumping back every few ticks (the world would replay the last 0.3 s).
+        /// </summary>
+        [Test]
+        public void RenderClock_SnapshotsStop_NeverRunsBack_HoldsAtTheExtrapolationCap()
+        {
+            ClientMatchSettings settings = ClientMatchSettings.CreateDefault();
+            var ring = new SnapshotFrameRing();
+            var interp = new InterpolationBuffer(settings, ring);
+            for (int t = 0; t < 100; t++)
+            {
+                Arrive(ring, interp, t, t * TickMicros);
+                interp.Advance();
+            }
+            long jumps = interp.Jumps;
+            double previous = interp.RenderTick;
+            double cap = 99 + settings.MaxExtrapolationMs * 30.0 / 1000.0;
+            for (int i = 0; i < 60; i++)
+            {
+                interp.Advance();
+                Assert.GreaterOrEqual(interp.RenderTick, previous, $"advance {i}: the render clock went back");
+                Assert.LessOrEqual(interp.RenderTick, cap + 1e-6, "no further than the extrapolation cap");
+                previous = interp.RenderTick;
+            }
+            Assert.AreEqual(jumps, interp.Jumps, "no hard jumps without new data");
+
+            // The data returns: the clock catches up forward, it is not thrown back.
+            for (int t = 100; t < 160; t++)
+            {
+                Arrive(ring, interp, t, (t + 60) * TickMicros);
+                interp.Advance();
+                Assert.GreaterOrEqual(interp.RenderTick, previous, $"tick {t}: back after the stall");
+                previous = interp.RenderTick;
+            }
+        }
+
         [Test]
         public void DisplaySlots_StableByKey_OrdinalsForEqualKeys_FreedWhenGone()
         {

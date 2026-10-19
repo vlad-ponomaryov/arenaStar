@@ -106,7 +106,6 @@ namespace Arena.Net.Client
             SnapshotTick = ts;
 
             bool hadView = Ready && !BotControlled;
-            int oldTick = ShadowTick;
             Vec2 oldPosition = Own.Position;
             bool oldAlive = Own.Alive;
 
@@ -143,7 +142,9 @@ namespace Arena.Net.Client
                 ResimulatedTicks++;
             }
 
-            if (!hadView || oldTick != ShadowTick || !oldAlive || !Own.Alive)
+            // A changed tick (the prediction clock jumped) is smoothed too: the view keeps its place, only a jump over
+            // SnapDistanceCells snaps (F2).
+            if (!hadView || !oldAlive || !Own.Alive)
             {
                 CorrectionOffset = Vec2.Zero;
                 ExternalCorrection = false;

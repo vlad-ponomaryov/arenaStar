@@ -10,7 +10,8 @@ namespace Arena.Net.Client
     /// intervals + <see cref="ClientMatchSettings.InterpJitterFactor"/> × the arrival jitter (EMA of |arrival interval − nominal|),
     /// at most <see cref="ClientMatchSettings.InterpDelayMaxMs"/>. The clock advances once per prediction tick (the display is built
     /// tick by tick for <c>IMatchDriver</c>, D-097) at <c>1 + clamp(InterpGain × error, ±MaxTimeDilation)</c>; an error above
-    /// <see cref="ClientMatchSettings.HardResyncTicks"/> jumps it. <see cref="Sample"/> finds the newest frame at or before the
+    /// <see cref="ClientMatchSettings.HardResyncTicks"/> jumps it — backwards only right after a new snapshot; without new data the
+    /// clock never goes back and holds at <c>newest + MaxExtrapolationMs</c> (a stall must not replay the world, F2). <see cref="Sample"/> finds the newest frame at or before the
     /// render tick (<see cref="From"/>) and the next one (<see cref="To"/>) in the decoder's ring (late snapshots land there too);
     /// without a newer frame the render tick is ahead of the data: <see cref="Extrapolating"/>, capped at
     /// <see cref="ClientMatchSettings.MaxExtrapolationMs"/>. No allocations.
@@ -25,6 +26,7 @@ namespace Arena.Net.Client
         private long _lastArrivalMicros;
         private int _lastArrivalTick;
         private bool _hasArrival;
+        private bool _fresh;
 
         public InterpolationBuffer(ClientMatchSettings settings, SnapshotFrameRing ring)
         {
@@ -75,6 +77,7 @@ namespace Arena.Net.Client
         {
             Started = false;
             _hasArrival = false;
+            _fresh = false;
             JitterTicks = 0f;
             Rate = 1f;
             From = null;
@@ -97,6 +100,7 @@ namespace Arena.Net.Client
             _lastArrivalMicros = arrivalMicros;
             _lastArrivalTick = tick;
             _hasArrival = true;
+            _fresh = true;
             NewestTick = tick;
             DelayTicks = ComputeDelay();
             if (!Started)
@@ -111,7 +115,9 @@ namespace Arena.Net.Client
         {
             if (!Started) return;
             double error = NewestTick - DelayTicks - RenderTick;
-            if (error > _settings.HardResyncTicks || -error > _settings.HardResyncTicks)
+            bool fresh = _fresh;
+            _fresh = false;
+            if (error > _settings.HardResyncTicks || (fresh && -error > _settings.HardResyncTicks))
             {
                 RenderTick = NewestTick - DelayTicks;
                 Rate = 1f;
@@ -123,7 +129,10 @@ namespace Arena.Net.Client
             if (dilation > max) dilation = max;
             else if (dilation < -max) dilation = -max;
             Rate = 1f + dilation;
-            RenderTick += Rate;
+            double next = RenderTick + Rate;
+            double cap = NewestTick + _settings.MaxExtrapolationMs * (SimLimits.TickRate / 1000.0);
+            if (next > cap) next = cap > RenderTick ? cap : RenderTick; // hold: no data to show beyond the cap
+            RenderTick = next;
         }
 
         /// <summary>Finds <see cref="From"/> / <see cref="To"/> around <see cref="RenderTick"/>; false without any frame.</summary>
