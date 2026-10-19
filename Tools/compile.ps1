@@ -10,7 +10,7 @@ $code = Invoke-ArenaUnity -UnityArgs @('-quit') -LogFile $log -TimeoutMinutes $T
 $errors = Get-ArenaCsErrors -LogFile $log
 if ($errors.Count -gt 0) {
     $errors | Select-Object -First 20 | ForEach-Object { Write-Host $_ }
-    Write-Host ("COMPILE: FAILED, CS errors: {0}" -f $errors.Count)
+    Write-Host ("COMPILE: FAILED, CS/shader errors: {0}" -f $errors.Count)
     exit 1
 }
 if ($code -ne 0 -or -not (Test-Path $log)) {

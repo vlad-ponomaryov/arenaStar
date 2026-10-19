@@ -67,18 +67,21 @@ function ConvertTo-ArenaArgString([string[]]$ArgList) {
 
 # Runs Unity in batchmode. Returns Unity's exit code, or 2 on timeout / start failure.
 # Always adds: -batchmode -nographics -projectPath <ProjectPath> -buildTarget Android -logFile <LogFile>
+# -Graphics drops -nographics (a real GPU device for rendering screenshots, Art-Spec 6.5; no GUI window is opened).
 function Invoke-ArenaUnity {
     param(
         [string[]]$UnityArgs = @(),
         [Parameter(Mandatory = $true)][string]$LogFile,
         [int]$TimeoutMinutes = 15,
-        [switch]$NoProject
+        [switch]$NoProject,
+        [switch]$Graphics
     )
     $unity = Get-ArenaUnityPath
     if (-not (Test-Path $unity)) { Write-Host "ERROR: Unity not found at $unity (set ARENA_UNITY)"; return 2 }
     Sync-ArenaUnityLicense
     if (Test-Path $LogFile) { Remove-Item -Force $LogFile }
-    $all = @('-batchmode', '-nographics')
+    $all = @('-batchmode')
+    if (-not $Graphics) { $all += '-nographics' }
     if (-not $NoProject) { $all += @('-projectPath', $ProjectPath) }
     $all += @('-buildTarget', 'Android', '-logFile', $LogFile)
     $all += $UnityArgs
@@ -105,14 +108,14 @@ function Invoke-ArenaUnity {
     return [int]$code
 }
 
-# Unique 'error CS####' lines from the log (plus a marker if Unity reports compiler errors without CS lines).
+# Unique 'error CS####' and 'Shader error in' lines from the log (plus a marker if Unity reports compiler errors without CS lines).
 function Get-ArenaCsErrors {
     param([Parameter(Mandatory = $true)][string]$LogFile)
     $result = New-Object System.Collections.Generic.List[string]
     if (-not (Test-Path $LogFile)) { return ,$result }
     $seen = @{}
     foreach ($line in (Get-Content -Path $LogFile -ErrorAction SilentlyContinue)) {
-        if ($line -match 'error CS\d{4}') {
+        if ($line -match 'error CS\d{4}' -or $line.Contains('Shader error in')) {
             $t = $line.Trim()
             if (-not $seen.ContainsKey($t)) { $seen[$t] = $true; $result.Add($t) }
         }

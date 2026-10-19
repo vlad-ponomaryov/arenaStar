@@ -1,9 +1,12 @@
 # Runs an Editor static method: -quit -executeMethod <Method> (or without -quit if -NoQuit: method must call EditorApplication.Exit).
-# Exit: 0 ok, 1 method failed / exception in log, 2 Unity failure, 3 Unity already running.
+# -Graphics: render with a GPU device (no -nographics), for ArtCapture. -Extra: more Unity arguments, space-separated
+# (e.g. -Extra '-artStep A.1a').  Exit: 0 ok, 1 method failed / exception in log, 2 Unity failure, 3 Unity already running.
 param(
     [Parameter(Mandatory = $true)][string]$Method,
     [int]$TimeoutMinutes = 15,
-    [switch]$NoQuit
+    [switch]$NoQuit,
+    [switch]$Graphics,
+    [string]$Extra = ''
 )
 . "$PSScriptRoot\UnityCommon.ps1"
 
@@ -11,13 +14,14 @@ if (Test-ArenaUnityRunning) { Write-Host 'METHOD: Unity is already running for t
 $log = Join-Path $OutDir ("method-{0}.log" -f $Method)
 $uargs = @('-executeMethod', $Method)
 if (-not $NoQuit) { $uargs = @('-quit') + $uargs }
-$code = Invoke-ArenaUnity -UnityArgs $uargs -LogFile $log -TimeoutMinutes $TimeoutMinutes
+if (-not [string]::IsNullOrEmpty($Extra)) { $uargs += @($Extra.Split(' ') | Where-Object { $_ -ne '' }) }
+$code = Invoke-ArenaUnity -UnityArgs $uargs -LogFile $log -TimeoutMinutes $TimeoutMinutes -Graphics:$Graphics
 
 if (-not (Test-Path $log)) { Write-Host "METHOD: UNITY FAILED (exit $code), no log"; exit 2 }
 $errors = Get-ArenaCsErrors -LogFile $log
 if ($errors.Count -gt 0) {
     $errors | Select-Object -First 20 | ForEach-Object { Write-Host $_ }
-    Write-Host ("METHOD: FAILED {0}, CS errors: {1}" -f $Method, $errors.Count)
+    Write-Host ("METHOD: FAILED {0}, CS/shader errors: {1}" -f $Method, $errors.Count)
     exit 1
 }
 $lic = Test-ArenaLicenseError -LogFile $log

@@ -1336,3 +1336,13 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   того же размера); Ping/Discover — отдельный бакет (`RateLimitedProbes`, в метрику `rate_limited`). (4) Боты не выбирают куст в
   наступающем тумане (`IsInFogSoon`, как ящики). (5) `RejoinStore.Clear` удаляет ключи, `TransportSettings.Validate`,
   `MaxSnapshotBytes ≤ MaxPayloadBytes − 1`, `EventRedundancyTicks × MaxEventsPerSnapshot ≤ RecentEventHistory`.
+- D-118 (A.0) — **Стенд скриншотов открывает сцену Match.** `ArtCapture.CaptureAll` открывает `Match.unity` (не сохраняя) и берёт
+  её камеру и свет — «свет как в матче» без копии констант `SceneBuilder`; стенд `CaptureStage` (карта 9×7 через настоящий `MapView`,
+  все бойцы базы в ряд, половина — команда 1) строится поверх. Камера — `CameraMath` + `CameraConfig` (фокус = ряд бойцов +
+  `ForwardOffset`, как при слежении). Сверх §6.5: `lineup_zoom2.png` (тот же вид, рендер 2× и кроп вокруг ряда — реальная
+  перспектива, больше деталей), `silhouettes64_x3.png` (увеличение ×3 без сглаживания), CVD-версии `lineup_team1`. Шаг — аргумент
+  `-artStep <имя>` (`unity-method.ps1 -Extra '-artStep A.1a'`), без него — `Tools/out/art/latest/`. Рендер — `SubmitRenderRequest`
+  (URP), запасной путь `Camera.Render()`. Рендер с графикой переписывает `BerryBox.mat`/`BlobShadow.mat` (служебные поля URP:
+  `_Color`, `DepthOnly`) — не коммитить, пока шаг не меняет материалы сознательно. Ошибки шейдеров: `Shader error in` в логе считается
+  ошибкой compile/test/method; `ShaderSanityTests` — каждый шейдер в `Assets/_Project` называется `Arena/*` и без ошибок, каждый
+  материал проекта — на `Universal Render Pipeline/*` или `Arena/*` без ошибок (`ShaderRules`, общий с `ViewAssetsTests`).
