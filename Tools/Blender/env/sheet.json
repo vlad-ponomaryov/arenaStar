@@ -1,0 +1,18 @@
+{
+  "resolution": [1920, 1080],
+  "center": [0.5, 3.6],
+  "ground": [40, 30],
+  "distance": 21,
+  "fovDeg": 35,
+  "items": {
+    "tree_tall": [-6.5, 6.5, 0], "tree_round": [-3.3, 6.8, 0], "tree_wide": [0.3, 6.6, 20],
+    "house_red": [4.0, 6.0, 0], "house_blue": [7.0, 6.2, 0],
+    "rocks_moss": [-6.5, 3.0, 0], "stump_hollow": [-3.8, 3.0, 0],
+    "fence_picket": [-1.5, 3.0, 0], "fence_rail": [1.5, 3.0, 0], "lantern": [4.0, 3.0, 0],
+    "rock_a": [5.6, 3.0, 0], "rock_b": [6.6, 3.0, 0], "rock_c": [7.6, 3.0, 0],
+    "flower_pink": [-6.5, 0.6, 0], "flower_yellow": [-5.5, 0.6, 0], "flower_blue": [-4.5, 0.6, 0],
+    "mushroom_red": [-3.0, 0.6, 0], "mushroom_purple": [-2.0, 0.6, 0],
+    "tuft_a": [-0.5, 0.6, 0], "tuft_b": [0.5, 0.6, 0],
+    "acorn": [2.5, 0.6, 0], "acorn_gold": [3.5, 0.6, 0]
+  }
+}

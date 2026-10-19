@@ -1,0 +1,28 @@
+{
+  "exportDir": "Art/Source/3D/env/export",
+  "defaults": {
+    "voxelSize": 0.009,
+    "minIslandFraction": 0.01,
+    "baseSlice": 0.06,
+    "smoothIterations": 2,
+    "colourBlur": 1,
+    "paletteStrength": 0.5,
+    "saturation": 1.08,
+    "aoRays": 32,
+    "aoDistance": 0.3,
+    "aoStrength": 0.42,
+    "groundDark": 0.75,
+    "groundDarkHeight": 0.12,
+    "gloss": 0.12,
+    "yawDeg": 0
+  },
+  "models": {
+    "tree_round": { "tris": 700, "height": 2.6, "smoothIterations": 0, "aoStrength": 0.55, "palette": ["#5BB56B", "#3D935C", "#2E7A4C", "#8A5634", "#6B3F25"] },
+    "tree_tall": { "tris": 700, "height": 3.0, "palette": ["#3FA765", "#2C8A55", "#1F6E45", "#8A5634", "#6B3F25"] },
+    "tree_wide": { "tris": 700, "height": 2.2, "palette": ["#4DAA62", "#2F8A55", "#236E44", "#8A5634", "#6B3F25"] },
+    "house_red": { "tris": 1200, "height": 1.7, "voxelSize": 0.007, "palette": ["#E5483A", "#C23A2E", "#FFFFFF", "#F3E3C3", "#E2CBA0", "#9A5A32", "#6E3E22"] },
+    "house_blue": { "tris": 1200, "height": 1.7, "voxelSize": 0.007, "palette": ["#5FA8E8", "#4A8CCC", "#FFFFFF", "#F3E3C3", "#E2CBA0", "#9A5A32", "#6E3E22"] },
+    "rocks_moss": { "tris": 400, "height": 0.8, "palette": ["#CFC6B8", "#B5AB9B", "#8CC63F", "#6FA832"] },
+    "stump_hollow": { "tris": 1000, "height": 1.0, "voxelSize": 0.008, "palette": ["#9A5A32", "#7A4424", "#E8C08A", "#C9975E", "#3A2216", "#8CC63F"] }
+  }
+}

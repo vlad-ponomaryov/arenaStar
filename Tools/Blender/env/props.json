@@ -1,0 +1,713 @@
+{
+  "comment": "Frame props and mode pickups for build_props.py (A.4a, Docs/Briefs/A-EnvTarget.md §3.1 path B, §3.3 budgets). Units: 1 cell = 1 unit, Blender Z up, pivot = bottom centre, fences span X. Colours are sRGB hex; alpha of a vertex = gloss (0..0.3), lantern glass = 1 (glow).",
+  "exportDir": "Art/Source/3D/env/export",
+  "ao": {
+    "rays": 24,
+    "distance": 0.3,
+    "strength": 0.4,
+    "groundPlane": true,
+    "contactHeight": 0.12,
+    "contactMul": 0.75
+  },
+  "weightedNormalWeight": 50,
+  "props": {
+    "fence_picket": {
+      "type": "fence_picket",
+      "budget": 120,
+      "footprint": [
+        0.5,
+        0.5
+      ],
+      "length": 1.0,
+      "pickets": 4,
+      "picketWidth": 0.17,
+      "picketDepth": 0.055,
+      "picketHeight": 0.55,
+      "tipDrop": 0.07,
+      "railDepth": 0.04,
+      "railHeight": 0.07,
+      "railZ": [
+        0.14,
+        0.37
+      ],
+      "railY": 0.048,
+      "picket": {
+        "grad": [
+          "#E2D6C2",
+          "#FFF9EE"
+        ],
+        "gloss": 0.15
+      },
+      "rail": {
+        "grad": [
+          "#D8CCB6",
+          "#F3EBDC"
+        ],
+        "gloss": 0.12
+      }
+    },
+    "fence_rail": {
+      "type": "fence_rail",
+      "budget": 240,
+      "footprint": [
+        1.0,
+        0.5
+      ],
+      "length": 2.0,
+      "posts": 3,
+      "postRadius": 0.075,
+      "postHeight": 0.6,
+      "postSegments": 8,
+      "postTopRound": 0.05,
+      "railWidth": 0.065,
+      "railHeight": 0.1,
+      "railZ": [
+        0.2,
+        0.43
+      ],
+      "railBevel": 0.022,
+      "railBevelSegments": 2,
+      "post": {
+        "grad": [
+          "#7E4022",
+          "#B5683A"
+        ],
+        "gloss": 0.12
+      },
+      "rail": {
+        "grad": [
+          "#A95A2C",
+          "#CF8445"
+        ],
+        "gloss": 0.12
+      }
+    },
+    "lantern": {
+      "type": "lantern",
+      "budget": 200,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "base": {
+        "size": [
+          0.26,
+          0.26,
+          0.12
+        ],
+        "bevel": 0.05,
+        "segments": 2,
+        "color": {
+          "grad": [
+            "#8E8476",
+            "#BDB3A4"
+          ],
+          "gloss": 0.08
+        }
+      },
+      "post": {
+        "size": [
+          0.13,
+          0.13,
+          1.0
+        ],
+        "bevel": 0.025,
+        "color": {
+          "grad": [
+            "#80482A",
+            "#A9653A"
+          ],
+          "gloss": 0.1
+        }
+      },
+      "cap": {
+        "radius": 0.075,
+        "height": 0.07,
+        "segments": 8,
+        "color": {
+          "hex": "#5B4433",
+          "gloss": 0.2
+        }
+      },
+      "arm": {
+        "length": 0.38,
+        "size": 0.06,
+        "color": {
+          "hex": "#8E5230",
+          "gloss": 0.1
+        }
+      },
+      "lamp": {
+        "x": 0.3,
+        "hangBelow": 0.0,
+        "plate": [
+          0.23,
+          0.035
+        ],
+        "glass": [
+          0.17,
+          0.2
+        ],
+        "bar": 0.03,
+        "roof": [
+          0.17,
+          0.025,
+          0.11
+        ],
+        "frameColor": {
+          "hex": "#4E3A2E",
+          "gloss": 0.25
+        },
+        "glassColor": {
+          "grad": [
+            "#FFC23D",
+            "#FFF0A8"
+          ],
+          "gloss": 1.0
+        }
+      }
+    },
+    "flower_pink": {
+      "type": "flower",
+      "budget": 80,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "height": 0.3,
+      "petals": 5,
+      "petalSamples": 5,
+      "rInner": 0.05,
+      "rOuter": 0.22,
+      "cup": 0.035,
+      "thickness": 0.04,
+      "tilt": 12,
+      "centerRadius": 0.07,
+      "centerHeight": 0.05,
+      "centerSegments": 5,
+      "stemRadius": 0.03,
+      "leafLength": 0.2,
+      "leafWidth": 0.1,
+      "leafAngles": [
+        30,
+        210
+      ],
+      "leafZ": 0.03,
+      "leafLift": 12,
+      "petal": {
+        "radial": [
+          "#FFC2DC",
+          "#FF6FAE"
+        ],
+        "gloss": 0.2
+      },
+      "center": {
+        "grad": [
+          "#F7B21C",
+          "#FFE15A"
+        ],
+        "gloss": 0.25
+      },
+      "stem": {
+        "grad": [
+          "#2B8A43",
+          "#47B757"
+        ],
+        "gloss": 0.1
+      },
+      "leaf": {
+        "radial": [
+          "#3CAE52",
+          "#62CF62"
+        ],
+        "gloss": 0.12
+      },
+      "petalRound": 0.25,
+      "petalU": [
+        0,
+        0.15,
+        0.38,
+        0.62,
+        0.85
+      ],
+      "stemSegments": 3
+    },
+    "flower_yellow": {
+      "type": "flower",
+      "budget": 80,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "height": 0.26,
+      "petals": 5,
+      "petalSamples": 5,
+      "rInner": 0.05,
+      "rOuter": 0.2,
+      "cup": 0.03,
+      "thickness": 0.04,
+      "tilt": 12,
+      "centerRadius": 0.07,
+      "centerHeight": 0.05,
+      "centerSegments": 5,
+      "stemRadius": 0.03,
+      "leafLength": 0.2,
+      "leafWidth": 0.1,
+      "leafAngles": [
+        60,
+        240
+      ],
+      "leafZ": 0.03,
+      "leafLift": 12,
+      "petal": {
+        "radial": [
+          "#FFF0A0",
+          "#FFC81E"
+        ],
+        "gloss": 0.2
+      },
+      "center": {
+        "grad": [
+          "#E2601C",
+          "#FF8F3A"
+        ],
+        "gloss": 0.25
+      },
+      "stem": {
+        "grad": [
+          "#2B8A43",
+          "#47B757"
+        ],
+        "gloss": 0.1
+      },
+      "leaf": {
+        "radial": [
+          "#3CAE52",
+          "#62CF62"
+        ],
+        "gloss": 0.12
+      },
+      "petalRound": 0.25,
+      "petalU": [
+        0,
+        0.15,
+        0.38,
+        0.62,
+        0.85
+      ],
+      "stemSegments": 3
+    },
+    "flower_blue": {
+      "type": "flower",
+      "budget": 80,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "height": 0.28,
+      "petals": 5,
+      "petalSamples": 5,
+      "rInner": 0.05,
+      "rOuter": 0.21,
+      "cup": 0.035,
+      "thickness": 0.04,
+      "tilt": 12,
+      "centerRadius": 0.07,
+      "centerHeight": 0.05,
+      "centerSegments": 5,
+      "stemRadius": 0.03,
+      "leafLength": 0.2,
+      "leafWidth": 0.1,
+      "leafAngles": [
+        100,
+        280
+      ],
+      "leafZ": 0.03,
+      "leafLift": 12,
+      "petal": {
+        "radial": [
+          "#BFE0FF",
+          "#4E9BFF"
+        ],
+        "gloss": 0.2
+      },
+      "center": {
+        "grad": [
+          "#F2B51E",
+          "#FFE45C"
+        ],
+        "gloss": 0.25
+      },
+      "stem": {
+        "grad": [
+          "#2B8A43",
+          "#47B757"
+        ],
+        "gloss": 0.1
+      },
+      "leaf": {
+        "radial": [
+          "#3CAE52",
+          "#62CF62"
+        ],
+        "gloss": 0.12
+      },
+      "petalRound": 0.25,
+      "petalU": [
+        0,
+        0.15,
+        0.38,
+        0.62,
+        0.85
+      ],
+      "stemSegments": 3
+    },
+    "mushroom_red": {
+      "type": "mushroom",
+      "budget": 150,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "capRadius": 0.17,
+      "capHeight": 0.13,
+      "stemRadius": 0.065,
+      "stemHeight": 0.2,
+      "segments": 10,
+      "stemSegments": 8,
+      "spots": [
+        [
+          20,
+          0.35,
+          0.03
+        ],
+        [
+          140,
+          0.4,
+          0.028
+        ],
+        [
+          260,
+          0.32,
+          0.032
+        ],
+        [
+          80,
+          0.8,
+          0.024
+        ],
+        [
+          200,
+          0.78,
+          0.022
+        ]
+      ],
+      "spotHeight": 0.012,
+      "spotSegments": 6,
+      "cap": {
+        "grad": [
+          "#C92A2A",
+          "#FF5A45"
+        ],
+        "gloss": 0.28
+      },
+      "spot": {
+        "hex": "#FFF7EA",
+        "gloss": 0.2
+      },
+      "stem": {
+        "grad": [
+          "#F0DDC0",
+          "#FFF6E6"
+        ],
+        "gloss": 0.12,
+        "ao": 0.5
+      }
+    },
+    "mushroom_purple": {
+      "type": "mushroom",
+      "budget": 150,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "capRadius": 0.14,
+      "capHeight": 0.12,
+      "stemRadius": 0.055,
+      "stemHeight": 0.18,
+      "segments": 10,
+      "stemSegments": 8,
+      "spots": [
+        [
+          50,
+          0.36,
+          0.026
+        ],
+        [
+          170,
+          0.38,
+          0.025
+        ],
+        [
+          290,
+          0.34,
+          0.027
+        ],
+        [
+          110,
+          0.8,
+          0.02
+        ]
+      ],
+      "spotHeight": 0.011,
+      "spotSegments": 6,
+      "cap": {
+        "grad": [
+          "#7B3FC0",
+          "#B57CF0"
+        ],
+        "gloss": 0.28
+      },
+      "spot": {
+        "hex": "#FFF7EA",
+        "gloss": 0.2
+      },
+      "stem": {
+        "grad": [
+          "#F0DDC0",
+          "#FFF6E6"
+        ],
+        "gloss": 0.12,
+        "ao": 0.5
+      }
+    },
+    "tuft_a": {
+      "type": "tuft",
+      "budget": 24,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "seed": 11,
+      "blades": 8,
+      "spread": 0.09,
+      "width": 0.052,
+      "height": [
+        0.17,
+        0.27
+      ],
+      "lean": 0.07,
+      "blade": {
+        "grad": [
+          "#005C51",
+          "#05A674",
+          "#1CD48E"
+        ],
+        "gloss": 0.1
+      }
+    },
+    "tuft_b": {
+      "type": "tuft",
+      "budget": 24,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "seed": 27,
+      "blades": 7,
+      "spread": 0.07,
+      "width": 0.052,
+      "height": [
+        0.22,
+        0.34
+      ],
+      "lean": 0.1,
+      "blade": {
+        "grad": [
+          "#005C51",
+          "#05A674",
+          "#1CD48E"
+        ],
+        "gloss": 0.1
+      }
+    },
+    "rock_a": {
+      "type": "rock",
+      "budget": 200,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "seed": 3,
+      "size": [
+        0.78,
+        0.68,
+        0.62
+      ],
+      "segments": 12,
+      "rings": 8,
+      "noise": 0.1,
+      "noiseScale": 1.3,
+      "flatBottom": 0.06,
+      "squashTop": 0.1,
+      "rock": {
+        "grad": [
+          "#968A7C",
+          "#D9CFC2"
+        ],
+        "gloss": 0.1
+      }
+    },
+    "rock_b": {
+      "type": "rock",
+      "budget": 200,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "seed": 8,
+      "size": [
+        0.72,
+        0.64,
+        0.5
+      ],
+      "segments": 10,
+      "rings": 7,
+      "noise": 0.09,
+      "noiseScale": 1.3,
+      "flatBottom": 0.06,
+      "squashTop": 0.05,
+      "rock": {
+        "grad": [
+          "#968A7C",
+          "#D6CCBE"
+        ],
+        "gloss": 0.1
+      },
+      "moss": {
+        "threshold": 0.62,
+        "noise": 0.0,
+        "thickness": 0.025,
+        "color": {
+          "grad": [
+            "#6FAE3A",
+            "#A3D453"
+          ],
+          "gloss": 0.05
+        }
+      }
+    },
+    "rock_c": {
+      "type": "rock",
+      "budget": 200,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "seed": 15,
+      "size": [
+        0.66,
+        0.5,
+        0.3
+      ],
+      "segments": 10,
+      "rings": 6,
+      "noise": 0.05,
+      "noiseScale": 2.8,
+      "flatBottom": 0.05,
+      "squashTop": 0.3,
+      "offset": [
+        -0.08,
+        0.04
+      ],
+      "rock": {
+        "grad": [
+          "#968A7C",
+          "#DCD3C7"
+        ],
+        "gloss": 0.1
+      },
+      "pebble": {
+        "seed": 21,
+        "size": [
+          0.2,
+          0.17,
+          0.13
+        ],
+        "segments": 8,
+        "rings": 5,
+        "noise": 0.03,
+        "pos": [
+          0.27,
+          -0.17
+        ]
+      }
+    },
+    "acorn": {
+      "type": "acorn",
+      "budget": 300,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "radius": 0.15,
+      "bodyHeight": 0.34,
+      "capHeight": 0.1,
+      "segments": 12,
+      "stemRadius": 0.022,
+      "stemHeight": 0.06,
+      "body": {
+        "grad": [
+          "#B4602A",
+          "#E39A4C"
+        ],
+        "gloss": 0.22
+      },
+      "cap": {
+        "grad": [
+          "#6E4126",
+          "#9A633C"
+        ],
+        "gloss": 0.1
+      },
+      "stem": {
+        "hex": "#5A3520",
+        "gloss": 0.1
+      },
+      "capFlare": 1.07
+    },
+    "acorn_gold": {
+      "type": "acorn",
+      "budget": 300,
+      "footprint": [
+        0.47,
+        0.47
+      ],
+      "radius": 0.15,
+      "bodyHeight": 0.34,
+      "capHeight": 0.1,
+      "segments": 12,
+      "stemRadius": 0.022,
+      "stemHeight": 0.06,
+      "body": {
+        "grad": [
+          "#E08A00",
+          "#FFC21C"
+        ],
+        "gloss": 0.3
+      },
+      "cap": {
+        "grad": [
+          "#B85E00",
+          "#E8961A"
+        ],
+        "gloss": 0.3
+      },
+      "stem": {
+        "hex": "#8A4A00",
+        "gloss": 0.3
+      },
+      "capFlare": 1.07
+    }
+  }
+}

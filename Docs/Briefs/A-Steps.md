@@ -103,3 +103,13 @@
   теперь `Art/Textures/Env/Sand.png`. Мох с `WallTop` снят, плиты верха остались — лист вырезом в A.3f. Тени/AO ещё лиловые — A.3e.
 - (A.3d) Ловушки: python на Windows пишет CRLF — править файлы скриптом с `newline=''`; параллельный агент правит `DataSeeder.cs`,
   `ViewAssetBuilder.cs`, `Decisions.md` — свои ханки в индекс через `git hash-object -w --stdin --path` + `git update-index --cacheinfo`.
+- (A.4a) Модели окружения — `Tools/Blender/env/`: `build_props.py`+`props.json` (15 мелких пропов, ≈ 8 с), `tree_puff.py`+`puff.json`
+  (деревья/валуны из примитивов), `build_houses.py`+`houses.json` (домики-грибы, дупло), `prepare_env.py`+`env_models.json` (GLB
+  TRELLIS.2 → ремеш, цвет из текстуры, палитра, AO), общее — `envcommon.py`; запуск `& ./Tools/blender.ps1 -Script <py> [-ScriptArgs @(name)]`.
+  Выход — `Art/Source/3D/env/export/<name>.fbx` (цвет `Col` в углах граней, sRGB, α = глянец, у стекла фонаря α = 1; Z-up в Blender → Y-up FBX),
+  лист `render_sheet.py`+`sheet.json` → `Tools/out/art/A.4a/models/sheet_vs_002.png`; FBX в `Assets` переносит A.4b (жёлуди/дупло — A.4c).
+- (A.4a) TRELLIS.2: вход — своя RGBA-вырезка (`env/cutout.py`, белый ключ с заливкой от края), демо в iframe страницы huggingface.co
+  (квота считается по аккаунту), загрузка `setInputFiles` в `input[type=file]` фрейма, GLB — ссылка `a[download]` после Extract GLB.
+  **Бесплатный аккаунт: ≈ 1 генерация + извлечение в сутки** (Q-026). Текстура официального демо рабочая (в отличие от копии `Upsampler`).
+- (A.4a) Для A.4b: мелкие пропы в реальном масштабе мельче концепта (цветок 0,35, грибочек 0,3) — масштабируй экземпляры ×1,3–1,6 при
+  расстановке; кочки `tuft_*` имеют α = глянец 0,1 (если пойдут на `Arena/Bush`, α нужно = вес качания); дупло `stump_hollow` — диск, не сквозная дыра.

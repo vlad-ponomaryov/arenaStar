@@ -29,6 +29,6 @@ if ($text -match 'Traceback \(most recent call last\)') {
     Write-Output ($text -split "`n" | Select-String -Pattern 'Error|line \d+' | Select-Object -Last 6)
     Write-Output "BLENDER: FAILED, log $log"; exit 1
 }
-$last = ($text -split "`n" | Where-Object { $_ -match '^\[prepare\] RESULT|^PREVIEW:' } | Select-Object -Last 1)
+$last = ($text -split "`n" | Where-Object { $_ -match '^\[(prepare|props|puff|houses)\] RESULT|^PREVIEW:' } | Select-Object -Last 1)
 Write-Output "BLENDER: OK $last"
 exit 0

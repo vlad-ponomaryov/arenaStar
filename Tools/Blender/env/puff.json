@@ -1,0 +1,32 @@
+{
+  "exportDir": "Art/Source/3D/env/export",
+  "models": {
+    "tree_tall": {
+      "tris": 700, "voxel": 0.035, "smooth": 2, "seed": 11, "aoStrength": 0.55, "aoDistance": 0.35,
+      "trunk": { "height": 1.05, "r0": 0.2, "r1": 0.14, "roots": 4, "rootReach": 0.2, "rootSize": [0.16, 0.08, 0.07] },
+      "canopy": [
+        { "center": [0, 0, 1.5], "radii": [0.82, 0.82, 0.62], "lobes": 16, "lobeRadius": [0.3, 0.4], "shell": 0.8, "minZ": -0.75 },
+        { "center": [0.03, -0.02, 2.4], "radii": [0.55, 0.55, 0.45], "lobes": 10, "lobeRadius": [0.22, 0.3], "shell": 0.78, "minZ": -0.4 }
+      ],
+      "colours": { "canopyLight": "#57C47A", "canopyMid": "#2E9A5E", "canopyDark": "#16603E", "trunkLight": "#9A5A32", "trunkDark": "#6B3F25" }
+    },
+    "tree_wide": {
+      "tris": 700, "voxel": 0.035, "smooth": 2, "seed": 23, "aoStrength": 0.55, "aoDistance": 0.35,
+      "trunk": { "height": 0.7, "r0": 0.26, "r1": 0.19, "roots": 5, "rootReach": 0.24, "rootSize": [0.18, 0.09, 0.08] },
+      "canopy": [
+        { "center": [0, 0, 1.35], "radii": [1.1, 1.05, 0.68], "lobes": 26, "lobeRadius": [0.26, 0.36], "shell": 0.82, "minZ": -0.7, "lobeSquash": 0.9 }
+      ],
+      "colours": { "canopyLight": "#4FB565", "canopyMid": "#2F8A55", "canopyDark": "#1A5A39", "trunkLight": "#9A5A32", "trunkDark": "#6B3F25" }
+    },
+    "rocks_moss": {
+      "tris": 400, "voxel": 0.018, "smooth": 3, "seed": 5, "noise": 0.04, "noiseScale": 0.3, "aoStrength": 0.45, "aoDistance": 0.25,
+      "mossUp": 0.42, "mossThickness": 0.014,
+      "boulders": [
+        { "center": [0.04, 0.06, 0.27], "radii": [0.36, 0.3, 0.33], "yaw": 15 },
+        { "center": [-0.34, -0.1, 0.15], "radii": [0.22, 0.2, 0.19], "yaw": -20 },
+        { "center": [0.26, -0.28, 0.1], "radii": [0.15, 0.13, 0.12], "yaw": 40 }
+      ],
+      "colours": { "rock": "#D8CFC0", "rockDark": "#9E9384", "moss": "#9AD14B", "mossDark": "#6FA832" }
+    }
+  }
+}
