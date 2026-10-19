@@ -19,5 +19,13 @@ namespace Arena.Editor.Art.Fighters
         public FighterAttackStyle UltStyle;
         public FighterTrickStyle TrickStyle;
         public FighterSpring[] Springs;
+        /// <summary>
+        /// Skinned FBX the body comes from (A-Theo3D), or null for a fully procedural model. Its mesh, vertex colours (sRGB →
+        /// linear, alpha = gloss) and bone weights are copied (bones matched by name to <see cref="FighterBone"/>) and the heads of
+        /// its bones replace the pivots in <see cref="Bones"/>; <see cref="Groups"/> are added on top. Used for the hero model too.
+        /// </summary>
+        public string SourceModel;
+        /// <summary>Unskinned FBX of the held prop (origin = the grip), weighted to <see cref="FighterBone.Prop"/> at its pivot; or null.</summary>
+        public string SourceProp;
     }
 }

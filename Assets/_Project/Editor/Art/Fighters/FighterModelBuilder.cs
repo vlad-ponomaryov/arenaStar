@@ -12,7 +12,8 @@ using Object = UnityEngine.Object;
 namespace Arena.Editor.Art.Fighters
 {
     /// <summary>
-    /// Builds a fighter model from its recipe (Art-Spec §6.2): every group into <b>one</b> mesh with one bone per vertex (weight 1),
+    /// Builds a fighter model from its recipe (Art-Spec §6.2): the source FBX if any (A-Theo3D: its weights, up to
+    /// <see cref="SourceSkinQuality"/>) and every group into <b>one</b> mesh (procedural parts: one bone per vertex, weight 1),
     /// one <see cref="SkinnedMeshRenderer"/> on the shared body material, the bone hierarchy, <see cref="FighterRig"/> (rest pose,
     /// styles, springs) and the usual team ring and blob shadow. Mesh → <c>Art/Meshes/Fighters/&lt;id&gt;.asset</c>, prefab →
     /// <c>Art/Prefabs/Fighters/Fighter_&lt;id&gt;.prefab</c> (GUIDs kept on re-runs). Called from <see cref="ViewAssetBuilder.BuildAll"/>.
@@ -23,6 +24,10 @@ namespace Arena.Editor.Art.Fighters
         public const string PrefabFolder = ViewAssetBuilder.PrefabsFolder + "/Fighters";
         /// <summary>GDD §8.4: 3–5 thousand triangles per fighter; Art-Spec §6.2 — at most 4000.</summary>
         public const int MaxTriangles = 4000;
+        /// <summary>Budget of a held prop that comes as its own FBX (<see cref="FighterModelRecipe.SourceProp"/>), on top of <see cref="MaxTriangles"/>.</summary>
+        public const int MaxPropTriangles = 1200;
+        /// <summary>Most bone influences of a source-model vertex the renderer blends (the Blender export uses ≤ 2).</summary>
+        public const SkinQuality SourceSkinQuality = SkinQuality.Bone2;
         private const float BoundsMargin = 1.3f;
         /// <summary>Hero LOD (D-122): every group's budget times this (sculpted groups re-fit their sculpt to it).</summary>
         public const int HeroBudgetScale = 6;
@@ -31,7 +36,10 @@ namespace Arena.Editor.Art.Fighters
         public const string HeroSuffix = "_hero";
 
         /// <summary>Recipes of the fighters that have a model (the rest use the fallback capsule).</summary>
-        public static FighterModelRecipe[] Recipes() => new[] { PixRecipe.Create() };
+        public static FighterModelRecipe[] Recipes() => new[] { TheoRecipe.Create() };
+
+        /// <summary>Triangle limit of the recipe's match model: the body budget plus the prop budget when the prop is its own FBX.</summary>
+        public static int TriangleLimit(FighterModelRecipe recipe) => MaxTriangles + (recipe.SourceProp != null ? MaxPropTriangles : 0);
 
         public static string MeshPath(string fighterId, FighterModelQuality quality = FighterModelQuality.Game) =>
             MeshFolder + "/" + fighterId + Suffix(quality) + ".asset";
@@ -71,10 +79,23 @@ namespace Arena.Editor.Art.Fighters
         /// All groups of the recipe into one buffer (scaled model space, bone index = <see cref="FighterBone"/>); pure, no assets.
         /// </summary>
         public static MeshBuilderBuffer BuildGeometry(FighterModelRecipe recipe, List<GroupStats> stats = null,
-            FighterModelQuality quality = FighterModelQuality.Game)
+            FighterModelQuality quality = FighterModelQuality.Game, List<BoneWeight> weights = null)
         {
             Validate(recipe);
+            ApplySourcePivots(recipe);
             var buffer = new MeshBuilderBuffer();
+            var sourceWeights = new List<BoneWeight>();
+            if (recipe.SourceModel != null)
+            {
+                FighterModelSource.AppendModel(recipe.SourceModel, buffer, sourceWeights);
+                stats?.Add(new GroupStats { Name = "model", Triangles = buffer.TriangleCount, Budget = MaxTriangles });
+            }
+            if (recipe.SourceProp != null)
+            {
+                int before = buffer.TriangleCount;
+                FighterModelSource.AppendProp(recipe.SourceProp, recipe.Bones[(int)FighterBone.Prop].Pivot, FighterBone.Prop, buffer, sourceWeights);
+                stats?.Add(new GroupStats { Name = "prop", Triangles = buffer.TriangleCount - before, Budget = MaxPropTriangles });
+            }
             foreach (FighterGroupSpec group in recipe.Groups)
             {
                 int bone = (int)group.Bone;
@@ -101,9 +122,25 @@ namespace Arena.Editor.Art.Fighters
                 }
                 stats?.Add(new GroupStats { Name = group.Name, Triangles = buffer.TriangleCount - before, Budget = budget, Step = step });
             }
+            if (weights != null)
+            {
+                weights.Clear();
+                weights.AddRange(sourceWeights);
+                for (int i = sourceWeights.Count; i < buffer.VertexCount; i++)
+                    weights.Add(new BoneWeight { boneIndex0 = buffer.Bones[i], weight0 = 1f });
+            }
             if (!Mathf.Approximately(recipe.Scale, 1f))
                 for (int i = 0; i < buffer.Positions.Count; i++) buffer.Positions[i] *= recipe.Scale;
             return buffer;
+        }
+
+        /// <summary>Replaces the recipe's pivots with the heads of the bones its source model has (idempotent).</summary>
+        public static void ApplySourcePivots(FighterModelRecipe recipe)
+        {
+            if (recipe.SourceModel == null) return;
+            Vector3?[] pivots = FighterModelSource.BonePivots(recipe.SourceModel);
+            for (int i = 0; i < recipe.Bones.Length; i++)
+                if (pivots[i].HasValue) recipe.Bones[i] = new FighterBoneSpec(recipe.Bones[i].Bone, recipe.Bones[i].Parent, pivots[i].Value);
         }
 
         /// <summary>Rest pivot of a bone in scaled model space.</summary>
@@ -113,8 +150,9 @@ namespace Arena.Editor.Art.Fighters
             FighterModelQuality quality = FighterModelQuality.Game)
         {
             var stats = new List<GroupStats>();
-            MeshBuilderBuffer geometry = BuildGeometry(recipe, stats, quality);
-            Mesh mesh = SaveMesh(recipe, geometry, quality);
+            var weights = new List<BoneWeight>();
+            MeshBuilderBuffer geometry = BuildGeometry(recipe, stats, quality, weights);
+            Mesh mesh = SaveMesh(recipe, geometry, weights, quality);
             LogStats(recipe, stats, geometry, quality);
 
             var root = new GameObject("Fighter_" + recipe.FighterId + Suffix(quality));
@@ -145,7 +183,7 @@ namespace Arena.Editor.Art.Fighters
                 smr.sharedMesh = mesh;
                 smr.bones = bones;
                 smr.rootBone = bones[(int)FighterBone.Root];
-                smr.quality = SkinQuality.Bone1;
+                smr.quality = recipe.SourceModel != null ? SourceSkinQuality : SkinQuality.Bone1;
                 smr.updateWhenOffscreen = false;
                 Bounds local = mesh.bounds; // root bone sits at the model origin
                 local.extents *= BoundsMargin;
@@ -197,7 +235,7 @@ namespace Arena.Editor.Art.Fighters
             }
         }
 
-        private static Mesh SaveMesh(FighterModelRecipe recipe, MeshBuilderBuffer geometry, FighterModelQuality quality)
+        private static Mesh SaveMesh(FighterModelRecipe recipe, MeshBuilderBuffer geometry, List<BoneWeight> weights, FighterModelQuality quality)
         {
             string path = MeshPath(recipe.FighterId, quality);
             Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -205,9 +243,7 @@ namespace Arena.Editor.Art.Fighters
             if (created) mesh = new Mesh();
             geometry.WriteTo(mesh);
             mesh.name = recipe.FighterId + Suffix(quality);
-            var weights = new BoneWeight[geometry.VertexCount];
-            for (int i = 0; i < weights.Length; i++) weights[i] = new BoneWeight { boneIndex0 = geometry.Bones[i], weight0 = 1f };
-            mesh.boneWeights = weights;
+            mesh.boneWeights = weights.ToArray();
             mesh.UploadMeshData(false);
             if (created) AssetDatabase.CreateAsset(mesh, path);
             else EditorUtility.SetDirty(mesh);

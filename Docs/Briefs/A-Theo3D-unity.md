@@ -75,3 +75,17 @@
 - Hero 20k и game 4k должны совпасть по высоте/пивотам (одна нормировка в Blender — ок, но разные пивоты костей при
   перерасчёте ray cast; брать пивоты из game-FBX для обоих).
 - Unity — один процесс; ArtCapture требует `-Graphics`.
+
+## Итог реализации (2026-10-19, A.theo3d)
+- FBX → `Assets/_Project/Art/Models/Fighters/theo_game.fbx`, `theo_blaster.fbx` (LFS). Импорт — `FighterModelImporter`
+  (без материалов/анимации/аватара, `bakeAxisConversion`, readable, нормали пересчитаны 60°). Чтение — `FighterModelSource`.
+- **Ось:** экспорт `axis_forward=-Z` в Unity даёт лицо к **−Z** и правую руку на −X (а не +Z, как в `source.md`) →
+  `FighterModelSource.SourceToModel` = поворот 180° по Y для всех источников. FBX из одного объекта (бластер) — сам корень
+  префаба, его поворот — часть модели (не обнулять `root.worldToLocal`, иначе ствол смотрит вниз).
+- Рецепт `TheoRecipe` (id `pix`, Scale 1.5 → рост 1.5, `TopHeight` 1.5), `Groups` пусты: глаза — в FBX (EyeL/R),
+  процедурные веки не строятся (кости LidL/R есть, масштаб 0). **Моргание** — позже: веки на LidL/R (процедурная группа
+  или геометрия в FBX). Tail/Extra — пивоты из рецепта (в FBX их нет). `PixRecipe` — запасной, вне `Recipes()`.
+- Цвета: sRGB → линейные (`GammaToLinearSpace`), alpha (глянец) из FBX без изменений. `SkinQuality.Bone2` для FBX.
+- Бюджет: тело ≤ 4000 + бластер-FBX ≤ 1200 (`MaxPropTriangles`, `TriangleLimit`): итог 5100 треуг. (3922 + 1178) —
+  выше прежних 4000 на бойца (GDD §8.4 3–5k); при замене на TRELLIS.2 уложить в 5000 или подтвердить.
+- Hero = тот же FBX (тест 15–30k треуг. только для процедурных). Скриншоты — `Tools/out/art/theo3d/` (`-artStep theo3d`).
