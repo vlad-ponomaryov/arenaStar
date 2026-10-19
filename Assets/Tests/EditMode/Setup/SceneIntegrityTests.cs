@@ -79,6 +79,13 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(runner.ViewCatalog.AimIndicatorPrefab);
             Assert.IsNotNull(runner.ViewCatalog.ProjectilePrefab);
             Assert.IsNotNull(runner.ViewCatalog.HealthBarPrefab);
+            Assert.IsNotNull(runner.MainLight, "MatchLightRig turns this light");
+            Assert.AreEqual(LightType.Directional, runner.MainLight.type);
+            // RenderSettings are those of the active scene (the test opens the scene additively).
+            Scene previous = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(scene);
+            Assert.AreEqual(UnityEngine.Rendering.AmbientMode.Trilight, RenderSettings.ambientMode, "Art-Spec §1.3 three-colour ambient");
+            UnityEngine.SceneManagement.SceneManager.SetActiveScene(previous);
 
             MatchHud hud = FindSingle<MatchHud>(scene);
             AssertAllReferencesSet(hud);

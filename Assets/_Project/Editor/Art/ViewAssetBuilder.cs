@@ -44,8 +44,13 @@ namespace Arena.Editor.Art
         public const string BerryBoxPrefabPath = PrefabsFolder + "/BerryBox.prefab";
         public const string BerryPrefabPath = PrefabsFolder + "/Berry.prefab";
         public const string FogPrefabPath = PrefabsFolder + "/Fog.prefab";
+        public const string MeshesFolder = ArtRoot + "/Meshes";
+        public const string FallbackCapsuleMeshPath = MeshesFolder + "/FallbackCapsule.asset";
 
         private const string LitShader = "Universal Render Pipeline/Lit";
+        public const string ToonCharacterShader = "Arena/ToonCharacter";
+        public const string ToonCharacterGhostShader = "Arena/ToonCharacterGhost";
+        private const string FlashProperty = "_Flash";
         private const string UnlitShader = "Universal Render Pipeline/Unlit";
         private const string BaseColorProperty = "_BaseColor";
         private const string BaseMapProperty = "_BaseMap";
@@ -60,8 +65,8 @@ namespace Arena.Editor.Art
         // Colour-blind palette (D-029): allies stay blue, enemies orange (blue/orange is told apart by all common types).
         private static readonly Color EnemyAltColor = new Color(1.00f, 0.60f, 0.10f, 1f);
 
-        // Feel (S2.10, D-059): hit flash = bright unlit body; telegraph = translucent zone + stronger growing fill by team.
-        private static readonly Color FlashColor = new Color(1f, 1f, 1f, 1f);
+        // Feel (S2.10, D-059): hit flash = the toon body with _Flash = 1 (white, outline kept, Art-Spec §6.3); telegraph =
+        // translucent zone + stronger growing fill by team.
         private const float TelegraphZoneAlpha = 0.18f;
         private const float TelegraphFillAlpha = 0.42f;
         private const float TelegraphThickness = 0.01f;
@@ -159,6 +164,14 @@ namespace Arena.Editor.Art
         private const float NoseForward = 0.45f;
         private const float NoseHeightFraction = 0.75f;
 
+        // Fallback capsule (A.1a): a copy of Unity's capsule with vertex colours (meshes under Arena/* shaders need them, Art-Spec
+        // §2.1): white albedo, alpha = gloss of the toon highlight (a vinyl toy, a little shiny).
+        private static readonly Color32 FallbackCapsuleVertexColor = new Color32(255, 255, 255, 140);
+
+        // Light (Art-Spec §6.3): pitch 50°, yaw = camera yaw + 35° (MatchLightRig).
+        private const float LightPitch = 50f;
+        private const float LightYawFromCamera = 35f;
+
         // Blob shadow under a fighter (D-027, S2.13): code-generated radial texture on a flat quad just above the floor.
         private const int BlobShadowTextureSize = 64;
         private const float BlobShadowSoftStart = 0.55f; // fraction of the radius where the edge starts to fade
@@ -177,10 +190,11 @@ namespace Arena.Editor.Art
             ProjectConfigurator.EnsureFolder(PrefabsFolder);
             ProjectConfigurator.EnsureFolder(UiFolder);
             ProjectConfigurator.EnsureFolder(TexturesFolder);
+            ProjectConfigurator.EnsureFolder(MeshesFolder);
 
             Material ally = SaveMaterial("TeamAlly", UnlitShader, AllyColor);
             Material enemy = SaveMaterial("TeamEnemy", UnlitShader, EnemyColor);
-            Material body = SaveMaterial("FighterBody", LitShader, BodyColor);
+            Material body = SaveToonMaterial("FighterBody", ToonCharacterShader, BodyColor, 0f);
             Material floor = SaveMaterial("Floor", LitShader, FloorColor);
             Material aimLine = SaveMaterial("AimLine", UnlitShader, AimLineColor);
             Material projectile = SaveMaterial("Projectile", UnlitShader, ProjectileColor);
@@ -193,10 +207,10 @@ namespace Arena.Editor.Art
             Material bush = SaveMaterial("Bush", LitShader, BushColor);
             Material bushSeeThrough = SaveMaterial("BushSeeThrough", LitShader, BushSeeThroughColor, true);
             Material water = SaveMaterial("Water", LitShader, WaterColor);
-            Material fighterHidden = SaveMaterial("FighterHidden", LitShader, FighterHiddenColor, true);
+            Material fighterHidden = SaveToonMaterial("FighterHidden", ToonCharacterGhostShader, FighterHiddenColor, 0f);
             Material enemyAlt = SaveMaterial("TeamEnemyAlt", UnlitShader, EnemyAltColor);
             Material barEnemyAlt = SaveMaterial("BarEnemyAlt", UnlitShader, EnemyAltColor);
-            Material flash = SaveMaterial("FighterFlash", UnlitShader, FlashColor);
+            Material flash = SaveToonMaterial("FighterFlash", ToonCharacterShader, BodyColor, 1f);
             Material telegraphAllyZone = SaveMaterial("TelegraphAllyZone", UnlitShader, WithAlpha(AllyColor, TelegraphZoneAlpha), true);
             Material telegraphAllyFill = SaveMaterial("TelegraphAllyFill", UnlitShader, WithAlpha(AllyColor, TelegraphFillAlpha), true);
             Material telegraphEnemyZone = SaveMaterial("TelegraphEnemyZone", UnlitShader, WithAlpha(EnemyColor, TelegraphZoneAlpha), true);
@@ -210,7 +224,8 @@ namespace Arena.Editor.Art
             blobShadow.SetTexture(BaseMapProperty, blobTexture);
             blobShadow.SetTexture(MainTexProperty, blobTexture);
             EditorUtility.SetDirty(blobShadow);
-            FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine, blobShadow);
+            Mesh fallbackCapsule = BuildFallbackCapsuleMesh();
+            FighterView fighterView = BuildFighterViewPrefab(body, ally, aimLine, blobShadow, fallbackCapsule);
             AimIndicatorView aimIndicator = BuildAimIndicatorPrefab(aimLine);
             GameObject floorPrefab = BuildFloorPrefab(floor);
             GameObject projectilePrefab = BuildProjectilePrefab(projectile);
@@ -239,6 +254,10 @@ namespace Arena.Editor.Art
 
             ViewCatalog catalog = LoadOrCreate<ViewCatalog>(ViewCatalogPath);
             catalog.FighterViewPrefab = fighterView;
+            // Per-fighter models come in A.1b–A.1d; until then every fighter uses the fallback capsule.
+            catalog.FighterVisuals = Array.Empty<FighterVisual>();
+            catalog.LightPitch = LightPitch;
+            catalog.LightYawFromCamera = LightYawFromCamera;
             catalog.AimIndicatorPrefab = aimIndicator;
             catalog.FloorPrefab = floorPrefab;
             catalog.ProjectilePrefab = projectilePrefab;
@@ -473,7 +492,37 @@ namespace Arena.Editor.Art
             return AssetDatabase.LoadAssetAtPath<Texture2D>(BlobShadowTexturePath);
         }
 
-        private static FighterView BuildFighterViewPrefab(Material body, Material ring, Material nose, Material shadow)
+        /// <summary>Unity's capsule copied into an asset with vertex colours (keeps the GUID on re-runs).</summary>
+        private static Mesh BuildFallbackCapsuleMesh()
+        {
+            GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            try
+            {
+                Mesh source = temp.GetComponent<MeshFilter>().sharedMesh;
+                Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(FallbackCapsuleMeshPath);
+                bool created = mesh == null;
+                if (created) mesh = new Mesh();
+                mesh.Clear();
+                mesh.name = "FallbackCapsule";
+                mesh.vertices = source.vertices;
+                mesh.normals = source.normals;
+                mesh.uv = source.uv;
+                var colors = new Color32[source.vertexCount];
+                for (int i = 0; i < colors.Length; i++) colors[i] = FallbackCapsuleVertexColor;
+                mesh.colors32 = colors;
+                mesh.triangles = source.triangles;
+                mesh.RecalculateBounds();
+                if (created) AssetDatabase.CreateAsset(mesh, FallbackCapsuleMeshPath);
+                else EditorUtility.SetDirty(mesh);
+                return mesh;
+            }
+            finally
+            {
+                Object.DestroyImmediate(temp);
+            }
+        }
+
+        private static FighterView BuildFighterViewPrefab(Material body, Material ring, Material nose, Material shadow, Mesh bodyMesh)
         {
             var root = new GameObject("FighterView");
             try
@@ -485,6 +534,7 @@ namespace Arena.Editor.Art
                 shadowGo.transform.localPosition = new Vector3(0f, BlobShadowHeight, 0f);
 
                 GameObject capsule = CreatePart(PrimitiveType.Capsule, "Body", root.transform, body);
+                capsule.GetComponent<MeshFilter>().sharedMesh = bodyMesh;
                 // Unity capsule: height 2, diameter 1.
                 capsule.transform.localScale = new Vector3(BodyDiameter, BodyHeight * 0.5f, BodyDiameter);
                 capsule.transform.localPosition = new Vector3(0f, BodyHeight * 0.5f, 0f);
@@ -753,6 +803,36 @@ namespace Arena.Editor.Art
             }
             mat.SetColor(BaseColorProperty, color);
             SetSurface(mat, transparent);
+            mat.enableInstancing = false;
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>
+        /// Material on an <c>Arena/*</c> toon shader: reset to the shader's defaults each run (no stale URP properties), then the
+        /// base colour (alpha = opacity of the ghost) and the flash amount. Render queue from the shader.
+        /// </summary>
+        private static Material SaveToonMaterial(string name, string shaderName, Color color, float flash)
+        {
+            Shader shader = Shader.Find(shaderName);
+            if (shader == null) throw new InvalidOperationException("ViewAssetBuilder: shader not found: " + shaderName);
+            string path = MaterialsFolder + "/" + name + ".mat";
+            var fresh = new Material(shader) { name = name };
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = fresh;
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            else
+            {
+                EditorUtility.CopySerialized(fresh, mat);
+                mat.name = name;
+                Object.DestroyImmediate(fresh);
+            }
+            mat.SetColor(BaseColorProperty, color);
+            if (mat.HasProperty(FlashProperty)) mat.SetFloat(FlashProperty, flash);
+            mat.renderQueue = -1;
             mat.enableInstancing = false;
             EditorUtility.SetDirty(mat);
             return mat;

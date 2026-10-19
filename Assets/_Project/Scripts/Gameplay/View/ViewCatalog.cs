@@ -24,6 +24,9 @@ namespace Arena.Gameplay.View
         [Tooltip("Ground marker of a pending area attack (zone disc + growing fill), diameter 1.")]
         public TelegraphView TelegraphPrefab;
 
+        [Tooltip("Fighter view prefab by fighter id (D-113); a fighter without an entry (or with an empty prefab) uses FighterViewPrefab.")]
+        public FighterVisual[] FighterVisuals;
+
         [Header("Areas and special projectiles (S2.11)")]
         [Tooltip("Rolling log: cylinder with its axis along local X, length 1 and diameter 1; scaled at runtime.")]
         public GameObject LogPrefab;
@@ -163,5 +166,23 @@ namespace Arena.Gameplay.View
         public Material BerryBox;
         public Material Berry;
         public Material Fog;
+
+        [Header("Light (A.1a, MatchLightRig)")]
+        [Tooltip("Pitch of the directional light, degrees.")]
+        [Range(0f, 90f)] public float LightPitch;
+
+        [Tooltip("Light yaw = camera yaw + this, degrees (lit from behind the camera, slightly from the side).")]
+        public float LightYawFromCamera;
+
+        /// <summary>The view prefab of the fighter with <paramref name="fighterId"/>, else <see cref="FighterViewPrefab"/>.
+        /// No allocations.</summary>
+        public FighterView FighterPrefab(string fighterId)
+        {
+            if (FighterVisuals != null && !string.IsNullOrEmpty(fighterId))
+                for (int i = 0; i < FighterVisuals.Length; i++)
+                    if (FighterVisuals[i].Prefab != null && string.Equals(FighterVisuals[i].FighterId, fighterId, System.StringComparison.Ordinal))
+                        return FighterVisuals[i].Prefab;
+            return FighterViewPrefab;
+        }
     }
 }

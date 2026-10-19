@@ -73,6 +73,26 @@ namespace Arena.Tests.EditMode.Setup
         }
 
         [Test]
+        public void FighterBody_UsesToonShaders_AndFallbackCapsuleHasVertexColours()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
+            Assert.AreEqual(ViewAssetBuilder.ToonCharacterShader, catalog.FighterBody.shader.name);
+            Assert.AreEqual(ViewAssetBuilder.ToonCharacterShader, catalog.FighterFlash.shader.name);
+            Assert.AreEqual(ViewAssetBuilder.ToonCharacterGhostShader, catalog.FighterHidden.shader.name);
+            Assert.AreEqual(0f, catalog.FighterBody.GetFloat("_Flash"));
+            Assert.AreEqual(1f, catalog.FighterFlash.GetFloat("_Flash"), "flash = white body, the outline stays");
+            Assert.AreEqual(1f, catalog.FighterBody.GetColor("_BaseColor").a);
+            Assert.IsNotNull(catalog.FighterVisuals);
+            Assert.Greater(catalog.LightPitch, 0f);
+
+            Mesh mesh = catalog.FighterViewPrefab.Body.GetComponent<MeshFilter>().sharedMesh;
+            Assert.IsNotNull(mesh);
+            Assert.AreEqual(ViewAssetBuilder.FallbackCapsuleMeshPath, AssetDatabase.GetAssetPath(mesh));
+            Assert.AreEqual(mesh.vertexCount, mesh.colors32.Length, "meshes under Arena/* shaders need vertex colours (Art-Spec §2.1)");
+            Assert.AreEqual(mesh.vertexCount, mesh.normals.Length);
+        }
+
+        [Test]
         public void UiStyle_HasSpriteAndSaneGestureThresholds()
         {
             var style = AssetDatabase.LoadAssetAtPath<UiStyle>(ViewAssetBuilder.UiStylePath);

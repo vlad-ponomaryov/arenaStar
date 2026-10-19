@@ -6,6 +6,7 @@ using Arena.Editor.Build;
 using Arena.Editor.Data;
 using Arena.Gameplay.Cameras;
 using Arena.Gameplay.Flow;
+using Arena.Gameplay.Match;
 using Arena.Gameplay.View;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -20,7 +21,7 @@ namespace Arena.Editor.Art.Capture
     /// <c>Tools/unity-method.ps1 -Graphics -Method Arena.Editor.Art.Capture.ArtCapture.CaptureAll [-Extra '-artStep A.1a']</c>.
     /// Opens the Match scene (its camera and light, nothing saved), builds the <see cref="CaptureStage"/> and writes PNGs to
     /// <c>Tools/out/art/&lt;step&gt;/</c>: lineup (team 0 camera), lineup_team1 (the other side), lineup_zoom2 (the same view at 2×
-    /// around the fighters), silhouettes64 (black fills, fighter 64 px high, gameplay angle and straight from above), map (top view)
+    /// around the fighters), states_zoom2 (fighter 0 hit flash, fighter 1 ghost), silhouettes64 (black fills, fighter 64 px high, gameplay angle and straight from above), map (top view)
     /// and protan/deutan versions of lineup, lineup_team1 and map.
     /// </summary>
     public static class ArtCapture
@@ -39,6 +40,10 @@ namespace Arena.Editor.Art.Capture
         private const float OrthoCameraDistance = 30f;
         private static readonly Color SilhouetteBackground = Color.white;
 
+        // Set by CaptureAll for PlaceGameplay: the scene light turned with the camera (MatchLightRig) and its catalog values.
+        private static Light s_light;
+        private static ViewCatalog s_catalog;
+
         public static void CaptureAll()
         {
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
@@ -55,13 +60,25 @@ namespace Arena.Editor.Art.Capture
             Camera camera = Camera.main;
             if (camera == null) throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: Match scene has no main camera");
 
+            // The light as in a match (MatchLightRig turns it with the camera in PlaceGameplay) and the scene's ambient probe.
+            var runner = Object.FindFirstObjectByType<MatchRunner>();
+            s_light = runner != null ? runner.MainLight : null;
+            s_catalog = catalog;
+            if (s_light == null) Debug.LogWarning("Arena.Editor.Art.Capture.ArtCapture: Match scene has no MatchRunner light");
+            SceneBuilder.ApplyMatchEnvironment();
+
             CaptureStage stage = CaptureStage.Build(database, catalog);
             try
             {
                 CameraConfig config = database.Camera;
                 stage.SetLocalTeam(0);
                 SaveWithColorBlind(RenderGameplay(camera, config, stage, false, 1), dir, "lineup");
-                SaveZoom(camera, config, stage, dir);
+                SaveZoom(camera, config, stage, dir, "lineup_zoom2");
+                // Body variants (D-014): fighter 0 hit flash, fighter 1 hidden in a bush (ghost), the rest normal.
+                stage.Fighter(0).SetBodyMaterial(catalog.FighterFlash);
+                if (stage.FighterCount > 1) stage.Fighter(1).SetBodyMaterial(catalog.FighterHidden);
+                SaveZoom(camera, config, stage, dir, "states_zoom2");
+                stage.ResetBodyMaterials();
                 stage.SetLocalTeam(1);
                 SaveWithColorBlind(RenderGameplay(camera, config, stage, true, 1), dir, "lineup_team1");
                 stage.SetLocalTeam(0);
@@ -101,6 +118,7 @@ namespace Arena.Editor.Art.Capture
             camera.fieldOfView = config.FieldOfView;
             Quaternion rotation = CameraMath.Rotation(config.PitchDegrees, rotated);
             camera.transform.SetPositionAndRotation(CameraMath.Position(GameplayFocus(config, stage, rotated), rotation, config.Distance), rotation);
+            MatchLightRig.Apply(s_light, rotated ? CameraMath.RotatedYaw : 0f, s_catalog);
         }
 
         private static Texture2D RenderGameplay(Camera camera, CameraConfig config, CaptureStage stage, bool rotated, int scale)
@@ -110,7 +128,7 @@ namespace Arena.Editor.Art.Capture
         }
 
         /// <summary>The team 0 view rendered at 2× and cropped to 1920×1080 around the fighter row: real perspective, more detail.</summary>
-        private static void SaveZoom(Camera camera, CameraConfig config, CaptureStage stage, string dir)
+        private static void SaveZoom(Camera camera, CameraConfig config, CaptureStage stage, string dir, string name)
         {
             Texture2D big = RenderGameplay(camera, config, stage, false, 2);
             Vector3 p = camera.WorldToViewportPoint(new Vector3(stage.Width * 0.5f, 0.5f, CaptureStage.RowZ));
@@ -120,7 +138,7 @@ namespace Arena.Editor.Art.Capture
             crop.SetPixels32(Crop(big, x, y, ShotWidth, ShotHeight));
             crop.Apply();
             Object.DestroyImmediate(big);
-            Save(crop, dir, "lineup_zoom2");
+            Save(crop, dir, name);
             Object.DestroyImmediate(crop);
         }
 

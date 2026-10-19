@@ -1346,3 +1346,16 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   `_Color`, `DepthOnly`) — не коммитить, пока шаг не меняет материалы сознательно. Ошибки шейдеров: `Shader error in` в логе считается
   ошибкой compile/test/method; `ShaderSanityTests` — каждый шейдер в `Assets/_Project` называется `Arena/*` и без ошибок, каждый
   материал проекта — на `Universal Render Pipeline/*` или `Arena/*` без ошибок (`ShaderRules`, общий с `ViewAssetsTests`).
+- D-119 (A.1a) — **Toon-шейдеры бойцов, свет от камеры, префаб по id.** `Arena/ToonCharacter` (проходы `UniversalForward`,
+  контур `SRPDefaultUnlit` с `Cull Front`, `DepthOnly`) и `Arena/ToonCharacterGhost` (глубина `SRPDefaultUnlit` + `ColorMask 0`,
+  затем прозрачный цвет `ZTest LEqual`, без контура) с общим `Art/Shaders/Include/ArenaToon.hlsl` (только функции; `CBUFFER` —
+  в каждом шейдере, одинаковый во всех его проходах). Отличия от чисел §6.3 после двух итераций скриншотов: контур **2 px** при
+  1080p (1,5 px почти не виден на 1×), граница света `N·L` = 0,15 (иначе тени почти нет — свет у камеры), блик `N·H` ≥ 0,975 ×
+  0,5 (при 0,93 — большое белое пятно). Значения — дефолты свойств шейдера; `ViewAssetBuilder.SaveToonMaterial` при каждом
+  запуске сбрасывает материал к дефолтам шейдера (`CopySerialized` — без хвостов URP Lit, GUID сохраняется). `FighterFlash` —
+  тот же шейдер с `_Flash = 1` и цветом тела (контур как у тела). Фолбэк-капсула — `Art/Meshes/FallbackCapsule.asset` (копия
+  капсулы Unity, вершинные цвета белые, α 0,55 = глянец). `MatchLightRig` — статический: поворот = (`ViewCatalog.LightPitch`,
+  рыскание камеры + `LightYawFromCamera`), применяется в `MatchRunner.StartMatch` (ссылка `_mainLight` из `SceneBuilder`) и на
+  стенде `ArtCapture`. Окружение — `SceneBuilder.ApplyMatchEnvironment` (Trilight §1.3 + `DynamicGI.UpdateEnvironment`, фон
+  камеры не менялся — A.3a). Префаб бойца — `ViewCatalog.FighterPrefab(id)` по `FighterVisuals` (пустой префаб/нет записи →
+  `FighterViewPrefab`); пока `ViewAssetBuilder` пишет пустой массив — A.1b начнёт заполнять.

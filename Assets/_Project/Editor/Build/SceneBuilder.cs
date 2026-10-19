@@ -35,7 +35,15 @@ namespace Arena.Editor.Build
         private const float MatchCameraPitch = 55f;
         private const float MatchCameraDistance = 22f;
         private const float MatchCameraFieldOfView = 50f;
-        private static readonly Vector3 LightEuler = new Vector3(50f, -30f, 0f);
+        // Editor seed pose of the light; at runtime MatchLightRig turns it with the camera (Art-Spec §6.3).
+        private static readonly Vector3 LightEuler = new Vector3(50f, 35f, 0f);
+
+        // Art-Spec §1.3: warm white key light, three-colour ambient sky / horizon / ground (the toon shaders take SampleSH).
+        private static readonly Color LightColor = new Color32(0xFF, 0xF4, 0xE0, 0xFF);
+        private const float LightIntensity = 1f;
+        private static readonly Color AmbientSky = new Color32(0xC9, 0xDC, 0xF2, 0xFF);
+        private static readonly Color AmbientEquator = new Color32(0xE2, 0xE8, 0xD0, 0xFF);
+        private static readonly Color AmbientGround = new Color32(0x7F, 0x9A, 0x6A, 0xFF);
         private static readonly Color BackgroundColor = new Color(0.12f, 0.14f, 0.18f, 1f);
 
         public static string ScenePath(string sceneName) => ScenesFolder + "/" + sceneName + ".unity";
@@ -110,7 +118,10 @@ namespace Arena.Editor.Build
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional;
             light.shadows = LightShadows.None;
+            light.color = LightColor;
+            light.intensity = LightIntensity;
             lightGo.transform.rotation = Quaternion.Euler(LightEuler);
+            ApplyMatchEnvironment();
 
             CreateEventSystem();
 
@@ -119,6 +130,7 @@ namespace Arena.Editor.Build
             SetRef(runnerSo, "_database", database);
             SetRef(runnerSo, "_viewCatalog", catalog);
             SetRef(runnerSo, "_cameraController", cameraController);
+            SetRef(runnerSo, "_mainLight", light);
             runnerSo.ApplyModifiedPropertiesWithoutUndo();
 
             var hud = new GameObject("MatchHud").AddComponent<MatchHud>();
@@ -144,6 +156,18 @@ namespace Arena.Editor.Build
             lastBeastSo.ApplyModifiedPropertiesWithoutUndo();
 
             Save(scene, SceneNames.Match);
+        }
+
+        /// <summary>Ambient of the open scene: three colours (Art-Spec §1.3), no fog; the ambient probe is recomputed for SampleSH.</summary>
+        public static void ApplyMatchEnvironment()
+        {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = AmbientSky;
+            RenderSettings.ambientEquatorColor = AmbientEquator;
+            RenderSettings.ambientGroundColor = AmbientGround;
+            RenderSettings.ambientIntensity = 1f;
+            RenderSettings.fog = false;
+            DynamicGI.UpdateEnvironment();
         }
 
         private static void CreateEventSystem()

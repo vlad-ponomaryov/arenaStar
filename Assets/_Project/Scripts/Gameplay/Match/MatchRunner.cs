@@ -39,6 +39,9 @@ namespace Arena.Gameplay.Match
         [SerializeField] private ViewCatalog _viewCatalog;
         [SerializeField] private MatchCameraController _cameraController;
 
+        [Tooltip("Directional light of the scene, turned with the camera at match start (MatchLightRig).")]
+        [SerializeField] private Light _mainLight;
+
         private readonly LocalInputCollector _inputCollector = new LocalInputCollector();
         private readonly KeyboardMouseInput _keyboardMouse = new KeyboardMouseInput();
         private readonly MatchViewState _viewState = new MatchViewState();
@@ -69,6 +72,7 @@ namespace Arena.Gameplay.Match
         public GameDatabase Database => _database;
         public ViewCatalog ViewCatalog => _viewCatalog;
         public MatchCameraController CameraController => _cameraController;
+        public Light MainLight => _mainLight;
 
         /// <summary>Local input sink for the HUD (virtual sticks). Exists from construction.</summary>
         public LocalInputCollector InputCollector => _inputCollector;
@@ -171,6 +175,7 @@ namespace Arena.Gameplay.Match
             if (_cameraController != null)
                 _cameraController.Init(_database.Camera, new Vector2(defs.Map.Width, defs.Map.Height), _inputCollector.ViewRotated,
                     LocalWorldPosition(0f), freeForAll);
+            MatchLightRig.Apply(_mainLight, _inputCollector.ViewRotated ? CameraMath.RotatedYaw : 0f, _viewCatalog);
             RenderViews(0f);
         }
 
@@ -340,8 +345,9 @@ namespace Arena.Gameplay.Match
         {
             for (int i = 0; i < setup.SlotCount; i++)
             {
-                FighterView view = Instantiate(_viewCatalog.FighterViewPrefab, transform);
-                view.name = "Fighter" + i + "_" + _driver.Defs.Fighters[setup.Slots[i].FighterIndex].Id;
+                string fighterId = _driver.Defs.Fighters[setup.Slots[i].FighterIndex].Id;
+                FighterView view = Instantiate(_viewCatalog.FighterPrefab(fighterId), transform);
+                view.name = "Fighter" + i + "_" + fighterId;
                 bool ally = setup.Slots[i].Team == LocalTeam;
                 bool alt = _settings.ColorblindPalette;
                 view.SetTeamMaterial(ally ? _viewCatalog.TeamAlly : alt ? _viewCatalog.TeamEnemyAlt : _viewCatalog.TeamEnemy);

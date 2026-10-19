@@ -84,10 +84,16 @@ namespace Arena.Editor.Art.Capture
             return stage;
         }
 
-        /// <summary>The fighter prefab of a fighter id. A.1a: switch to <c>ViewCatalog.FighterVisuals</c> by id (fallback as here).</summary>
-        public static FighterView ResolvePrefab(ViewCatalog catalog, string fighterId) => catalog.FighterViewPrefab;
+        /// <summary>The fighter prefab of a fighter id, as <c>MatchRunner</c> picks it (<see cref="ViewCatalog.FighterPrefab"/>).</summary>
+        public static FighterView ResolvePrefab(ViewCatalog catalog, string fighterId) => catalog.FighterPrefab(fighterId);
 
         public FighterView Fighter(int index) => _views[index];
+
+        /// <summary>Every fighter on the normal body material.</summary>
+        public void ResetBodyMaterials()
+        {
+            for (int i = 0; i < _views.Count; i++) _views[i].SetBodyMaterial(_catalog.FighterBody);
+        }
         public string FighterId(int index) => _ids[index];
 
         /// <summary>Team rings relative to the viewing team (as in a match); every fighter faces that team's camera.</summary>
