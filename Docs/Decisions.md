@@ -1269,3 +1269,26 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
 - D-115 (A0) — **Бойцы не используют чистые командные цвета как главный цвет.** Бластер Пикса — бирюзовый `#2EC4C9` (в GDD
   «голубой»), сумка Чомпа — кирпичная `#B5452F` (в GDD «красная»). Причина: синий/красный зарезервированы за командами (D-029,
   GDD §5.3); правка текста GDD — Q-023.
+- D-107 (F1) — **Фиксы после первой игры: WASD в редакторе, выход из онлайн-матча без сервера, бот «Средний», добор через 5 с.**
+  (1) WASD: код ввода (`KeyboardMouseInput` → `LocalInputCollector`, стик не обнуляет WASD — тач-канал побеждает только ненулевым
+  значением) был исправен; причина — Input System по умолчанию (`PointersAndKeyboardsRespectGameViewFocus`) не отдаёт клавиатуру игре,
+  пока не кликнуть по окну Game/Simulator. `ProjectConfigurator` создаёт `Assets/_Project/Settings/Arena.inputsettings.asset` с
+  `editorInputBehaviorInPlayMode = AllDeviceInputAlwaysGoesToGameView` и регистрирует его (`EditorBuildSettings` config
+  `com.unity.input.settings`); на сборки не влияет. Тесты: `KeyboardMouseInputTests` (InputTestFixture: W/A/S/D, разворот для
+  команды 1, Space/Shift) и проверка ассета в `ProjectSetupTests`. Онлайн-матч использует тот же `MatchRunner` — ввод общий.
+  (2) `ConnectionOverlay`: кнопка «Меню» (и Escape / Android Back) при любом баннере, кроме «бойцом управляет бот», — в том числе во
+  время переподключения; соединение упало и автоматических попыток нет (`ReconnectState.None`: сервер закрыл, нет билета) — сразу
+  `GaveUp` вместо отсчёта до 0; «Вернуться в бой» — только с билетом (`OnlineMatchDriver.CanRetryRejoin`). Выход —
+  `SceneFlow.ToMenu` → `OnlineSession.LeaveMatch` (Leave, закрыть соединение, забыть билет). Тесты: `ConnectionOverlayTests`
+  (чистая `Classify`), PlayMode `RejoinFlowTests.ServerGone_MidMatch_MenuButton_LeavesWhileReconnecting`.
+  (3) Уровень `BotDifficulty.Medium` (в меню «Normal»/«Средний», GDD §7: ±8°, 300 мс) и новые поля сложности (данные, D-010):
+  `LeadFraction` (упреждение снарядом: точка цели через время полёта × доля скорости; навес не упреждает), `FocusHealthWeightCells`
+  (цель — минимум «расстояние + вес × доля HP»), `DodgeChance`/`DodgeLookaheadSeconds`/`DodgeMarginCells` (на решение 0,2 с —
+  шаг в сторону от линии вражеского снаряда, который долетит за 0,5 с и пройдёт ближе радиусов + 0,3 кл.), ульта 0,85 / трюк 0,8.
+  Novice/Easy — нули (игра этапа 2 не изменилась: бросок уклонения не тратит RNG при шансе 0). Подбор на 50 матчах против Easy:
+  фокус с весом 4 ослаблял бота (гонялся за дальним слабым), уклонение — главный выигрыш; выбрано вес 2,5, уклонение 0,8, упреждение
+  0,8 → ≈ 80 % побед. Тест `BotDifficultyMatchTests`: 15 сидов × 2 стороны, доля ≥ 0,65 (сейчас 0,78). Меню: выбор
+  Новичок/Лёгкий/Средний, по умолчанию `MatchRunnerConfig.DefaultBots = Medium`; сервер — `FillBotDifficulty = Medium` (и подмена
+  вылетевшего). Сетевые тесты (`MatchServerRig`) закреплены на Novice — их длительности подобраны под полные матчи. Пакет данных —
+  формат 4. (4) `BotFillSeconds` 15 → 5 с (`ServerSettings`, `server.json`, Server-Spec §6.2/§13); `BotFillSecondsNewPlayers`
+  (8 с, этап 4) тогда сделать ≤ основного. Причина: пожелания после первой игры (MorningReport), Stage3-TestAudit (Unity-ревью п.1).
