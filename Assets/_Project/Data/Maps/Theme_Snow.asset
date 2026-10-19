@@ -73,6 +73,7 @@ MonoBehaviour:
   Drift: {fileID: 4300000, guid: 49a1c46302e76334a82ea6cbe20dbb17, type: 2}
   Sled: {fileID: 4300000, guid: d59d3f2bc7ac0cb48a926f22e1c11c70, type: 2}
   SnowPile: {fileID: 4300000, guid: 5a8bb2d7e1c1a9041933d4a7f62d21ba, type: 2}
+  Hollow: {fileID: 4300000, guid: e87d3df690b71ed418304528d84656f8, type: 2}
   FortLantern: {fileID: 4300000, guid: 7fafddfec6f72e245b8d0f5084bd62e6, type: 2}
   WallLump: {fileID: 4300000, guid: adced505cde6c204ca24d2260f1d7ad1, type: 2}
   WallLumpChance: 0.35

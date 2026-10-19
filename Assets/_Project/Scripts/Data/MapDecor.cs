@@ -5,7 +5,8 @@ namespace Arena.Data
     /// View only — the cell's rules come from <see cref="MapConfig.Rows"/>. <c>.</c> = the look by the cell type.
     /// On a wall <c>#</c>: <see cref="Tree"/>, <see cref="Fort"/> (fort corner / pier), <see cref="Lantern"/> (the same with a lantern,
     /// D-142), <see cref="Drift"/>, <see cref="Sled"/>;
-    /// on a breakable wall <c>%</c>: <see cref="Snowman"/>, <see cref="Fort"/> (snow bricks); on a berry box <c>$</c>:
+    /// on a breakable wall <c>%</c>: <see cref="Snowman"/>, <see cref="Fort"/> (snow bricks), <see cref="SmallGift"/> (a gift that
+    /// ultimates break, Map-SnowValley §1.4 В1); on a berry box <c>$</c>:
     /// <see cref="BigGift"/>; any other cell: only <c>.</c>.
     /// </summary>
     public static class MapDecor
@@ -18,6 +19,7 @@ namespace Arena.Data
         public const char Sled = 's';
         public const char Snowman = 'm';
         public const char BigGift = 'G';
+        public const char SmallGift = 'g';
 
         private const char WallChar = '#';
         private const char BreakableChar = '%';
@@ -30,7 +32,7 @@ namespace Arena.Data
             switch (tile)
             {
                 case WallChar: return decor == Tree || decor == Fort || decor == Lantern || decor == Drift || decor == Sled;
-                case BreakableChar: return decor == Snowman || decor == Fort;
+                case BreakableChar: return decor == Snowman || decor == Fort || decor == SmallGift;
                 case BoxChar: return decor == BigGift;
                 default: return false;
             }

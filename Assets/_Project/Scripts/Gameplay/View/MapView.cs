@@ -249,10 +249,10 @@ namespace Arena.Gameplay.View
                     Mesh decorMesh = theme != null ? BreakableDecorMesh(theme, t, mark, CellHash(c, r)) : null;
                     if (decorMesh != null)
                     {
-                        // D-140: a snowman, snow bricks or a gift; breaks like the crate / box (TileBroken), a snow pile stays for m / f.
+                        // D-140: a snowman, snow bricks or a gift; breaks like the crate / box (TileBroken), a snow pile stays for m / f / g.
                         int index = grid.IndexOf(c, r);
                         float yaw = mark == MapDecor.Snowman ? SnowmanYaw(theme, c, r) : (CellHash(c, r) >> 3 & 3) * QuarterTurn;
-                        _breakables[index] = CreatePropObject((t == TileType.BerryBox ? "Gift_" : "Decor_") + c + "_" + r, root, decorMesh,
+                        _breakables[index] = CreatePropObject((t == TileType.BerryBox || mark == MapDecor.SmallGift ? "Gift_" : "Decor_") + c + "_" + r, root, decorMesh,
                             propMaterial, centre, yaw);
                         if (t == TileType.BerryBox) BoxCount++;
                         else BreakableCount++;
@@ -474,6 +474,8 @@ namespace Arena.Gameplay.View
                 return theme.Gifts != null && theme.Gifts.Length > 0 ? theme.Gifts[hash % theme.Gifts.Length] : null;
             }
             if (tile != TileType.BreakableWall) return null;
+            if (mark == MapDecor.SmallGift)
+                return theme.Gifts != null && theme.Gifts.Length > 0 ? theme.Gifts[hash % theme.Gifts.Length] : null;
             if (mark == MapDecor.Snowman)
                 return theme.Snowmen != null && theme.Snowmen.Length > 0 ? theme.Snowmen[hash % theme.Snowmen.Length] : null;
             return mark == MapDecor.Fort ? theme.FortBrick : null;
@@ -523,7 +525,7 @@ namespace Arena.Gameplay.View
             return 1;
         }
 
-        internal static GameObject CreatePropObject(string name, Transform parent, Mesh mesh, Material material, Vector3 position, float yaw)
+        public static GameObject CreatePropObject(string name, Transform parent, Mesh mesh, Material material, Vector3 position, float yaw)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);

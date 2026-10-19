@@ -24,11 +24,11 @@ namespace Arena.Tests.EditMode.Data
         }
 
         [Test]
-        public void SeededMap_IsTheDefault_21x31_ThreeSpawnsPerTeam_HollowInCentre()
+        public void SeededMap_IsSecondInRotation_21x31_ThreeSpawnsPerTeam_HollowInCentre()
         {
             MapConfig config = LoadConfig();
             var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
-            Assert.AreSame(config, db.DefaultMap);
+            Assert.AreSame(config, db.AcornsMaps[1], "D-141: Glade is the second Acorns map (Snow Valley is the default)");
 
             MapDef map = MapConverter.ToMapDef(config);
             Assert.AreEqual(21, map.Width);

@@ -133,15 +133,49 @@ namespace Arena.Editor.Art.Capture
         /// </summary>
         public static void CaptureLastBeastMap()
         {
+            CaptureMap(LastBeastMapStep, database =>
+            {
+                if (database.LastBeastMaps == null || database.LastBeastMaps.Count == 0)
+                    throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: no LastBeastMaps");
+                return database.LastBeastMaps[0];
+            }, LastBeastSpawnShot, new[] { "spawn", "tree" }, false);
+        }
+
+        /// <summary>Folder of <see cref="CaptureAcornsMap"/> under <see cref="OutRoot"/>.</summary>
+        public const string AcornsMapStep = "snow_3x3";
+
+        /// <summary>Middle spawn of team 0 for the base shot of <see cref="CaptureAcornsMap"/>: column 10, text row 28 (map row 2).</summary>
+        private static readonly Vector2Int AcornsSpawnShot = new Vector2Int(10, 28);
+
+        /// <summary>
+        /// Map-SnowValley §6 п.5 (D-141): the offline Acorns map (<c>DefaultMap</c>) with its theme, decor and hollow (the spruce-hollow
+        /// of the theme, <see cref="Arena.Modes.AcornsModeView.CreateHollow"/>), no fighters — <c>top.png</c>, <c>base.png</c> (the team 0
+        /// match camera at the middle spawn) and <c>centre.png</c> (the same camera at the hollow). Run with <c>Tools/unity-method.ps1
+        /// -Graphics -Method Arena.Editor.Art.Capture.ArtCapture.CaptureAcornsMap</c>; writes to <c>Tools/out/art/snow_3x3/</c>.
+        /// </summary>
+        public static void CaptureAcornsMap()
+        {
+            CaptureMap(AcornsMapStep, database =>
+            {
+                if (database.DefaultMap == null) throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: no DefaultMap");
+                return database.DefaultMap;
+            }, AcornsSpawnShot, new[] { "base", "centre" }, true);
+        }
+
+        /// <summary>Top view and two match-camera shots (at <paramref name="spawnShot"/> — column, text row — and at the map centre)
+        /// of one map through the real <see cref="MapView"/>; <paramref name="acorns"/>: the team 0 Acorns camera and the hollow, else
+        /// the free Last Beast camera.</summary>
+        private static void CaptureMap(string step, Func<GameDatabase, MapConfig> pick, Vector2Int spawnShot, string[] names, bool acorns)
+        {
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
                 throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: no graphics device (run with -Graphics, without -nographics)");
-            string dir = Path.Combine(OutRoot, LastBeastMapStep);
+            string dir = Path.Combine(OutRoot, step);
             Directory.CreateDirectory(dir);
             EditorSceneManager.OpenScene(SceneBuilder.ScenePath(SceneNames.Match), OpenSceneMode.Single);
             var database = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
             var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
-            if (database == null || catalog == null || database.Camera == null || database.LastBeastMaps == null || database.LastBeastMaps.Count == 0)
-                throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: missing GameDatabase/ViewCatalog/CameraConfig/LastBeastMaps");
+            if (database == null || catalog == null || database.Camera == null)
+                throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: missing GameDatabase/ViewCatalog/CameraConfig");
             Camera camera = Camera.main;
             if (camera == null) throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: Match scene has no main camera");
             var runner = Object.FindFirstObjectByType<MatchRunner>();
@@ -149,13 +183,16 @@ namespace Arena.Editor.Art.Capture
             s_catalog = catalog;
             SceneBuilder.ApplyMatchEnvironment();
 
-            MapConfig map = database.LastBeastMaps[0];
-            TileGrid grid = MapConverter.ToMapDef(map).InitialGrid;
-            var root = new GameObject("CaptureLastBeastMap");
+            MapConfig map = pick(database);
+            MapDef def = MapConverter.ToMapDef(map);
+            TileGrid grid = def.InitialGrid;
+            var root = new GameObject("CaptureMap_" + step);
             try
             {
                 MapView view = MapView.Create(root.transform, catalog, in grid, map);
                 if (view.Theme != null) camera.backgroundColor = view.Theme.Background;
+                if (acorns && def.HasHollow)
+                    Arena.Modes.AcornsModeView.CreateHollow(root.transform, catalog, view.Theme, WorldCoords.ToWorld(def.Hollow.Center));
                 MatchLightRig.Apply(s_light, 0f, s_catalog);
 
                 camera.orthographic = true;
@@ -168,13 +205,14 @@ namespace Arena.Editor.Art.Capture
 
                 CameraConfig config = database.Camera;
                 var size = new Vector2(grid.Width, grid.Height);
-                var spawn = new GridCell(LastBeastSpawnShot.x, grid.Height - 1 - LastBeastSpawnShot.y);
+                var spawn = new GridCell(spawnShot.x, grid.Height - 1 - spawnShot.y);
                 Vector3[] targets = { WorldCoords.ToWorld(spawn.Center), new Vector3(grid.Width * 0.5f, 0f, grid.Height * 0.5f) };
-                string[] names = { "spawn", "tree" };
                 Quaternion rotation = CameraMath.Rotation(config.PitchDegrees, false);
-                for (int s = 0; s < names.Length; s++)
+                for (int s = 0; s < names.Length && s < targets.Length; s++)
                 {
-                    Vector3 focus = CameraMath.FocusFree(targets[s], size, config.FreeForwardOffset, config.EdgeInset, config.FreeSideInset);
+                    Vector3 focus = acorns
+                        ? CameraMath.Focus(targets[s], size, false, config.ForwardOffset, config.EdgeInset)
+                        : CameraMath.FocusFree(targets[s], size, config.FreeForwardOffset, config.EdgeInset, config.FreeSideInset);
                     camera.fieldOfView = config.FieldOfView;
                     camera.transform.SetPositionAndRotation(CameraMath.Position(focus, rotation, config.Distance), rotation);
                     Texture2D big = Render(camera, ShotWidth * 2, ShotHeight * 2);
@@ -183,7 +221,7 @@ namespace Arena.Editor.Art.Capture
                     Save(shot, dir, names[s]);
                     Object.DestroyImmediate(shot);
                 }
-                Debug.Log("ArtCapture: Last Beast map '" + map.Id + "' decor props " + view.DecorPropCount + ", frame trees " + view.FrameTreeCount +
+                Debug.Log("ArtCapture: map '" + map.Id + "' decor props " + view.DecorPropCount + ", frame trees " + view.FrameTreeCount +
                           ", boxes " + view.BoxCount + ", breakables " + view.BreakableCount + ", bushes " + view.BushCount);
             }
             finally

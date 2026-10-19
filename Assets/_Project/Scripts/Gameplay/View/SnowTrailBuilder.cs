@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using Arena.Core.Map;
 using Arena.Data;
+using Arena.Data.Conversion;
 using UnityEngine;
 
 namespace Arena.Gameplay.View
 {
     /// <summary>
-    /// D-142 (Snow Valley feedback 1, "пусто"): footprint trails on the snow from every spawn towards the map centre, view only. A
+    /// D-142 (Snow Valley feedback 1, "пусто"): footprint trails on the snow from every spawn (shared or team, A3.map) towards the map centre, view only. A
     /// trail follows the shortest 8-neighbour floor path (no corner cutting, around bushes and water) to the cells within
     /// <see cref="MapThemeConfig.TrailStopCells"/> of the centre, is smoothed (Chaikin) and shifted sideways by a hash, then gets
     /// alternating left / right oval prints every <see cref="MapThemeConfig.TrailStep"/>. One flat mesh (vertex colour, uv0.x = 1 for
@@ -14,7 +15,6 @@ namespace Arena.Gameplay.View
     /// </summary>
     public static class SnowTrailBuilder
     {
-        private const char SpawnChar = 'S';
         private const float PrintHeight = 0.006f;
         private const int PrintSides = 6;
         private const int SmoothPasses = 3;
@@ -36,7 +36,8 @@ namespace Arena.Gameplay.View
                 string line = rows[t];
                 for (int c = 0; line != null && c < line.Length; c++)
                 {
-                    if (line[c] != SpawnChar) continue;
+                    char ch = line[c];
+                    if (ch != MapConverter.SharedSpawnChar && ch != MapConverter.Team0SpawnChar && ch != MapConverter.Team1SpawnChar) continue;
                     int r = grid.Height - 1 - t;
                     if (!Trace(in grid, dist, c, r, path)) continue;
                     for (int k = 0; k < SmoothPasses; k++) Chaikin(path);

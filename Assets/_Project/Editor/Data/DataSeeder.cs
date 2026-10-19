@@ -33,6 +33,7 @@ namespace Arena.Editor.Data
         public const string LastBeastModePath = ModesFolder + "/LastBeast.asset";
         public const string RoyaleThicketPath = MapsFolder + "/Royale_Thicket.asset";
         public const string RoyaleSnowValleyPath = MapsFolder + "/Royale_SnowValley.asset";
+        public const string AcornsSnowValleyPath = MapsFolder + "/Acorns_SnowValley.asset";
         public const string SnowThemePath = MapsFolder + "/Theme_Snow.asset";
         public const string LocalizationFolder = DataRoot + "/Localization";
         public const string StringsPath = LocalizationFolder + "/Strings.asset";
@@ -375,6 +376,52 @@ namespace Arena.Editor.Data
         };
         private const string AcornsGladeMiddleRow = "~~...#...\"H\"...#...~~"; // row 15, its own mirror
 
+        // Acorns map "Snow Valley" (D-136, D-141, Docs/Map-SnowValley.md §1.2 verbatim = Tools/maps/snow_valley_acorns_half.txt and
+        // _decor_half.txt): the spruce-hollow H in the centre with four heaps of big gifts ($ + G, unbreakable in Acorns), a snow fort
+        // "П" and side L-forts in front of each base, single small gifts (% + g) and snowmen (% + m) that ultimates break, sleds and
+        // drifts, young spruce groves ("), four ice ponds. Format of MirrorBottomHalf (the decor is mirrored the same way). Decor change
+        // against the document: the fort corners next to the centre (8,10) (12,10) carry lanterns (L, §1.4 В2а, D-142).
+        private const string AcornsSnowValleyId = "acorns_snow_valley";
+        private static readonly string[] AcornsSnowValleyBottomHalf =
+        {
+            ".\"\"..$$.......$..~~..", // row 14
+            ".\"\"...\"\".$$$.....~~..",
+            "......\"\".............",
+            "...#%..%.....%.......",
+            "...%....#%%%#...%#...",
+            "..~~....#...#....%\"\"\"",
+            "..~~..............\"\"\"",
+            "......%.......%......",
+            "##...%..%...%..%...##",
+            "....#...........#....",
+            "....#...........#....",
+            ".....................",
+            "......A...A...A......",
+            ".\"\"...............\"\".",
+            "....................." // row 0
+        };
+        private const string AcornsSnowValleyMiddleRow = "..%...$...H...$...%.."; // row 15, its own mirror
+
+        private static readonly string[] AcornsSnowValleyDecorBottomHalf =
+        {
+            ".....GG.......G......", // row 14
+            ".........GGG.........",
+            ".....................",
+            "...ff..m.....m.......",
+            "...f....LfffL...ff...",
+            "........f...f....f...",
+            ".....................",
+            "......m.......m......",
+            "dd...g..g...g..g...dd",
+            "....s...........s....",
+            "....s...........s....",
+            ".....................",
+            ".....................",
+            ".....................",
+            "....................." // row 0
+        };
+        private const string AcornsSnowValleyDecorMiddleRow = "..m...G.......G...m.."; // row 15
+
         // Last Beast map "Thicket" (original layout, 45×45, GDD §5.4): open ground with cover clusters, ponds, bush patches and
         // berry boxes spread evenly; 10 shared spawns along the edges; the last 5×5 safe square in the centre is open floor.
         // Only the top-left quarter (23×23, text rows top first; its last column and last row are the mirror axes) is written
@@ -691,10 +738,12 @@ namespace Arena.Editor.Data
             if (db.Fighters == null) db.Fighters = new System.Collections.Generic.List<FighterConfig>();
             db.Fighters.Clear();
             db.Fighters.AddRange(fighters);
-            db.DefaultMap = SeedAcornsGlade();
+            // D-136, D-141: Snow Valley is the first Acorns map (offline DefaultMap, AcornsMaps[0]); Glade stays second in the rotation.
+            db.DefaultMap = SeedAcornsSnowValley();
             if (db.AcornsMaps == null) db.AcornsMaps = new System.Collections.Generic.List<MapConfig>();
             db.AcornsMaps.Clear();
             db.AcornsMaps.Add(db.DefaultMap);
+            db.AcornsMaps.Add(SeedAcornsGlade());
             db.Camera = SeedCamera();
             db.Feel = SeedFeel();
             db.MatchRunner = SeedMatchRunner();
@@ -1020,6 +1069,21 @@ namespace Arena.Editor.Data
             c.RequiredSpawnsPerTeam = SpawnsPerTeam;
             c.RequiredSharedSpawns = 0;
             c.RequireCentralSymmetry = true;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static MapConfig SeedAcornsSnowValley()
+        {
+            MapConfig c = LoadOrCreate<MapConfig>(AcornsSnowValleyPath);
+            c.Id = AcornsSnowValleyId;
+            c.Rows = MirrorBottomHalf(AcornsSnowValleyBottomHalf, AcornsSnowValleyMiddleRow);
+            c.Decor = MirrorBottomHalf(AcornsSnowValleyDecorBottomHalf, AcornsSnowValleyDecorMiddleRow);
+            c.RequiredSpawnsPerTeam = SpawnsPerTeam;
+            c.RequiredSharedSpawns = 0;
+            c.RequireCentralSymmetry = true;
+            // The snow theme is a view asset (SnowThemeBuilder links it too); null until it is built — the map then uses the shared look.
+            c.Theme = AssetDatabase.LoadAssetAtPath<MapThemeConfig>(SnowThemePath);
             EditorUtility.SetDirty(c);
             return c;
         }

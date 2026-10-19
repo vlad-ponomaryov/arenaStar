@@ -6,7 +6,7 @@ namespace Arena.Editor.Art.MapProps
     /// Procedural props of the snow theme (D-140, Map-SnowValley-LB §5 п.4), primitives only: spruce (4 cones + snow rims + baubles +
     /// a bulb garland + a star, D-142), gifts (box + ribbon cross + bow, 3 colours; big one 1.0), snowman (3 spheres + hat + scarf,
     /// 2 scarf colours), snow bricks (soft, cracked) and fort corners (bricks on a dark wooden plinth; with a lantern, D-142), drift,
-    /// sled, flat snow pile and a lump at a wall foot. The frame is <see cref="SnowFrameMeshes"/>, the bushes <see cref="SnowGroveMeshes"/>.
+    /// sled, flat snow pile, a lump at a wall foot and the Acorns spruce-hollow (Map-SnowValley §1.4 В2). The frame is <see cref="SnowFrameMeshes"/>, the bushes <see cref="SnowGroveMeshes"/>.
     /// Pivot at the bottom centre of a 1 × 1 cell; colours authored in sRGB and written linear; vertex alpha = gloss (matte 0,
     /// baubles and the star glossy); uv0.x = 1 everywhere (no texture detail, Arena/ToonEnv). No team colours (D-136).
     /// </summary>
@@ -120,6 +120,86 @@ namespace Arena.Editor.Art.MapProps
                 m.ConeAlong(star, new Vector3(Mathf.Cos(a), Mathf.Sin(a), -0.15f).normalized, 0.11f, 0.42f, Gold);
             }
             return m.Create("SnowTree", false);
+        }
+
+        // Map-SnowValley §1.4 В2 / §4: the Acorns spruce-hollow — ≤ 1 cell at the base, ≈ 1.6 high (does not hide a fighter in the
+        // pickup zone), on a snow mound with two burrows (the acorns roll out of them; ±Z so both team cameras see one). Tiers as
+        // TreeTiers: (bottom radius, bottom height, cone height).
+        private static readonly Vector3[] HollowTiers =
+        {
+            new Vector3(0.47f, 0.26f, 0.6f), new Vector3(0.37f, 0.6f, 0.52f), new Vector3(0.26f, 0.92f, 0.46f)
+        };
+        private static readonly Vector3 HollowMound = new Vector3(0.5f, 0.2f, 0.5f);
+        private const float HollowBaubleRadius = 0.075f;
+        private const float HollowBulbRadius = 0.05f;
+        private const float HollowGarlandFrom = 0.34f;
+        private const float HollowGarlandTo = 1.22f;
+        private const float HollowGarlandTurns = 1.75f;
+        private const int HollowGarlandBulbs = 8;
+        private const int HollowBaublesBottom = 3;
+        // Segments: one mesh ≤ 1k triangles (§4, weak phones).
+        private const int HollowMoundSegments = 8;
+        private const int HollowConeSegments = 12;
+        private const int HollowRimSegments = 8;
+        private const int HollowBaubleSegments = 6;
+        private const int HollowSmallSegments = 4;
+        private static readonly Color Burrow = new Color32(0x4A, 0x34, 0x24, 0xFF);
+
+        /// <summary>The Acorns hollow of a snow map: a small decorated spruce on a snow mound with burrows at its foot, baubles
+        /// gold / white / apricot / lilac (no team red or blue), a spiral of warm bulbs and a star (≤ 1 cell, h ≈ 1.6).</summary>
+        public static Mesh BuildHollowSpruce()
+        {
+            var m = new SnowMesh();
+            m.Ellipsoid(Vector3.zero, HollowMound, SnowBlue, Matte, HollowMoundSegments);
+            for (int s = -1; s <= 1; s += 2)
+                m.Ellipsoid(new Vector3(0f, 0.05f, s * (HollowMound.z - 0.06f)), new Vector3(0.17f, 0.1f, 0.06f), Burrow, Matte, HollowSmallSegments);
+            Color[] tones = { NeedlesDark, Needles, NeedlesLight };
+            for (int t = 0; t < HollowTiers.Length; t++)
+            {
+                Vector3 tier = HollowTiers[t];
+                m.Cone(new Vector3(0f, tier.y, 0f), tier.x, tier.z, tones[t], HollowConeSegments);
+                if (t == HollowTiers.Length - 1) continue; // the star sits on the top tier
+                m.Ellipsoid(new Vector3(0f, tier.y + 0.02f, 0f), new Vector3(tier.x * 0.98f, 0.035f, tier.x * 0.98f), Snow, Matte, HollowRimSegments);
+                m.Cone(new Vector3(0f, tier.y + tier.z * 0.64f, 0f), tier.x * 0.32f, tier.z * 0.36f, Snow, SnowMesh.SmallSegments);
+            }
+            Color[] baubles = { Gold, Pearl, Apricot, Lilac };
+            for (int t = 0; t < HollowTiers.Length; t++)
+            {
+                Vector3 tier = HollowTiers[t];
+                int count = HollowBaublesBottom - t;
+                for (int k = 0; k < count; k++)
+                {
+                    float a = (k + t * 0.5f) * Mathf.PI * 2f / count;
+                    const float h = 0.28f;
+                    float r = tier.x * (1f - h);
+                    var p = new Vector3(Mathf.Cos(a) * r, tier.y + tier.z * h, Mathf.Sin(a) * r);
+                    m.Ellipsoid(p, Vector3.one * HollowBaubleRadius, baubles[(k + t) % baubles.Length], Glossy, HollowBaubleSegments);
+                }
+            }
+            for (int i = 0; i < HollowGarlandBulbs; i++)
+            {
+                float f = (i + 0.5f) / HollowGarlandBulbs;
+                float y = Mathf.Lerp(HollowGarlandFrom, HollowGarlandTo, f);
+                float angle = f * HollowGarlandTurns * Mathf.PI * 2f;
+                float radius = 0f;
+                foreach (Vector3 tier in HollowTiers)
+                {
+                    float u = (y - tier.y) / tier.z;
+                    if (u >= 0f && u <= 1f) radius = Mathf.Max(radius, tier.x * (1f - u));
+                }
+                radius += HollowBulbRadius * 0.6f;
+                m.Ellipsoid(new Vector3(Mathf.Cos(angle) * radius, y, Mathf.Sin(angle) * radius), Vector3.one * HollowBulbRadius,
+                    BulbCycle[i % BulbCycle.Length], Glossy, HollowSmallSegments);
+            }
+            Vector3 last = HollowTiers[HollowTiers.Length - 1];
+            var star = new Vector3(0f, last.y + last.z + 0.06f, 0f);
+            m.Ellipsoid(star, Vector3.one * 0.1f, Gold, Glossy, HollowBaubleSegments);
+            for (int k = 0; k < 5; k++)
+            {
+                float a = k * Mathf.PI * 2f / 5f + Mathf.PI * 0.5f;
+                m.ConeAlong(star, new Vector3(Mathf.Cos(a), Mathf.Sin(a), -0.15f).normalized, 0.05f, 0.18f, Gold);
+            }
+            return m.Create("SnowHollowSpruce", false);
         }
 
         /// <summary>A point just outside the needle surface of the centre spruce at height <paramref name="y"/> and angle

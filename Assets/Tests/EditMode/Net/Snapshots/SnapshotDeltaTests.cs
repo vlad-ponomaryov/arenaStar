@@ -21,6 +21,7 @@ namespace Arena.Tests.EditMode.Net.Snapshots
     /// </summary>
     public sealed class SnapshotDeltaTests
     {
+        private const string GladeMapId = "acorns_glade";
         private readonly byte[] _buffer = new byte[NetLimits.MaxPacketBytes];
         private readonly NetSnapshotEvent[] _events = new NetSnapshotEvent[NetLimits.MaxSnapshotEvents];
         private readonly SnapshotDecoder _decoder = new SnapshotDecoder();
@@ -108,7 +109,8 @@ namespace Arena.Tests.EditMode.Net.Snapshots
         {
             SnapshotSettings settings = SnapshotSettings.CreateDefault();
             settings.MaxSnapshotBytes = 160;
-            var rig = SnapshotMatchRig.Create(ModeKind.Acorns, 54, settings);
+            // Glade: its bots meet within the first 30 s, so the small budget is exceeded (Snow Valley, D-141, is quieter early).
+            var rig = SnapshotMatchRig.Create(ModeKind.Acorns, 54, settings, 1, GladeMapId);
             rig.AckDelayTicks = 2;
             for (int t = 0; t < 900; t++) rig.Step(); // the rig asserts decoded view == server view on every snapshot
             Assert.Greater(rig.DeferredItems, 0, "some snapshots were cut");

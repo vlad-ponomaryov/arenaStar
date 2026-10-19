@@ -69,12 +69,21 @@ namespace Arena.Tests.EditMode.Net.Snapshots
             return ContentPackReader.Read(asset.bytes, true);
         }
 
-        public static SnapshotMatchRig Create(ModeKind mode, int seed, SnapshotSettings settings = null, int lossSeed = 1)
+        public static SnapshotMatchRig Create(ModeKind mode, int seed, SnapshotSettings settings = null, int lossSeed = 1, string mapId = null)
         {
             ContentBundle bundle = LoadBundle();
             ContentModeMaps maps = bundle.MapsFor(mode);
             Assert.IsNotNull(maps, mode + " has maps");
-            MatchDefs defs = bundle.CreateMatchDefs(maps.MapIndices[0], mode);
+            // The first map of the mode, or the one with mapId (a test tuned to that map's traffic).
+            int mapIndex = maps.MapIndices[0];
+            if (mapId != null)
+            {
+                mapIndex = -1;
+                foreach (int i in maps.MapIndices)
+                    if (bundle.Maps[i].Id == mapId) mapIndex = i;
+                Assert.GreaterOrEqual(mapIndex, 0, mode + " has map " + mapId);
+            }
+            MatchDefs defs = bundle.CreateMatchDefs(mapIndex, mode);
             MatchSetup setup = HeadlessMatch.CreateBotSetup(defs, bundle.Policy, seed);
             return new SnapshotMatchRig(defs, setup, bundle.BotBehaviour, bundle.FindBotDifficulty(BotDifficulty.Novice),
                 settings ?? SnapshotSettings.CreateDefault(), lossSeed);

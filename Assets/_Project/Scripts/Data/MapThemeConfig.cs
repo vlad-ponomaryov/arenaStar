@@ -62,6 +62,9 @@ namespace Arena.Data
         [Tooltip("Flat snow pile left by a broken snowman or snow brick (no collision).")]
         public Mesh SnowPile;
 
+        [Tooltip("Acorns hollow of a themed map (Map-SnowValley §1.4 В2: a little decorated spruce on a snow mound, ≤ 1 cell at the base); empty = the catalog's HollowPrefab.")]
+        public Mesh Hollow;
+
         [Tooltip("Fort corner / pier with a lantern post on top (wall 'L', D-142).")]
         public Mesh FortLantern;
 

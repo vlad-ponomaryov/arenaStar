@@ -126,6 +126,7 @@ namespace Arena.Tests.EditMode.Net
 
             ContentModeMaps acorns = bundle.MapsFor(ModeKind.Acorns);
             Assert.IsNotNull(acorns, "Acorns has maps");
+            Assert.AreEqual(2, db.AcornsMaps.Count, "D-141: Snow Valley and Glade");
             Assert.AreEqual(db.AcornsMaps.Count, acorns.MapIndices.Length);
             MatchDefs defs = bundle.CreateMatchDefs(acorns.MapIndices[0], ModeKind.Acorns);
             Assert.AreEqual(db.AcornsMaps[0].Id, defs.Map.Id);

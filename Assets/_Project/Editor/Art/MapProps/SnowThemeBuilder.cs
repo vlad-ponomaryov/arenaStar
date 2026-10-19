@@ -14,7 +14,7 @@ namespace Arena.Editor.Art.MapProps
     /// meadow, water and fog recoloured for snow / ice / a snowstorm, a cool-shaded prop material, the young spruce grove bushes
     /// (<see cref="SnowGroveMeshes"/>, D-142), the frame wall, garlands and cabins (<see cref="SnowFrameMeshes"/>, D-142), footprint
     /// trails and the prop meshes of <see cref="SnowPropMeshes"/>; writes <see cref="DataSeeder.SnowThemePath"/> and links it to the Snow Valley
-    /// map. Separate from <c>ViewAssetBuilder</c> (it only reads the catalog). Run after <c>ViewAssetBuilder.BuildAll</c>:
+    /// maps (Last Beast and Acorns). Separate from <c>ViewAssetBuilder</c> (it only reads the catalog). Run after <c>ViewAssetBuilder.BuildAll</c>:
     /// <c>Tools/unity-method.ps1 -Method Arena.Editor.Art.MapProps.SnowThemeBuilder.Build</c>.
     /// </summary>
     public static class SnowThemeBuilder
@@ -157,6 +157,7 @@ namespace Arena.Editor.Art.MapProps
             theme.SnowPile = SaveMesh(SnowPropMeshes.BuildSnowPile());
             theme.FortLantern = SaveMesh(SnowPropMeshes.BuildFortLantern());
             theme.WallLump = SaveMesh(SnowPropMeshes.BuildWallLump());
+            theme.Hollow = SaveMesh(SnowPropMeshes.BuildHollowSpruce());
             theme.WallLumpChance = WallLumpChance;
             theme.SnowmanYawJitter = SnowmanYawJitter;
             // D-142: no frame trees (user: they looked awful) — the frame wall instead.
@@ -185,14 +186,18 @@ namespace Arena.Editor.Art.MapProps
             DeleteStale();
             EditorUtility.SetDirty(theme);
 
-            var map = AssetDatabase.LoadAssetAtPath<MapConfig>(DataSeeder.RoyaleSnowValleyPath);
-            if (map != null)
+            string linked = "";
+            foreach (string mapPath in new[] { DataSeeder.RoyaleSnowValleyPath, DataSeeder.AcornsSnowValleyPath })
             {
+                var map = AssetDatabase.LoadAssetAtPath<MapConfig>(mapPath);
+                if (map == null) continue;
                 map.Theme = theme;
                 EditorUtility.SetDirty(map);
+                linked += " " + map.Id;
             }
             AssetDatabase.SaveAssets();
-            Debug.Log("SnowThemeBuilder: wrote " + DataSeeder.SnowThemePath + (map != null ? " and linked it to " + map.Id : " (map not seeded yet)"));
+            Debug.Log("SnowThemeBuilder: wrote " + DataSeeder.SnowThemePath + (linked.Length > 0 ? ", linked to" + linked : " (maps not seeded yet)") +
+                      "; hollow spruce " + theme.Hollow.triangles.Length / 3 + " tris");
         }
 
         private static Material GroveMaterial(Material source, string name)

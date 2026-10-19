@@ -2,6 +2,7 @@ using Arena.Core.Defs;
 using Arena.Core.Modes;
 using Arena.Core.Sim;
 using Arena.Core.State;
+using Arena.Data;
 using Arena.Gameplay.Match;
 using Arena.Gameplay.View;
 using UnityEngine;
@@ -59,15 +60,34 @@ namespace Arena.Modes
             _catalog = _runner.ViewCatalog;
             _normalPool = CreatePool(_catalog.AcornPrefab, "Acorn");
             _goldenPool = CreatePool(_catalog.AcornGoldenPrefab, "AcornGolden");
-            if (_catalog.HollowPrefab != null)
-            {
-                GameObject hollow = Instantiate(_catalog.HollowPrefab, transform);
-                hollow.name = "Hollow";
-                hollow.transform.position = WorldCoords.ToWorld(defs.Map.Hollow.Center);
-                _hollow = hollow.transform;
-            }
+            MapThemeConfig theme = _runner.MapView != null ? _runner.MapView.Theme : null;
+            GameObject hollow = CreateHollow(transform, _catalog, theme, WorldCoords.ToWorld(defs.Map.Hollow.Center));
+            if (hollow != null) _hollow = hollow.transform;
             _built = true;
         }
+
+        /// <summary>
+        /// The hollow view at <paramref name="position"/>: the map theme's mesh (Map-SnowValley §1.4 В2, the snow spruce-hollow) with
+        /// the theme's prop material, else the catalog's <see cref="ViewCatalog.HollowPrefab"/>; null if neither exists.
+        /// </summary>
+        public static GameObject CreateHollow(Transform parent, ViewCatalog catalog, MapThemeConfig theme, Vector3 position)
+        {
+            GameObject hollow = null;
+            if (theme != null && theme.Hollow != null)
+            {
+                Material material = theme.Props != null ? theme.Props : catalog.ObstacleProp;
+                hollow = MapView.CreatePropObject(HollowName, parent, theme.Hollow, material, position, 0f);
+            }
+            else if (catalog.HollowPrefab != null)
+            {
+                hollow = Instantiate(catalog.HollowPrefab, parent);
+                hollow.name = HollowName;
+                hollow.transform.position = position;
+            }
+            return hollow;
+        }
+
+        private const string HollowName = "Hollow";
 
         private void Render(MatchState state)
         {
