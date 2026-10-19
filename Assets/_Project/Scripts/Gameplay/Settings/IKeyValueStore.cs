@@ -6,6 +6,7 @@ namespace Arena.Gameplay.Settings
         bool HasKey(string key);
         int GetInt(string key, int fallback);
         void SetInt(string key, int value);
+        void DeleteKey(string key);
 
         /// <summary>Writes pending changes to disk.</summary>
         void Save();

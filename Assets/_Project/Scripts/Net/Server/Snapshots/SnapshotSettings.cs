@@ -61,7 +61,11 @@ namespace Arena.Net.Server.Snapshots
             if (AoiRadiusCellsAcorns < 0f || AoiRadiusCellsLastBeast < 0f) throw new System.ArgumentException("SnapshotSettings: AOI radius < 0");
             if (MaxEventsPerSnapshot < 0 || MaxEventsPerSnapshot > NetLimits.MaxSnapshotEvents) throw new System.ArgumentException("SnapshotSettings: MaxEventsPerSnapshot out of range");
             if (EventRedundancyTicks < 1 || SnapshotRateDivisor < 1) throw new System.ArgumentException("SnapshotSettings: redundancy and divisor must be ≥ 1");
-            if (MaxSnapshotBytes < 64 || MaxSnapshotBytes > NetConnection.MaxPayloadBytes) throw new System.ArgumentException("SnapshotSettings: MaxSnapshotBytes out of range");
+            // The snapshot goes after a 1-byte message kind (F2: MaxPayloadBytes itself threw while encoding).
+            if (MaxSnapshotBytes < 64 || MaxSnapshotBytes > NetConnection.MaxPayloadBytes - 1) throw new System.ArgumentException("SnapshotSettings: MaxSnapshotBytes out of range");
+            // The client keeps RecentEventHistory events to drop repeats; more repeated events would show damage numbers twice.
+            if (EventRedundancyTicks * MaxEventsPerSnapshot > NetLimits.RecentEventHistory)
+                throw new System.ArgumentException("SnapshotSettings: EventRedundancyTicks × MaxEventsPerSnapshot exceeds RecentEventHistory");
             if (ProjectileEndLingerTicks < 0) throw new System.ArgumentException("SnapshotSettings: ProjectileEndLingerTicks < 0");
         }
 

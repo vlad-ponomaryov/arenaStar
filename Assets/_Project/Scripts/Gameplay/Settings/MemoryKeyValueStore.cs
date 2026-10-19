@@ -13,6 +13,8 @@ namespace Arena.Gameplay.Settings
         public bool HasKey(string key) => _ints.ContainsKey(key);
         public int GetInt(string key, int fallback) => _ints.TryGetValue(key, out int v) ? v : fallback;
         public void SetInt(string key, int value) => _ints[key] = value;
+        public void DeleteKey(string key) => _ints.Remove(key);
+        public int Count => _ints.Count;
         public void Save() => SaveCount++;
     }
 }

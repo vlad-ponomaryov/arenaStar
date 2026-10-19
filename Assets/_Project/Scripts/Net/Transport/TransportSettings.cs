@@ -87,6 +87,23 @@ namespace Arena.Net.Transport
             ServerNameKey = 0,
         };
 
+        /// <summary>
+        /// Throws if a value would break the transport (F2: a zero cookie slice divides by zero, zero retries spin) — a bad
+        /// <c>server.json</c> fails at start, not in the game thread.
+        /// </summary>
+        public void Validate()
+        {
+            if (MinRtoMs <= 0 || MaxRtoMs < MinRtoMs || InitialRtoMs <= 0) throw new System.ArgumentException("TransportSettings: RTO bounds");
+            if (KeepaliveMs <= 0 || DisconnectTimeoutMs <= 0 || ConnectTimeoutMs <= 0)
+                throw new System.ArgumentException("TransportSettings: keepalive and timeouts must be > 0");
+            if (HandshakeRetryMs <= 0 || PathChallengeRetryMs <= 0 || CookieSliceMs <= 0)
+                throw new System.ArgumentException("TransportSettings: retry intervals and CookieSliceMs must be > 0");
+            if (AckDelayMs < 0 || DisconnectRepeats < 0 || RateLimitDisconnectMs < 0)
+                throw new System.ArgumentException("TransportSettings: AckDelayMs, DisconnectRepeats, RateLimitDisconnectMs must be ≥ 0");
+            if (HandshakesPerIpPerMinute <= 0 || PacketsPerSecond <= 0 || BytesPerSecond <= 0 || MaxConnections <= 0)
+                throw new System.ArgumentException("TransportSettings: limits must be > 0");
+        }
+
         public TransportSettings Clone() => (TransportSettings)MemberwiseClone();
     }
 }

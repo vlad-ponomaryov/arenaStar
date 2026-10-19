@@ -76,6 +76,7 @@ namespace Arena.Tests.EditMode.Online
             Assert.IsFalse(store.TryLoad(999, out _), "saved in the future (clock changed)");
             store.Clear();
             Assert.IsFalse(store.TryLoad(1030, out _), "cleared");
+            Assert.AreEqual(0, kv.Count, "every arena.rejoin.* key is deleted (§6.4)");
         }
 
         [Test]

@@ -43,6 +43,7 @@ namespace Arena.Net.Transport
         {
             _socket = socket ?? throw new ArgumentNullException(nameof(socket));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _settings.Validate();
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _handler = handler;
             _contentHash = contentHash;

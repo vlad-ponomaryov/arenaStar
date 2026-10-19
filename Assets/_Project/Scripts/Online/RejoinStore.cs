@@ -66,11 +66,26 @@ namespace Arena.Online
             return age >= 0 && age <= _windowSeconds && !ticket.Token.IsEmpty;
         }
 
+        /// <summary>Deletes every <c>arena.rejoin.*</c> key (Server-Spec §6.4: the ticket does not stay on the device).</summary>
         public void Clear()
         {
-            if (_store.GetInt(HasKey, 0) == 0) return;
-            _store.SetInt(HasKey, 0);
+            if (!_store.HasKey(HasKey)) return;
+            _store.DeleteKey(HasKey);
+            _store.DeleteKey(ServerPortKey);
+            _store.DeleteKey(SlotKey);
+            DeleteULong(ServerHighKey);
+            DeleteULong(ServerLowKey);
+            DeleteULong(MatchKey);
+            DeleteULong(TokenHighKey);
+            DeleteULong(TokenLowKey);
+            DeleteULong(SavedKey);
             _store.Save();
+        }
+
+        private void DeleteULong(string key)
+        {
+            _store.DeleteKey(key + "_hi");
+            _store.DeleteKey(key + "_lo");
         }
 
         private void SetULong(string key, ulong value)
