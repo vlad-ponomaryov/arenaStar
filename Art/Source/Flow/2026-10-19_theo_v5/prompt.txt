@@ -1,0 +1,19 @@
+Theo (Тео) v5 — вариант v4-2 без плаща. Google Flow, проект «Arena», Nano Banana 2.1; условия — как в
+../2026-10-19_tex-grass/prompt.md (Q-019, D-111). База — ../2026-10-19_theo_v4/theo_v4_2.png и его промпт (ПРОМПТ 2 там). В игру не идёт.
+
+ВЫБОР ПОЛЬЗОВАТЕЛЯ (19.10): Тео — вариант 2 (перламутровый белый #F7F5EF + полированное золото #E0A93A, тёплый серый
+поддоспешник, ярко-оранжевое свечение), но БЕЗ ПЛАЩА (ни плаща, ни накидки). Всё остальное — как в v4_2: костюм и детали,
+визор-монокль с прицелом, эмблема — золотая комета на оранжевом кольце орбиты, гарнитура с микрофоном.
+
+СПОСОБ: редактирование изображения v4_2 в редакторе Flow («Что вы хотите изменить?», Nano Banana 2.1) — на этот раз фильтр
+не отклонил. 1 генерация, без перегенераций. Сгенерировано 19.10 ≈17:53; скачано 1K (JPEG 896×1200), сохранено в PNG без
+изменения пикселей. Водяного знака не видно, SynthID — есть.
+
+ОЦЕНКА: плащ убран чисто (ничего не свисает, плечи и спина костюма дорисованы), лицо/палитра/детали/фон сохранены 1:1.
+Бластер НЕ изменился: как в v4_2 — в одной руке у плеча, с пистолетной рукоятью, размер прежний. Правка «крупнее, в двух
+руках» моделью проигнорирована; по брифу (если ломает образ — оставить как в v4_2) отдельно не добивались.
+Следующий шаг при желании: отдельная правка только бластера (одним запросом), либо принять как есть.
+
+ЗАПРОС ПРАВКИ (точно, как отправлен):
+
+Remove the cape completely: no cape, no cloak, nothing hanging from the shoulders or behind the back; show the back of the shoulder pads and the suit instead. Make the space blaster bigger (about as long as he is tall) and have him hold it with both hands diagonally across his body, one hand on the front grip under the barrel, no pistol grip. Keep everything else exactly the same: same boy, face, hair, pearl white and gold armor, orange glow, orange monocle visor, headset with microphone, gold comet orbit emblem, belt, boots, background and style.
