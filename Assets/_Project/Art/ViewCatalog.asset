@@ -18,7 +18,9 @@ MonoBehaviour:
   ProjectilePrefab: {fileID: 4008496338427880208, guid: 91b8421af3a1b1f4a907abb21cb85093, type: 3}
   HealthBarPrefab: {fileID: 5199385430744116495, guid: 9235dc2b177f0734d89a4362e273aa93, type: 3}
   TelegraphPrefab: {fileID: 2309977234652035910, guid: 0f5cd86cb96c6594eb96693c8a7198f5, type: 3}
-  FighterVisuals: []
+  FighterVisuals:
+  - FighterId: pix
+    Prefab: {fileID: 7434505735102882889, guid: e6065e26022b9ce4ca44f130da65a49b, type: 3}
   LogPrefab: {fileID: 7862282338162344235, guid: ec593e0984357a648bf684441dbb6448, type: 3}
   LogThickness: 0.5
   LobBombPrefab: {fileID: 3311351156427285967, guid: 5258f7fb4ea0fcf46a05824c0480affc, type: 3}

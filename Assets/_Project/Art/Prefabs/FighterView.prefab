@@ -31,9 +31,9 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6986652215667129933}
+  - {fileID: 4185469470909069081}
   - {fileID: 141763067068476914}
   - {fileID: 8130854405185680664}
-  - {fileID: 4185469470909069081}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &350873538404402149
@@ -51,6 +51,7 @@ MonoBehaviour:
   _body: {fileID: 141763067068476914}
   _ring: {fileID: 6890069002017586069}
   _shadow: {fileID: 1093561874354303365}
+  _rig: {fileID: 0}
 --- !u!1 &2873593199748176866
 GameObject:
   m_ObjectHideFlags: 0

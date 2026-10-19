@@ -1,4 +1,5 @@
 using System;
+using Arena.Editor.Art.Fighters;
 using Arena.Editor.Setup;
 using Arena.Gameplay.View;
 using Arena.UI.Controls;
@@ -60,7 +61,10 @@ namespace Arena.Editor.Art
         // Team palette (D-029): blue allies, red enemies with a clear brightness difference.
         private static readonly Color AllyColor = new Color(0.20f, 0.52f, 1.00f, 1f);
         private static readonly Color EnemyColor = new Color(0.95f, 0.22f, 0.18f, 1f);
-        private static readonly Color BodyColor = new Color(0.86f, 0.80f, 0.70f, 1f);
+        // Fighter materials are white: models carry their colours in vertex colours (Art-Spec §6.2); the fallback capsule bakes
+        // its beige into its vertices (FallbackCapsuleColor).
+        private static readonly Color BodyColor = Color.white;
+        private static readonly Color FallbackCapsuleColor = new Color(0.86f, 0.80f, 0.70f, 1f);
 
         // Colour-blind palette (D-029): allies stay blue, enemies orange (blue/orange is told apart by all common types).
         private static readonly Color EnemyAltColor = new Color(1.00f, 0.60f, 0.10f, 1f);
@@ -85,7 +89,7 @@ namespace Arena.Editor.Art
         private static readonly Color BushColor = new Color(0.16f, 0.45f, 0.18f, 1f);
         private static readonly Color BushSeeThroughColor = new Color(0.16f, 0.45f, 0.18f, 0.35f);
         private static readonly Color WaterColor = new Color(0.22f, 0.50f, 0.85f, 1f);
-        private static readonly Color FighterHiddenColor = new Color(0.86f, 0.80f, 0.70f, 0.45f);
+        private static readonly Color FighterHiddenColor = new Color(1f, 1f, 1f, 0.45f);
 
         // Map geometry (world units, view only, PROTO): wall and breakable wall height, bush height, water sheet height,
         // see-through radius around the local fighter in a bush.
@@ -165,8 +169,8 @@ namespace Arena.Editor.Art
         private const float NoseHeightFraction = 0.75f;
 
         // Fallback capsule (A.1a): a copy of Unity's capsule with vertex colours (meshes under Arena/* shaders need them, Art-Spec
-        // §2.1): white albedo, alpha = gloss of the toon highlight (a vinyl toy, a little shiny).
-        private static readonly Color32 FallbackCapsuleVertexColor = new Color32(255, 255, 255, 140);
+        // §2.1): linear beige albedo, alpha = gloss of the toon highlight (a vinyl toy, a little shiny).
+        private const byte FallbackCapsuleGloss = 140;
 
         // Light (Art-Spec §6.3): pitch 50°, yaw = camera yaw + 35° (MatchLightRig).
         private const float LightPitch = 50f;
@@ -254,8 +258,8 @@ namespace Arena.Editor.Art
 
             ViewCatalog catalog = LoadOrCreate<ViewCatalog>(ViewCatalogPath);
             catalog.FighterViewPrefab = fighterView;
-            // Per-fighter models come in A.1b–A.1d; until then every fighter uses the fallback capsule.
-            catalog.FighterVisuals = Array.Empty<FighterVisual>();
+            // Per-fighter procedural models (A.1b: Pix; A.1c–A.1d: the rest); fighters without one use the fallback capsule.
+            catalog.FighterVisuals = FighterModelBuilder.BuildAll(body, ally, blobShadow);
             catalog.LightPitch = LightPitch;
             catalog.LightYawFromCamera = LightYawFromCamera;
             catalog.AimIndicatorPrefab = aimIndicator;
@@ -508,7 +512,9 @@ namespace Arena.Editor.Art
                 mesh.normals = source.normals;
                 mesh.uv = source.uv;
                 var colors = new Color32[source.vertexCount];
-                for (int i = 0; i < colors.Length; i++) colors[i] = FallbackCapsuleVertexColor;
+                Color32 vertexColor = FallbackCapsuleColor.linear;
+                vertexColor.a = FallbackCapsuleGloss;
+                for (int i = 0; i < colors.Length; i++) colors[i] = vertexColor;
                 mesh.colors32 = colors;
                 mesh.triangles = source.triangles;
                 mesh.RecalculateBounds();
@@ -527,11 +533,7 @@ namespace Arena.Editor.Art
             var root = new GameObject("FighterView");
             try
             {
-                // Blob shadow (D-027): Unity quad faces −Z, turned to lie on the ground.
-                GameObject shadowGo = CreatePart(PrimitiveType.Quad, "Shadow", root.transform, shadow);
-                shadowGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                shadowGo.transform.localScale = new Vector3(BlobShadowDiameter, BlobShadowDiameter, 1f);
-                shadowGo.transform.localPosition = new Vector3(0f, BlobShadowHeight, 0f);
+                (Renderer ringRenderer, Renderer shadowRenderer) = AddRingAndShadow(root.transform, ring, shadow);
 
                 GameObject capsule = CreatePart(PrimitiveType.Capsule, "Body", root.transform, body);
                 capsule.GetComponent<MeshFilter>().sharedMesh = bodyMesh;
@@ -543,16 +545,11 @@ namespace Arena.Editor.Art
                 noseGo.transform.localScale = NoseScale;
                 noseGo.transform.localPosition = new Vector3(0f, BodyHeight * NoseHeightFraction, NoseForward);
 
-                GameObject ringGo = CreatePart(PrimitiveType.Cylinder, "Ring", root.transform, ring);
-                // Unity cylinder: height 2, diameter 1.
-                ringGo.transform.localScale = new Vector3(RingDiameter, RingThickness * 0.5f, RingDiameter);
-                ringGo.transform.localPosition = new Vector3(0f, RingHeight, 0f);
-
                 var view = root.AddComponent<FighterView>();
                 var so = new SerializedObject(view);
                 SetRef(so, "_body", capsule.transform);
-                SetRef(so, "_ring", ringGo.GetComponent<Renderer>());
-                SetRef(so, "_shadow", shadowGo.GetComponent<Renderer>());
+                SetRef(so, "_ring", ringRenderer);
+                SetRef(so, "_shadow", shadowRenderer);
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 return SavePrefab(root, FighterViewPrefabPath).GetComponent<FighterView>();
@@ -561,6 +558,22 @@ namespace Arena.Editor.Art
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        /// <summary>Blob shadow (D-027) and team ring of a fighter view, shared by the fallback capsule and the procedural models.</summary>
+        internal static (Renderer ring, Renderer shadow) AddRingAndShadow(Transform root, Material ring, Material shadow)
+        {
+            // Blob shadow: Unity quad faces −Z, turned to lie on the ground.
+            GameObject shadowGo = CreatePart(PrimitiveType.Quad, "Shadow", root, shadow);
+            shadowGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            shadowGo.transform.localScale = new Vector3(BlobShadowDiameter, BlobShadowDiameter, 1f);
+            shadowGo.transform.localPosition = new Vector3(0f, BlobShadowHeight, 0f);
+
+            GameObject ringGo = CreatePart(PrimitiveType.Cylinder, "Ring", root, ring);
+            // Unity cylinder: height 2, diameter 1.
+            ringGo.transform.localScale = new Vector3(RingDiameter, RingThickness * 0.5f, RingDiameter);
+            ringGo.transform.localPosition = new Vector3(0f, RingHeight, 0f);
+            return (ringGo.GetComponent<Renderer>(), shadowGo.GetComponent<Renderer>());
         }
 
         private static AimIndicatorView BuildAimIndicatorPrefab(Material lineMaterial)

@@ -21,7 +21,7 @@ namespace Arena.Editor.Art.Capture
     /// <c>Tools/unity-method.ps1 -Graphics -Method Arena.Editor.Art.Capture.ArtCapture.CaptureAll [-Extra '-artStep A.1a']</c>.
     /// Opens the Match scene (its camera and light, nothing saved), builds the <see cref="CaptureStage"/> and writes PNGs to
     /// <c>Tools/out/art/&lt;step&gt;/</c>: lineup (team 0 camera), lineup_team1 (the other side), lineup_zoom2 (the same view at 2×
-    /// around the fighters), states_zoom2 (fighter 0 hit flash, fighter 1 ghost), silhouettes64 (black fills, fighter 64 px high, gameplay angle and straight from above), map (top view)
+    /// around the fighters), states_zoom2 (fighter 0 hit flash, fighter 1 ghost), model_<id> (sheets of the procedural models), silhouettes64 (black fills, fighter 64 px high, gameplay angle and straight from above), map (top view)
     /// and protan/deutan versions of lineup, lineup_team1 and map.
     /// </summary>
     public static class ArtCapture
@@ -39,6 +39,13 @@ namespace Arena.Editor.Art.Capture
         private const float MapMarginCells = 0.5f;
         private const float OrthoCameraDistance = 30f;
         private static readonly Color SilhouetteBackground = Color.white;
+        // Model sheets: far from the stage, 480×600 cells; views as (fighter yaw from facing the camera, camera pitch).
+        private static readonly Vector3 SheetSpot = new Vector3(-100f, 0f, 0f);
+        private static readonly Vector2[] SheetViews = { new Vector2(0f, 8f), new Vector2(-35f, 12f), new Vector2(180f, 8f), new Vector2(0f, 89f), new Vector2(0f, 55f) };
+        private const int SheetCellWidth = 480;
+        private const int SheetCellHeight = 600;
+        private const float SheetFieldOfView = 30f;
+        private const float SheetDistance = 4.4f;
 
         // Set by CaptureAll for PlaceGameplay: the scene light turned with the camera (MatchLightRig) and its catalog values.
         private static Light s_light;
@@ -84,6 +91,7 @@ namespace Arena.Editor.Art.Capture
                 stage.SetLocalTeam(0);
                 SaveWithColorBlind(RenderMap(camera, stage), dir, "map");
                 SaveSilhouettes(camera, config, stage, dir);
+                SaveModelSheets(camera, config, stage, dir);
             }
             finally
             {
@@ -140,6 +148,46 @@ namespace Arena.Editor.Art.Capture
             Object.DestroyImmediate(big);
             Save(crop, dir, name);
             Object.DestroyImmediate(crop);
+        }
+
+        /// <summary>
+        /// For every fighter with a procedural model (<see cref="FighterView.Rig"/>): a close sheet like the Flow concept sheets —
+        /// front, 3/4, back, straight from above and the gameplay angle — <c>model_&lt;id&gt;.png</c>, the fighter alone in front of
+        /// the camera background, light as for team 0.
+        /// </summary>
+        private static void SaveModelSheets(Camera camera, CameraConfig config, CaptureStage stage, string dir)
+        {
+            PlaceGameplay(camera, config, stage, false);
+            float fov = camera.fieldOfView;
+            camera.fieldOfView = SheetFieldOfView;
+            try
+            {
+                for (int i = 0; i < stage.FighterCount; i++)
+                {
+                    FighterView view = stage.Fighter(i);
+                    if (view.Rig == null) continue;
+                    Vector3 home = view.transform.position;
+                    Quaternion homeRotation = view.transform.rotation;
+                    var sheet = new Texture2D(SheetCellWidth * SheetViews.Length, SheetCellHeight, TextureFormat.RGBA32, false);
+                    for (int v = 0; v < SheetViews.Length; v++)
+                    {
+                        Vector2 yawPitch = SheetViews[v];
+                        view.SetPose(SheetSpot, Quaternion.Euler(0f, yawPitch.x, 0f) * Vector3.back);
+                        Quaternion rotation = Quaternion.Euler(yawPitch.y, 0f, 0f);
+                        Vector3 target = SheetSpot + Vector3.up * view.Rig.TopHeight * 0.5f;
+                        camera.transform.SetPositionAndRotation(target - rotation * Vector3.forward * SheetDistance, rotation);
+                        Blit(sheet, Render(camera, SheetCellWidth, SheetCellHeight), v * SheetCellWidth, 0);
+                    }
+                    sheet.Apply();
+                    view.transform.SetPositionAndRotation(home, homeRotation);
+                    Save(sheet, dir, "model_" + stage.FighterId(i));
+                    Object.DestroyImmediate(sheet);
+                }
+            }
+            finally
+            {
+                camera.fieldOfView = fov;
+            }
         }
 
         private static Texture2D RenderMap(Camera camera, CaptureStage stage)
@@ -219,10 +267,24 @@ namespace Arena.Editor.Art.Capture
                 var mats = new Material[r.sharedMaterials.Length];
                 for (int m = 0; m < mats.Length; m++) mats[m] = black;
                 r.sharedMaterials = mats;
-                if (first) { bounds = r.bounds; first = false; }
-                else bounds.Encapsulate(r.bounds);
+                Bounds rb = RendererBounds(r);
+                if (first) { bounds = rb; first = false; }
+                else bounds.Encapsulate(rb);
             }
             return bounds;
+        }
+
+        /// <summary>World bounds; a skinned model's own mesh bounds at rest (its renderer bounds carry a culling margin).</summary>
+        private static Bounds RendererBounds(Renderer r)
+        {
+            if (!(r is SkinnedMeshRenderer smr) || smr.sharedMesh == null || smr.rootBone == null) return r.bounds;
+            Bounds local = smr.sharedMesh.bounds;
+            Matrix4x4 m = smr.rootBone.localToWorldMatrix;
+            var world = new Bounds(m.MultiplyPoint3x4(local.min), Vector3.zero);
+            for (int i = 0; i < 8; i++)
+                world.Encapsulate(m.MultiplyPoint3x4(new Vector3((i & 1) == 0 ? local.min.x : local.max.x,
+                    (i & 2) == 0 ? local.min.y : local.max.y, (i & 4) == 0 ? local.min.z : local.max.z)));
+            return world;
         }
 
         private static void Restore(List<KeyValuePair<Renderer, Material[]>> saved)

@@ -30,3 +30,10 @@
 - (A.1a) Свет: `MatchLightRig.Apply` вызывается в `MatchRunner.StartMatch` и в `ArtCapture.PlaceGameplay`; `SceneBuilder.ApplyMatchEnvironment` — Trilight (фон камеры по-прежнему тёмно-синий — A.3a). `ArtCapture` пишет ещё `states_zoom2.png` (боец 0 — вспышка, 1 — призрак).
 - (A.1a) A.1b: заполни `catalog.FighterVisuals` в `ViewAssetBuilder.BuildAll` (сейчас там `Array.Empty`); `MatchRunner`/`CaptureStage` уже берут префаб по id. Нос-кубик фолбэка — URP Unlit, просвечивает сквозь призрака (у моделей носа не будет).
 - (A.1a) После `SceneBuilder.BuildAll` Boot/Menu получают новые fileID без смысловых изменений — `git checkout --` их, если шаг их не меняет.
+- (A.1b) Модель = рецепт `Editor/Art/Fighters/Recipes/<Name>Recipe.cs` + строка в `FighterModelBuilder.Recipes()`; пересборка —
+  `ViewAssetBuilder.BuildAll` (в логе: треугольники и шаг сетки по группам). Новый `ArtCapture` пишет `model_<id>.png` (спереди, 3/4,
+  сзади, сверху, игровой угол) — сверяй с листом Flow. Части задаются в модельном пространстве (y вверх, лицом +Z, +X — правая рука).
+- (A.1b) Ловушки: деталь тоньше шага лепки (≈ 0,06) пропадает — делай её `Parts` или толще; «краска» (`AsPaint`) — дешёвый способ
+  пятен; бюджеты групп проверяет `FighterModelTests` (голова ≤ 1400 вместе с `Parts` на кости Head). Hex — sRGB, сборщик сам переводит в linear.
+- (A.1b) Для A.2a: `FighterRig` хранит кости (индекс = `FighterBone`), позу покоя, `TopHeight`, стили и пружины (у Пикса — Tail, Head);
+  веки `LidL/LidR` в покое масштаб 0. Полоска HP пока не читает `TopHeight`. Силуэты 64 px нормируются по рамке с хвостом и бластером — Пикс там мельче капсул.
