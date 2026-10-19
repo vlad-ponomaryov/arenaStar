@@ -21,37 +21,35 @@ MonoBehaviour:
     BaseSize: 280
     KnobSize: 130
     Radius: 120
-    BaseColor: {r: 1, g: 1, b: 1, a: 0.22}
-    KnobColor: {r: 1, g: 1, b: 1, a: 0.6}
+    BaseColor: {r: 1, g: 0.95686275, b: 0.87058824, a: 0.6}
+    KnobColor: {r: 1, g: 0.95686275, b: 0.87058824, a: 0.85}
   AttackStick:
     Position: {x: 300, y: 290}
     HitSize: 380
     BaseSize: 260
     KnobSize: 120
     Radius: 110
-    BaseColor: {r: 1, g: 0.45, b: 0.35, a: 0.3}
-    KnobColor: {r: 1, g: 0.45, b: 0.35, a: 0.85}
+    BaseColor: {r: 1, g: 0.47843137, b: 0.36078432, a: 0.6}
+    KnobColor: {r: 1, g: 0.47843137, b: 0.36078432, a: 1}
   UltStick:
     Position: {x: 620, y: 190}
     HitSize: 260
     BaseSize: 190
     KnobSize: 95
     Radius: 80
-    BaseColor: {r: 1, g: 0.85, b: 0.25, a: 0.3}
-    KnobColor: {r: 1, g: 0.85, b: 0.25, a: 0.85}
+    BaseColor: {r: 1, g: 0.7882353, b: 0.23529412, a: 0.7}
+    KnobColor: {r: 1, g: 0.7882353, b: 0.23529412, a: 1}
   TrickButtonPosition: {x: 290, y: 600}
   TrickButtonSize: 150
-  TrickButtonColor: {r: 0.35, g: 0.9, b: 0.55, a: 0.75}
-  UltNotReadyBaseColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.18}
-  UltNotReadyKnobColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.4}
-  UltChargeFillColor: {r: 1, g: 0.85, b: 0.25, a: 0.55}
-  UltChargeRingSize: 230
-  TrickButtonDisabledColor: {r: 0.45, g: 0.5, b: 0.47, a: 0.35}
-  TrickDotSize: 26
-  TrickDotSpacing: 36
-  TrickDotOffset: 105
-  TrickDotOnColor: {r: 0.35, g: 0.95, b: 0.55, a: 0.95}
-  TrickDotOffColor: {r: 1, g: 1, b: 1, a: 0.15}
+  TrickButtonColor: {r: 0.29803923, g: 0.7490196, b: 0.3372549, a: 1}
+  UltNotReadyBaseColor: {r: 0.84705883, g: 0.8156863, b: 0.7529412, a: 0.4}
+  UltNotReadyKnobColor: {r: 0.72156864, g: 0.6901961, b: 0.627451, a: 0.75}
+  TrickButtonDisabledColor: {r: 0.5411765, g: 0.6039216, b: 0.54901963, a: 0.6}
+  TrickDotSize: 36
+  TrickDotSpacing: 40
+  TrickDotOffset: 104
+  TrickDotOnColor: {r: 1, g: 1, b: 1, a: 1}
+  TrickDotOffColor: {r: 0.3, g: 0.25, b: 0.2, a: 0.45}
   Gesture:
     DeadZone: 0.2
     CancelRadius: 0.25
@@ -86,8 +84,8 @@ MonoBehaviour:
   MenuItemSpacing: 14
   VersionMargin: {x: 24, y: 24}
   ScoreBarTopMargin: 20
-  ScoreBoxSize: {x: 150, y: 90}
-  TimerBoxSize: {x: 200, y: 90}
+  ScoreBoxSize: {x: 184, y: 96}
+  TimerBoxSize: {x: 210, y: 96}
   ScoreBarSpacing: 12
   ScorePanelColor: {r: 0, g: 0, b: 0, a: 0.45}
   CountdownSize: {x: 360, y: 70}
@@ -148,3 +146,27 @@ MonoBehaviour:
   LabelBaselineShift: 0.06
   MenuLabelWidth: 340
   DisabledLabelAlpha: 0.6
+  StickBaseSprite: {fileID: 21300000, guid: 590bf73bf808eaa4ba548976c29f7293, type: 3}
+  KnobSprite: {fileID: 21300000, guid: 2b95b2ae3d37d4546a061b63e8ebd762, type: 3}
+  PetalSprite: {fileID: 21300000, guid: d0a538326b6eaf142b45ef9044be9dfc, type: 3}
+  GlowSprite: {fileID: 21300000, guid: 78855fa7b7a652545bcb7f132734e001, type: 3}
+  AcornIcon: {fileID: 21300000, guid: fabc7700215c7d443b00fa2c4ce875e9, type: 3}
+  PawIcon: {fileID: 21300000, guid: 02006eaf76287554eb9d7b1dbe913810, type: 3}
+  LeafMedalIcon: {fileID: 21300000, guid: 8eba94b5740450640b66876301c6cd6e, type: 3}
+  StarsIcon: {fileID: 21300000, guid: f93c19a66fd498941ab44f72812a833d, type: 3}
+  UltIcon: {fileID: 21300000, guid: 536909e9269ec18439df93160b691f04, type: 3}
+  TrickIcon: {fileID: 21300000, guid: d40d9ab67260c2047832b7450b0f16da, type: 3}
+  UltPetalCount: 8
+  UltPetalSize: {x: 54, y: 80}
+  UltPetalRadius: 118
+  UltPetalOffColor: {r: 1, g: 1, b: 1, a: 0.45}
+  UltPetalOnColor: {r: 1, g: 0.68235296, b: 0.20392157, a: 1}
+  UltPetalReadyColor: {r: 1, g: 0.8784314, b: 0.2901961, a: 1}
+  UltGlowSize: 380
+  UltGlowColor: {r: 1, g: 0.84705883, b: 0.2901961, a: 0.7}
+  UltIconSize: 62
+  TrickIconSize: 84
+  IconReadyColor: {r: 1, g: 1, b: 1, a: 1}
+  IconNotReadyColor: {r: 1, g: 1, b: 1, a: 0.45}
+  ScoreIconShare: 0.62
+  ScoreIconMargin: 10

@@ -65,6 +65,45 @@ namespace Arena.Tests.PlayMode
             yield return Capture(dir, "results_phone", PhoneWidth, Height);
         }
 
+        /// <summary>
+        /// A.7a: the match HUD of a training match — ult flower partly filled (<c>match_hud</c>, also at the wide phone size),
+        /// then the charged ult with its glow (<c>match_hud_ult</c>).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Capture_MatchHud()
+        {
+            string dir = OutputDir();
+            SceneFlow.ClearLaunchParams();
+            yield return SceneManager.LoadSceneAsync(SceneNames.Menu, LoadSceneMode.Single);
+            yield return null;
+            MenuScreen menu = Object.FindFirstObjectByType<MenuScreen>();
+            Assert.IsNotNull(menu, "MenuScreen in the Menu scene");
+            menu.SelectFighter("pix");
+            yield return null;
+            menu.TrainingButton.onClick.Invoke();
+            MatchRunner runner = null;
+            yield return WaitFor(() => (runner = FindStartedRunner()) != null, "match started");
+            var state = runner.Simulation.State;
+            var defs = runner.Simulation.Defs;
+            int slot = runner.LocalSlot;
+
+            // Required charge of the own ult, from the HUD fraction of one point.
+            state.Fighters[slot].UltCharge = 1;
+            float onePoint = Arena.Core.Sim.Systems.UltSystem.ChargeFraction(defs, in state.Fighters[slot]);
+            Assert.Greater(onePoint, 0f, "the fighter has an ult");
+            int required = Mathf.RoundToInt(1f / onePoint);
+            state.Fighters[slot].UltCharge = Mathf.RoundToInt(required * 0.58f);
+            float until = Time.realtimeSinceStartup + 1.2f;
+            while (Time.realtimeSinceStartup < until) yield return null;
+            yield return Capture(dir, "match_hud", Width, Height);
+            yield return Capture(dir, "match_hud_phone", PhoneWidth, Height);
+
+            state.Fighters[slot].UltCharge = required;
+            until = Time.realtimeSinceStartup + 0.4f;
+            while (Time.realtimeSinceStartup < until) yield return null;
+            yield return Capture(dir, "match_hud_ult", Width, Height);
+        }
+
         private static string OutputDir()
         {
             string step = Environment.GetEnvironmentVariable(StepVariable);

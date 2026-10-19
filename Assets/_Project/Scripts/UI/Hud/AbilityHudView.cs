@@ -5,9 +5,11 @@ using UnityEngine.UI;
 namespace Arena.UI.Hud
 {
     /// <summary>
-    /// Shows <see cref="AbilityHudInfo"/> on the HUD controls (GDD §5.1): the ult stick is bright only when the ult is
-    /// charged, a radial ring shows the charge; the trick button dims while not ready, dots show the uses left (no text).
-    /// Writes to uGUI only when a value changes (no canvas rebuild every frame, no allocations after the dots exist).
+    /// Shows <see cref="AbilityHudInfo"/> on the HUD controls (GDD §5.1, Art-Spec §4.1): the ult stick is bright only when the
+    /// ult is charged; the petals of the ult "flower" fill one by one with the charge (the current petal brightens gradually)
+    /// and all turn gold with a glow when it is ready; the trick button and its icon dim while not ready, acorn beads show the
+    /// uses left (no text). Writes to uGUI only when a value changes (no canvas rebuild every frame, no allocations after the
+    /// beads exist).
     /// </summary>
     public sealed class AbilityHudView
     {
@@ -35,14 +37,17 @@ namespace Arena.UI.Hud
             {
                 SetColor(_controls.UltBase, info.UltCharged ? _style.UltStick.BaseColor : _style.UltNotReadyBaseColor);
                 SetColor(_controls.UltKnob, info.UltCharged ? _style.UltStick.KnobColor : _style.UltNotReadyKnobColor);
+                SetColor(_controls.UltIcon, info.UltCharged ? _style.IconReadyColor : _style.IconNotReadyColor);
+                if (_controls.UltGlow != null && _controls.UltGlow.enabled != info.UltCharged) _controls.UltGlow.enabled = info.UltCharged;
             }
-            if (_controls.UltChargeRing != null && (!_hasShown || info.UltCharge != _shown.UltCharge || info.HasUlt != _shown.HasUlt))
-            {
-                _controls.UltChargeRing.fillAmount = info.HasUlt ? info.UltCharge : 0f;
-            }
+            if (!_hasShown || info.UltCharge != _shown.UltCharge || info.HasUlt != _shown.HasUlt || info.UltCharged != _shown.UltCharged)
+                ShowPetals(info.HasUlt ? info.UltCharge : 0f, info.UltCharged);
 
             if (!_hasShown || info.TrickReady != _shown.TrickReady)
+            {
                 SetColor(_controls.TrickImage, info.TrickReady ? _style.TrickButtonColor : _style.TrickButtonDisabledColor);
+                SetColor(_controls.TrickIcon, info.TrickReady ? _style.IconReadyColor : _style.IconNotReadyColor);
+            }
             if (!_hasShown || info.TrickUsesLeft != _shown.TrickUsesLeft)
             {
                 Image[] dots = _controls.TrickDots;
@@ -55,17 +60,40 @@ namespace Arena.UI.Hud
         }
 
         /// <summary>
-        /// Glow of the charged ult (GDD §5.1: the button lights up): the ult stick base pulses in size while charged and returns
-        /// to normal otherwise. Call every frame.
+        /// Petal i is filled when the charge passes (i + 1) / count; the one being filled lerps from the off to the on colour.
+        /// A charged ult shows every petal in the ready colour.
+        /// </summary>
+        private void ShowPetals(float charge, bool charged)
+        {
+            Image[] petals = _controls.UltPetals;
+            if (petals == null) return;
+            int count = petals.Length;
+            for (int i = 0; i < count; i++)
+            {
+                Color c;
+                if (charged) c = _style.UltPetalReadyColor;
+                else c = Color.Lerp(_style.UltPetalOffColor, _style.UltPetalOnColor, Mathf.Clamp01(charge * count - i));
+                SetColor(petals[i], c);
+            }
+        }
+
+        /// <summary>
+        /// Glow of the charged ult (GDD §5.1: the button lights up): the ult stick base and the golden glow behind the flower
+        /// pulse in size while charged and return to normal otherwise. Call every frame.
         /// </summary>
         /// <param name="time">Unscaled time, seconds.</param>
         /// <param name="frequency">Pulses per second.</param>
         /// <param name="extraScale">Extra scale at the peak (0.08 = +8 %).</param>
         public void AnimateUltGlow(bool charged, float time, float frequency, float extraScale)
         {
-            if (_controls.UltBase == null) return;
-            float k = charged ? 1f + extraScale * (0.5f + 0.5f * Mathf.Sin(time * frequency * Mathf.PI * 2f)) : 1f;
-            Transform t = _controls.UltBase.rectTransform;
+            float pulse = 0.5f + 0.5f * Mathf.Sin(time * frequency * Mathf.PI * 2f);
+            float k = charged ? 1f + extraScale * pulse : 1f;
+            if (_controls.UltBase != null) SetScale(_controls.UltBase.rectTransform, k);
+            if (_controls.UltGlow != null) SetScale(_controls.UltGlow.rectTransform, k);
+        }
+
+        private static void SetScale(Transform t, float k)
+        {
             if (t.localScale.x != k) t.localScale = new Vector3(k, k, 1f);
         }
 

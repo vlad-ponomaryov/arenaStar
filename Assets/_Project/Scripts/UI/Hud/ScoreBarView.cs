@@ -70,10 +70,10 @@ namespace Arena.UI.Hud
             row.sizeDelta = new Vector2(0f, style.ScoreBoxSize.y);
             row.anchoredPosition = Vector2.zero;
 
-            Text ally = CreateBox("Ally", row, style, style.ScoreBoxSize, style.AllyColor);
-            Text timer = CreateBox("Timer", row, style, style.TimerBoxSize, style.ScorePanelColor);
+            Text ally = CreateBox("Ally", row, style, style.ScoreBoxSize, style.AllyColor, style.AcornIcon, false);
+            Text timer = CreateBox("Timer", row, style, style.TimerBoxSize, style.ScorePanelColor, null, true);
             Text enemy = CreateBox("Enemy", row, style, style.ScoreBoxSize,
-                style.Enemy(PlayerSettingsStore.Shared.Current.ColorblindPalette));
+                style.Enemy(PlayerSettingsStore.Shared.Current.ColorblindPalette), style.AcornIcon, false);
 
             RectTransform countdown = UiFactory.CreateRow("Countdown", root, style.ScoreBarSpacing, 0f);
             countdown.anchorMin = new Vector2(0f, 0f);
@@ -135,12 +135,30 @@ namespace Arena.UI.Hud
             text.text = NumberStringCache.Get(value);
         }
 
-        private static Text CreateBox(string name, Transform parent, UiStyle style, Vector2 size, Color color)
+        /// <summary>
+        /// A.7b: a toy tablet — team colour with an acorn icon on the left and the number, or (no icon) the wooden "stump" plank of
+        /// the timer.
+        /// </summary>
+        private static Text CreateBox(string name, Transform parent, UiStyle style, Vector2 size, Color color, Sprite icon, bool wood)
         {
-            Image box = UiFactory.CreateImage(name, parent, color);
-            UiFactory.SetPreferredSize(box.gameObject, size);
-            Text text = UiFactory.CreateText("Text", box.transform, style, style.LargeFontSize, TextAnchor.MiddleCenter);
+            RectTransform face = !wood
+                ? UiFactory.CreateTablet(name, parent, style, size, color)
+                : UiFactory.CreateTablet(name, parent, style, size, style.PanelBorderColor, style.PlankSprite);
+            Text text = UiFactory.CreateText("Text", face, style, style.LargeFontSize, TextAnchor.MiddleCenter);
             UiFactory.Stretch(text.rectTransform);
+            text.rectTransform.anchoredPosition = new Vector2(0f, -style.LargeFontSize * style.LabelBaselineShift);
+            if (icon == null) return text;
+
+            float iconSize = size.y * style.ScoreIconShare;
+            Image image = UiFactory.CreateImage("Icon", face, Color.white, icon);
+            image.preserveAspect = true;
+            RectTransform irt = image.rectTransform;
+            irt.anchorMin = new Vector2(0f, 0.5f);
+            irt.anchorMax = new Vector2(0f, 0.5f);
+            irt.pivot = new Vector2(0f, 0.5f);
+            irt.sizeDelta = new Vector2(iconSize, iconSize);
+            irt.anchoredPosition = new Vector2(style.ScoreIconMargin, 0f);
+            text.rectTransform.offsetMin = new Vector2(style.ScoreIconMargin + iconSize, text.rectTransform.offsetMin.y);
             return text;
         }
     }

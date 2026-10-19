@@ -40,16 +40,10 @@ namespace Arena.UI.Style
         public Color UltNotReadyBaseColor;
         public Color UltNotReadyKnobColor;
 
-        [Tooltip("Radial fill around the ult stick showing the charge.")]
-        public Color UltChargeFillColor;
-
-        [Tooltip("Diameter of the ult charge ring, canvas units.")]
-        public float UltChargeRingSize;
-
         [Tooltip("Trick button while on cooldown, locked or out of uses.")]
         public Color TrickButtonDisabledColor;
 
-        [Tooltip("Dots above the trick button: one per use left.")]
+        [Tooltip("Acorn beads above the trick button: one per use left (A.7a: AcornIcon, tinted On / Off).")]
         public float TrickDotSize;
         public float TrickDotSpacing;
 
@@ -271,6 +265,54 @@ namespace Arena.UI.Style
 
         [Tooltip("Label alpha of a button that is not interactable (its gloss is hidden, the face greyed).")]
         [Range(0f, 1f)] public float DisabledLabelAlpha;
+
+        [Header("Match HUD skin (A.7a, Art-Spec §4.1–4.2): baked sprites and icons")]
+        [Tooltip("Stick base: translucent disc with a light rim and a dark outline (white, tinted by StickStyle.BaseColor).")]
+        public Sprite StickBaseSprite;
+
+        [Tooltip("Toy knob / round button: dark outline, shaded face, gloss on top (white, tinted).")]
+        public Sprite KnobSprite;
+
+        [Tooltip("One petal of the ult flower (points up, white with a dark outline, tinted by the charge state).")]
+        public Sprite PetalSprite;
+
+        [Tooltip("Soft radial glow (white, tinted): behind the charged ult.")]
+        public Sprite GlowSprite;
+
+        [Tooltip("Service icons (IconBaker, flat two-tone with the dark outline, 128 px): acorn, paw, leaf medal, defeat stars.")]
+        public Sprite AcornIcon;
+        public Sprite PawIcon;
+        public Sprite LeafMedalIcon;
+        public Sprite StarsIcon;
+
+        [Tooltip("Ult and trick icons shown on the HUD buttons (generic until the per-fighter 3D icons, D-134).")]
+        public Sprite UltIcon;
+        public Sprite TrickIcon;
+
+        [Tooltip("Ult flower: number of petals around the ult stick, petal size, distance of the petal centres from the stick centre.")]
+        public int UltPetalCount;
+        public Vector2 UltPetalSize;
+        public float UltPetalRadius;
+
+        [Tooltip("Petal colours: not yet filled, filled (charging), all open (ult ready).")]
+        public Color UltPetalOffColor;
+        public Color UltPetalOnColor;
+        public Color UltPetalReadyColor;
+
+        [Tooltip("Golden glow behind the ready ult: size and colour (alpha pulses with the ult glow).")]
+        public float UltGlowSize;
+        public Color UltGlowColor;
+
+        [Tooltip("Icon on the ult knob and on the trick button: size; tint while ready / not ready.")]
+        public float UltIconSize;
+        public float TrickIconSize;
+        public Color IconReadyColor;
+        public Color IconNotReadyColor;
+
+        [Header("Score bar and Last Beast panel skin (A.7b)")]
+        [Tooltip("Acorn icon of a score tablet: its height as a share of the tablet height, and its margin from the left edge.")]
+        [Range(0f, 1f)] public float ScoreIconShare;
+        public float ScoreIconMargin;
 
         public Color Enemy(bool colorblind) => colorblind ? EnemyColorAlt : EnemyColor;
 

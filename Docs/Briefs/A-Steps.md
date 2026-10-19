@@ -131,3 +131,11 @@
 - (A.3f) Ловушка: номера решений сталкиваются с параллельной сессией (D-131 занят F4 → A.3f = D-132) — перечитывай конец Decisions.md прямо перед коммитом.
 - (A-EnvElements) Тема биома — «солнечная песчаная поляна»: за краем тот же песок с градиентом темнее, бордюр из песчаника, рамка лёгкая (≤ 15k треуг., 1 модель дерева + куст-шар) — `Docs/Briefs/A-EnvElements.md` §1–§2, сцена `env-elements/theme_02.png`.
   Выбранные эталоны — таблица в `Art/Source/Flow/2026-10-19_env-elements/prompt.md`: валун — **`boulder_04`** (не `_01`), ящик — цвет `crate_02`, пруд — `pond_round_02`/`pond_long_03` (числа `MapMeshStyle` — каталог §3). TRELLIS.2: пень → дупло → (валун) → (дерево).
+- (A.7a) HUD боя: спрайты — `UiSpriteBaker` (`HudStickBase/HudKnob/HudPetal/HudGlow`), иконки — `IconBaker` (слои SDF; новая иконка = массив
+  `Layer` + поле `UiStyle`), всё пересобирает `ViewAssetBuilder.BuildUi`. Цветок ульты — `MatchHudControls.UltPetals` (дети зоны стика, не основы:
+  пульс основы их не масштабирует), заливка — `AbilityHudView.ShowPetals`. Иконки ульт/трюков по бойцам (рендер 3D-пропсов) — ещё общие (D-134).
+- (A.7a) Мировые: полоска — `HealthBarView` (`_chargeSockets`, `SetTopHeight`, `SetOwn`), текстуры `Art/Textures/Hud*.png` кодом
+  (`BuildHudTexture`), кольцо команды — квад (материалы Team* прозрачные с текстурой). Скриншоты — `UiCaptureTests.Capture_MatchHud`
+  (`match_hud`, `match_hud_phone`, `match_hud_ult`). Ловушка: `[IO.File]::WriteAllText` с относительным путём в PowerShell пишет в cwd процесса.
+- (A.7b) Сделано частично: таблички счёта/таймер-доска (`UiFactory.CreateTablet`) и доски «Последнего зверя»; **лента побед не сделана**
+  (нужны портреты A.8 + событие «кто добил»), скриншота режима «Последний зверь» нет — добавить кадр в `UiCaptureTests`.

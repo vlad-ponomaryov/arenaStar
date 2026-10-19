@@ -84,7 +84,6 @@ namespace Arena.Editor.Art
         private const float TelegraphFillHeight = 0.04f;
         private static readonly Color AimLineColor = new Color(1f, 1f, 1f, 1f);
         private static readonly Color ProjectileColor = new Color(0.55f, 0.88f, 1f, 1f);
-        private static readonly Color BarBackgroundColor = new Color(0.08f, 0.08f, 0.1f, 1f);
         private static readonly Color BarChargeColor = new Color(1f, 0.78f, 0.2f, 1f);
 
         // Map (S2.5): walls grey-brown, breakable walls lighter wood, bushes dark green, water blue; translucent variants for
@@ -152,21 +151,43 @@ namespace Arena.Editor.Art
         private static readonly Color PineConeColor = new Color(0.42f, 0.26f, 0.12f, 1f);
         private static readonly Color MineColor = new Color(0.30f, 0.20f, 0.10f, 1f);
 
-        // Health bar (world units): bar above the head, charge segments under it, drawn layers slightly towards the camera.
+        // Health bar (world units, A.7a): a rounded "pill" frame (texture, its corner radius keeps the square fill inside the
+        // outline), the fill with a gloss strip, round charge beads under it; drawn layers slightly towards the camera.
         private const float BarAboveFeet = 2.1f;
-        private const float BarWidth = 1.0f;
-        private const float BarHeight = 0.14f;
-        private const float BarPadding = 0.03f;
-        private const float ChargeHeight = 0.08f;
+        private const float BarAboveTop = 0.62f;
+        private const float BarWidth = 1.1f;
+        private const float BarHeight = 0.15f;
+        private const float BarPadding = 0.04f;
+        private const float BarGlossShare = 0.4f;
+        private const float ChargeBead = 0.15f;
+        private const float ChargeBeadSpacing = 0.2f;
         private const float ChargeGap = 0.03f;
+        private const float OwnBeadScale = 1.3f;
         private const float LayerOffset = 0.005f;
         private const int ChargeSegments = 3;
+        private const int BarTexturePixelsPerUnit = 400;
+        private const float BarFrameRadius = 0.08f;
+        private const float BarFrameOutline = 0.016f;
+        private const int BeadTextureSize = 64;
+        private static readonly Color BarFrameInside = new Color(0.231f, 0.165f, 0.118f, 0.55f);
+        private static readonly Color BarGlossColor = new Color(1f, 1f, 1f, 0.28f);
+        private static readonly Color BarSocketColor = new Color(0.231f, 0.165f, 0.118f, 0.55f);
+
+        // Team ring (A.7a): flat quad, ring band with a light inner rim and a faint disc inside (texture), team colour lightened.
+        private const int RingTextureSize = 128;
+        private const float RingBandInner = 0.74f;
+        private const float RingRimInner = 0.70f;
+        private const float RingDiscAlpha = 0.14f;
+        private const float RingBandShade = 0.78f;
+        private const float RingLighten = 0.2f;
+        public const string BarFrameTexturePath = TexturesFolder + "/HudBarFrame.png";
+        public const string BeadTexturePath = TexturesFolder + "/HudBead.png";
+        public const string RingTexturePath = TexturesFolder + "/HudRing.png";
 
         // Fighter view geometry (cells): capsule of diameter 0.9 (≈ body radius 0.45), ring slightly larger.
         private const float BodyDiameter = 0.9f;
         private const float BodyHeight = 1.6f;
-        private const float RingDiameter = 1.2f;
-        private const float RingThickness = 0.02f;
+        private const float RingDiameter = 1.3f;
         private const float RingHeight = 0.02f;
         private static readonly Vector3 NoseScale = new Vector3(0.22f, 0.22f, 0.3f);
         private const float NoseForward = 0.45f;
@@ -373,8 +394,9 @@ namespace Arena.Editor.Art
             ProjectConfigurator.EnsureFolder(TexturesFolder);
             ProjectConfigurator.EnsureFolder(MeshesFolder);
 
-            Material ally = SaveMaterial("TeamAlly", UnlitShader, AllyColor);
-            Material enemy = SaveMaterial("TeamEnemy", UnlitShader, EnemyColor);
+            Texture2D ringTexture = BuildHudTexture(RingTexturePath, RingTextureSize, RingTextureSize, RingPixel);
+            Material ally = SaveTexturedMaterial("TeamAlly", Lighten(AllyColor), ringTexture);
+            Material enemy = SaveTexturedMaterial("TeamEnemy", Lighten(EnemyColor), ringTexture);
             Material body = SaveToonMaterial("FighterBody", ToonCharacterShader, BodyColor, 0f);
             (Texture2D grass, float grassMean) = FlowImageImporter.ImportTileable(GrassSource, GrassTexturePath, GrassTextureSize,
                 GrassTargetMean, GrassMaxGain, GrassSeamFeatherPx);
@@ -396,8 +418,12 @@ namespace Arena.Editor.Art
             Material projectile = SaveMaterial("Projectile", UnlitShader, ProjectileColor);
             Material barAlly = SaveMaterial("BarAlly", UnlitShader, AllyColor);
             Material barEnemy = SaveMaterial("BarEnemy", UnlitShader, EnemyColor);
-            Material barBackground = SaveMaterial("BarBackground", UnlitShader, BarBackgroundColor);
-            Material barCharge = SaveMaterial("BarCharge", UnlitShader, BarChargeColor);
+            Texture2D barFrame = BuildHudTexture(BarFrameTexturePath, BarFrameTextureWidth, BarFrameTextureHeight, BarFramePixel);
+            Texture2D bead = BuildHudTexture(BeadTexturePath, BeadTextureSize, BeadTextureSize, BeadPixel);
+            Material barBackground = SaveTexturedMaterial("BarBackground", Color.white, barFrame);
+            Material barCharge = SaveTexturedMaterial("BarCharge", BarChargeColor, bead);
+            Material barSocket = SaveTexturedMaterial("BarChargeSocket", BarSocketColor, bead);
+            Material barGloss = SaveMaterial("BarGloss", UnlitShader, BarGlossColor, true);
             (Texture2D wallTop, float wallTopMean) = EnvTextureBaker.BakeWallTop();
             (Texture2D wallPlanks, float wallPlanksMean) = FlowImageImporter.ImportTileable(WallSidePlanksSource, WallPlanksTexturePath,
                 PropTextureSize, PlanksTargetMean, PropMaxGain, PropSeamFeatherPx);
@@ -431,7 +457,7 @@ namespace Arena.Editor.Art
             }
             Material obstacleProp = SaveToonMaterial("ObstacleProp", ToonEnvShader, ObstaclePropTint, 0f);
             Material fighterHidden = SaveToonMaterial("FighterHidden", ToonCharacterGhostShader, FighterHiddenColor, 0f);
-            Material enemyAlt = SaveMaterial("TeamEnemyAlt", UnlitShader, EnemyAltColor);
+            Material enemyAlt = SaveTexturedMaterial("TeamEnemyAlt", Lighten(EnemyAltColor), ringTexture);
             Material barEnemyAlt = SaveMaterial("BarEnemyAlt", UnlitShader, EnemyAltColor);
             Material flash = SaveToonMaterial("FighterFlash", ToonCharacterShader, BodyColor, 1f);
             Material telegraphAllyZone = SaveMaterial("TelegraphAllyZone", UnlitShader, WithAlpha(AllyColor, TelegraphZoneAlpha), true);
@@ -452,7 +478,7 @@ namespace Arena.Editor.Art
             AimIndicatorView aimIndicator = BuildAimIndicatorPrefab(aimLine);
             GameObject floorPrefab = BuildMeadowPrefab(meadow);
             GameObject projectilePrefab = BuildProjectilePrefab(projectile);
-            HealthBarView healthBar = BuildHealthBarPrefab(barAlly, barBackground, barCharge);
+            HealthBarView healthBar = BuildHealthBarPrefab(barAlly, barBackground, barCharge, barSocket, barGloss);
             GameObject breakablePrefab = BuildMeshPrefab("BreakableWall", BreakableWallPrefabPath, crateMesh, wallBreakable);
             GameObject bushPrefab = BuildMeshPrefab("Bush", BushPrefabPath, bushMeshes[0], bush);
             Material acorn = SaveMaterial("Acorn", LitShader, AcornColor);
@@ -598,34 +624,33 @@ namespace Arena.Editor.Art
             s.CircleSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>(CircleSpritePath);
             if (s.CircleSprite == null) throw new InvalidOperationException("ViewAssetBuilder: built-in sprite not found: " + CircleSpritePath);
 
+            // A.7a toy skin (Art-Spec §4.1): translucent bases with a light rim (the sprite has its own alpha), glossy knobs.
             s.MoveStick = new StickStyle
             {
                 Position = new Vector2(320f, 300f), HitSize = 0f, BaseSize = 280f, KnobSize = 130f, Radius = 120f,
-                BaseColor = new Color(1f, 1f, 1f, 0.22f), KnobColor = new Color(1f, 1f, 1f, 0.6f)
+                BaseColor = WithAlpha(Hex(0xFFF4DE), 0.6f), KnobColor = WithAlpha(Hex(0xFFF4DE), 0.85f)
             };
             s.AttackStick = new StickStyle
             {
                 Position = new Vector2(300f, 290f), HitSize = 380f, BaseSize = 260f, KnobSize = 120f, Radius = 110f,
-                BaseColor = new Color(1f, 0.45f, 0.35f, 0.3f), KnobColor = new Color(1f, 0.45f, 0.35f, 0.85f)
+                BaseColor = WithAlpha(Hex(0xFF7A5C), 0.6f), KnobColor = Hex(0xFF7A5C)
             };
             s.UltStick = new StickStyle
             {
                 Position = new Vector2(620f, 190f), HitSize = 260f, BaseSize = 190f, KnobSize = 95f, Radius = 80f,
-                BaseColor = new Color(1f, 0.85f, 0.25f, 0.3f), KnobColor = new Color(1f, 0.85f, 0.25f, 0.85f)
+                BaseColor = WithAlpha(Hex(0xFFC93C), 0.7f), KnobColor = Hex(0xFFC93C)
             };
             s.TrickButtonPosition = new Vector2(290f, 600f);
             s.TrickButtonSize = 150f;
-            s.TrickButtonColor = new Color(0.35f, 0.9f, 0.55f, 0.75f);
-            s.UltNotReadyBaseColor = new Color(0.6f, 0.6f, 0.6f, 0.18f);
-            s.UltNotReadyKnobColor = new Color(0.6f, 0.6f, 0.6f, 0.4f);
-            s.UltChargeFillColor = new Color(1f, 0.85f, 0.25f, 0.55f);
-            s.UltChargeRingSize = 230f;
-            s.TrickButtonDisabledColor = new Color(0.45f, 0.5f, 0.47f, 0.35f);
-            s.TrickDotSize = 26f;
-            s.TrickDotSpacing = 36f;
-            s.TrickDotOffset = 105f;
-            s.TrickDotOnColor = new Color(0.35f, 0.95f, 0.55f, 0.95f);
-            s.TrickDotOffColor = new Color(1f, 1f, 1f, 0.15f);
+            s.TrickButtonColor = Hex(0x4CBF56);
+            s.UltNotReadyBaseColor = WithAlpha(Hex(0xD8D0C0), 0.4f);
+            s.UltNotReadyKnobColor = WithAlpha(Hex(0xB8B0A0), 0.75f);
+            s.TrickButtonDisabledColor = WithAlpha(Hex(0x8A9A8C), 0.6f);
+            s.TrickDotSize = 36f;
+            s.TrickDotSpacing = 40f;
+            s.TrickDotOffset = 104f;
+            s.TrickDotOnColor = Color.white;
+            s.TrickDotOffColor = new Color(0.3f, 0.25f, 0.2f, 0.45f);
             // D-129: a press that stays within 0.35 of the radius from the touch point is a tap (auto-aim) at any duration.
             s.Gesture = new StickGestureSettings(0.2f, 0.25f, 0.35f);
             s.AllyColor = AllyColor;
@@ -665,8 +690,8 @@ namespace Arena.Editor.Art
             s.MenuItemSpacing = 14f;
             s.VersionMargin = new Vector2(24f, 24f);
             s.ScoreBarTopMargin = 20f;
-            s.ScoreBoxSize = new Vector2(150f, 90f);
-            s.TimerBoxSize = new Vector2(200f, 90f);
+            s.ScoreBoxSize = new Vector2(184f, 96f);
+            s.TimerBoxSize = new Vector2(210f, 96f);
             s.ScoreBarSpacing = 12f;
             s.ScorePanelColor = new Color(0f, 0f, 0f, 0.45f);
             s.CountdownSize = new Vector2(360f, 70f);
@@ -723,6 +748,22 @@ namespace Arena.Editor.Art
             s.LabelBaselineShift = 0.06f;
             s.MenuLabelWidth = 340f;
             s.DisabledLabelAlpha = 0.6f;
+            // A.7a ult flower (8 petals around the ult stick), glow and button icons.
+            s.UltPetalCount = 8;
+            s.UltPetalSize = new Vector2(54f, 80f);
+            s.UltPetalRadius = 118f;
+            s.UltPetalOffColor = new Color(1f, 1f, 1f, 0.45f);
+            s.UltPetalOnColor = Hex(0xFFAE34);
+            s.UltPetalReadyColor = Hex(0xFFE04A);
+            s.UltGlowSize = 380f;
+            s.UltGlowColor = WithAlpha(Hex(0xFFD84A), 0.7f);
+            s.UltIconSize = 62f;
+            s.TrickIconSize = 84f;
+            s.IconReadyColor = Color.white;
+            s.IconNotReadyColor = new Color(1f, 1f, 1f, 0.45f);
+            // A.7b score tablets (acorn + number in team colours) and the wooden timer plate.
+            s.ScoreIconShare = 0.62f;
+            s.ScoreIconMargin = 10f;
             UiSpriteBaker.BakeAll(s);
             EditorUtility.SetDirty(s);
         }
@@ -765,6 +806,103 @@ namespace Arena.Editor.Art
         }
 
         private static Color WithAlpha(Color c, float alpha) => new Color(c.r, c.g, c.b, alpha);
+
+        private static Color Lighten(Color c) => Color.Lerp(c, Color.white, RingLighten);
+
+        private static readonly int BarFrameTextureWidth = Mathf.RoundToInt((BarWidth + BarPadding * 2f) * BarTexturePixelsPerUnit);
+        private static readonly int BarFrameTextureHeight = Mathf.RoundToInt((BarHeight + BarPadding * 2f) * BarTexturePixelsPerUnit);
+
+        /// <summary>Unlit transparent material with a texture tinted by <paramref name="color"/>.</summary>
+        private static Material SaveTexturedMaterial(string name, Color color, Texture2D texture)
+        {
+            Material mat = SaveMaterial(name, UnlitShader, color, true);
+            mat.SetTexture(BaseMapProperty, texture);
+            mat.SetTexture(MainTexProperty, texture);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>Team ring (A.7a): dark outline, shaded band, light inner rim, faint disc inside; white, tinted by the team colour.</summary>
+        private static Color RingPixel(float x, float y)
+        {
+            float half = RingTextureSize * 0.5f;
+            float r = Mathf.Sqrt((x - half) * (x - half) + (y - half) * (y - half)) / half;
+            if (r > 1f) return Color.clear;
+            if (r > 1f - 3f / half) return WithAlpha(UiSpriteBaker.Outline, 0.6f);
+            if (r > RingBandInner) return new Color(RingBandShade, RingBandShade, RingBandShade, 1f);
+            if (r > RingRimInner) return Color.white;
+            return new Color(1f, 1f, 1f, RingDiscAlpha);
+        }
+
+        /// <summary>Health bar frame (A.7a): rounded box with the dark outline, dark translucent inside (the missing health).</summary>
+        private static Color BarFramePixel(float x, float y)
+        {
+            float u = x / BarTexturePixelsPerUnit, v = y / BarTexturePixelsPerUnit;
+            float hx = BarWidth * 0.5f + BarPadding, hy = BarHeight * 0.5f + BarPadding;
+            float d = UiSpriteBaker.RoundBox(u, v, hx, hy, hx, hy, BarFrameRadius);
+            if (d > 0f) return Color.clear;
+            if (d > -BarFrameOutline) return UiSpriteBaker.Outline;
+            return BarFrameInside;
+        }
+
+        /// <summary>Charge bead (A.7a): round, dark outline, white face shaded towards the bottom with a gloss spot.</summary>
+        private static Color BeadPixel(float x, float y)
+        {
+            float half = BeadTextureSize * 0.5f;
+            float dx = (x - half) / half, dy = (y - half) / half;
+            float r = Mathf.Sqrt(dx * dx + dy * dy);
+            if (r > 1f) return Color.clear;
+            if (r > 0.8f) return UiSpriteBaker.Outline;
+            float shade = Mathf.Lerp(0.78f, 1f, (dy + 1f) * 0.5f);
+            float gx = dx + 0.3f, gy = dy - 0.35f;
+            if (gx * gx + gy * gy < 0.06f) shade = 1f;
+            Color c = new Color(shade, shade, shade, 1f);
+            return gx * gx + gy * gy < 0.06f ? Color.Lerp(c, Color.white, 0.8f) : c;
+        }
+
+        /// <summary>Texture drawn by <paramref name="pixel"/> with 4×4 samples per pixel (straight alpha), saved as PNG, imported clamped.</summary>
+        private static Texture2D BuildHudTexture(string path, int w, int h, Func<float, float, Color> pixel)
+        {
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            try
+            {
+                const int samples = 4;
+                var pixels = new Color[w * h];
+                for (int py = 0; py < h; py++)
+                for (int px = 0; px < w; px++)
+                {
+                    float r = 0f, g = 0f, b = 0f, a = 0f;
+                    for (int sy = 0; sy < samples; sy++)
+                    for (int sx = 0; sx < samples; sx++)
+                    {
+                        Color c = pixel(px + (sx + 0.5f) / samples, py + (sy + 0.5f) / samples);
+                        r += c.r * c.a;
+                        g += c.g * c.a;
+                        b += c.b * c.a;
+                        a += c.a;
+                    }
+                    pixels[py * w + px] = a > 0f ? new Color(r / a, g / a, b / a, a / (samples * samples)) : new Color(1f, 1f, 1f, 0f);
+                }
+                tex.SetPixels(pixels);
+                tex.Apply();
+                System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+            }
+            finally
+            {
+                Object.DestroyImmediate(tex);
+            }
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Default;
+            importer.alphaIsTransparency = true;
+            importer.alphaSource = TextureImporterAlphaSource.FromInput;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.mipmapEnabled = true;
+            importer.sRGBTexture = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
 
         /// <summary>Radial white texture with a soft alpha edge (tinted by the material colour), saved as PNG and imported.</summary>
         private static Texture2D BuildBlobShadowTexture()
@@ -880,9 +1018,10 @@ namespace Arena.Editor.Art
             shadowGo.transform.localScale = new Vector3(BlobShadowDiameter, BlobShadowDiameter, 1f);
             shadowGo.transform.localPosition = new Vector3(0f, BlobShadowHeight, 0f);
 
-            GameObject ringGo = CreatePart(PrimitiveType.Cylinder, "Ring", root, ring);
-            // Unity cylinder: height 2, diameter 1.
-            ringGo.transform.localScale = new Vector3(RingDiameter, RingThickness * 0.5f, RingDiameter);
+            // A.7a: a flat textured ring (band + light rim), like the shadow a quad lying on the ground.
+            GameObject ringGo = CreatePart(PrimitiveType.Quad, "Ring", root, ring);
+            ringGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            ringGo.transform.localScale = new Vector3(RingDiameter, RingDiameter, 1f);
             ringGo.transform.localPosition = new Vector3(0f, RingHeight, 0f);
             return (ringGo.GetComponent<Renderer>(), shadowGo.GetComponent<Renderer>());
         }
@@ -1149,16 +1288,15 @@ namespace Arena.Editor.Art
             }
         }
 
-        private static HealthBarView BuildHealthBarPrefab(Material fill, Material background, Material charge)
+        private static HealthBarView BuildHealthBarPrefab(Material fill, Material background, Material charge, Material socket,
+            Material gloss)
         {
             var root = new GameObject("HealthBar");
             try
             {
                 // Quads face −Z; the bar takes the camera rotation, so "towards the camera" is −Z.
                 GameObject back = CreatePart(PrimitiveType.Quad, "Background", root.transform, background);
-                float segmentsHeight = ChargeGap + ChargeHeight;
-                back.transform.localScale = new Vector3(BarWidth + BarPadding * 2f, BarHeight + segmentsHeight + BarPadding * 2f, 1f);
-                back.transform.localPosition = new Vector3(0f, -segmentsHeight * 0.5f, 0f);
+                back.transform.localScale = new Vector3(BarWidth + BarPadding * 2f, BarHeight + BarPadding * 2f, 1f);
 
                 var pivot = new GameObject("FillPivot");
                 pivot.transform.SetParent(root.transform, false);
@@ -1166,15 +1304,23 @@ namespace Arena.Editor.Art
                 GameObject fillGo = CreatePart(PrimitiveType.Quad, "Fill", pivot.transform, fill);
                 fillGo.transform.localScale = new Vector3(BarWidth, BarHeight, 1f);
                 fillGo.transform.localPosition = new Vector3(BarWidth * 0.5f, 0f, 0f);
+                GameObject glossGo = CreatePart(PrimitiveType.Quad, "Gloss", pivot.transform, gloss);
+                glossGo.transform.localScale = new Vector3(BarWidth, BarHeight * BarGlossShare, 1f);
+                glossGo.transform.localPosition = new Vector3(BarWidth * 0.5f, BarHeight * (0.5f - BarGlossShare * 0.5f), -LayerOffset);
 
+                // Beads under the frame, centred; the own fighter's are OwnBeadScale bigger (spacing leaves room for that).
                 var segments = new Renderer[ChargeSegments];
-                float segmentWidth = (BarWidth - ChargeGap * (ChargeSegments - 1)) / ChargeSegments;
-                float y = -(BarHeight * 0.5f + ChargeGap + ChargeHeight * 0.5f);
+                var sockets = new Renderer[ChargeSegments];
+                float y = -(BarHeight * 0.5f + BarPadding + ChargeGap + ChargeBead * 0.5f);
                 for (int i = 0; i < ChargeSegments; i++)
                 {
+                    float x = (i - (ChargeSegments - 1) * 0.5f) * ChargeBeadSpacing;
+                    GameObject sock = CreatePart(PrimitiveType.Quad, "Socket" + i, root.transform, socket);
+                    sock.transform.localScale = new Vector3(ChargeBead, ChargeBead, 1f);
+                    sock.transform.localPosition = new Vector3(x, y, 0f);
+                    sockets[i] = sock.GetComponent<Renderer>();
                     GameObject seg = CreatePart(PrimitiveType.Quad, "Charge" + i, root.transform, charge);
-                    seg.transform.localScale = new Vector3(segmentWidth, ChargeHeight, 1f);
-                    float x = -BarWidth * 0.5f + segmentWidth * 0.5f + i * (segmentWidth + ChargeGap);
+                    seg.transform.localScale = new Vector3(ChargeBead, ChargeBead, 1f);
                     seg.transform.localPosition = new Vector3(x, y, -LayerOffset);
                     segments[i] = seg.GetComponent<Renderer>();
                 }
@@ -1183,13 +1329,12 @@ namespace Arena.Editor.Art
                 var so = new SerializedObject(view);
                 SetRef(so, "_fillPivot", pivot.transform);
                 SetRef(so, "_fill", fillGo.GetComponent<Renderer>());
-                SerializedProperty segs = so.FindProperty("_chargeSegments");
-                if (segs == null) throw new InvalidOperationException("ViewAssetBuilder: field not found: _chargeSegments");
-                segs.arraySize = segments.Length;
-                for (int i = 0; i < segments.Length; i++) segs.GetArrayElementAtIndex(i).objectReferenceValue = segments[i];
-                SerializedProperty height = so.FindProperty("_height");
-                if (height == null) throw new InvalidOperationException("ViewAssetBuilder: field not found: _height");
-                height.floatValue = BarAboveFeet;
+                SetRendererArray(so, "_chargeSegments", segments);
+                SetRendererArray(so, "_chargeSockets", sockets);
+                SetFloat(so, "_height", BarAboveFeet);
+                SetFloat(so, "_aboveTop", BarAboveTop);
+                SetFloat(so, "_beadSize", ChargeBead);
+                SetFloat(so, "_ownBeadScale", OwnBeadScale);
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 return SavePrefab(root, HealthBarPrefabPath).GetComponent<HealthBarView>();
@@ -1294,6 +1439,21 @@ namespace Arena.Editor.Art
             SerializedProperty p = so.FindProperty(field);
             if (p == null) throw new InvalidOperationException("ViewAssetBuilder: field not found: " + field);
             p.objectReferenceValue = value;
+        }
+
+        private static void SetFloat(SerializedObject so, string field, float value)
+        {
+            SerializedProperty p = so.FindProperty(field);
+            if (p == null) throw new InvalidOperationException("ViewAssetBuilder: field not found: " + field);
+            p.floatValue = value;
+        }
+
+        private static void SetRendererArray(SerializedObject so, string field, Renderer[] values)
+        {
+            SerializedProperty p = so.FindProperty(field);
+            if (p == null) throw new InvalidOperationException("ViewAssetBuilder: field not found: " + field);
+            p.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++) p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
         private static T LoadOrCreate<T>(string path) where T : ScriptableObject

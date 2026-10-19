@@ -17,12 +17,21 @@ namespace Arena.UI.Hud
         public Image UltBase;
         public Image UltKnob;
 
-        /// <summary>Radial fill behind the ult stick showing the charge.</summary>
-        public Image UltChargeRing;
+        /// <summary>Petals of the ult "flower" around the ult stick (A.7a): they fill one by one with the charge.</summary>
+        public Image[] UltPetals;
+
+        /// <summary>Golden glow behind the ult while it is charged.</summary>
+        public Image UltGlow;
+
+        /// <summary>Ult icon on the ult knob.</summary>
+        public Image UltIcon;
 
         public Image TrickImage;
 
-        /// <summary>Row of dots above the trick button (one per use), created on the first frame the rules are known.</summary>
+        /// <summary>Trick icon on the trick button.</summary>
+        public Image TrickIcon;
+
+        /// <summary>Row of acorn beads above the trick button (one per use), created on the first frame the rules are known.</summary>
         public Image[] TrickDots;
     }
 }

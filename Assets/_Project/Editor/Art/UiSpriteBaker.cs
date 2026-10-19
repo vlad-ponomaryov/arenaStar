@@ -25,6 +25,10 @@ namespace Arena.Editor.Art
         public const string PlankPath = SpritesFolder + "/UiPlank.png";
         public const string LeafPath = SpritesFolder + "/UiLeaf.png";
         public const string BackdropPath = SpritesFolder + "/UiBackdrop.png";
+        public const string StickBasePath = SpritesFolder + "/HudStickBase.png";
+        public const string KnobPath = SpritesFolder + "/HudKnob.png";
+        public const string PetalPath = SpritesFolder + "/HudPetal.png";
+        public const string GlowPath = SpritesFolder + "/HudGlow.png";
 
         private const int Samples = 4;
         private const int ShapeSize = 128;
@@ -48,7 +52,7 @@ namespace Arena.Editor.Art
         private const float FaceShadeBottom = 0.84f;
         private const float RimShade = 0.42f;
 
-        private static readonly Color Outline = new Color(0.231f, 0.165f, 0.118f, 1f);
+        internal static readonly Color Outline = new Color(0.231f, 0.165f, 0.118f, 1f);
         private static readonly Color LeafLight = new Color(0.50f, 0.85f, 0.36f, 1f);
         private static readonly Color LeafDark = new Color(0.25f, 0.65f, 0.29f, 1f);
         private static readonly Color LeafRib = new Color(0.18f, 0.50f, 0.22f, 1f);
@@ -71,7 +75,97 @@ namespace Arena.Editor.Art
             s.PlankSprite = Save(BakePlank(), PlankPath, PlankBorder);
             s.LeafSprite = Save(BakeLeaf(), LeafPath, 0);
             s.BackdropSprite = Save(BakeBackdrop(s.BackdropTopColor, s.BackdropBottomColor, s.BackdropLeafColor), BackdropPath, 0);
+            // A.7a match HUD: stick bases, toy knobs, ult flower petals and glow (white, tinted by the HUD), then the icons.
+            s.StickBaseSprite = Save(BakeStickBase(), StickBasePath, 0);
+            s.KnobSprite = Save(BakeKnob(), KnobPath, 0);
+            s.PetalSprite = Save(BakePetal(), PetalPath, 0);
+            s.GlowSprite = Save(BakeGlow(), GlowPath, 0);
+            IconBaker.BakeAll(s);
         }
+
+        private const int HudSize = 128;
+        private const float HudOutline = 4f;
+        private const float StickRim = 10f;
+        private const float StickInnerAlpha = 0.38f;
+        private const float StickOutlineAlpha = 0.55f;
+        private const int PetalWidth = 64;
+        private const int PetalHeight = 96;
+        private const float PetalHalfWidth = 27f;
+        private const float PetalWidest = 0.62f;
+
+        private static Texture2D BakeStickBase()
+        {
+            float c = HudSize * 0.5f, r = c - 1f;
+            return Render(HudSize, HudSize, (x, y) =>
+            {
+                float d = Length(x - c, y - c) - r;
+                if (d > 0f) return Color.clear;
+                if (d > -HudOutline * 0.75f) return new Color(Outline.r, Outline.g, Outline.b, StickOutlineAlpha);
+                if (d > -HudOutline * 0.75f - StickRim) return new Color(1f, 1f, 1f, 0.95f);
+                // Translucent inside, a little denser next to the rim.
+                float t = Smooth(0f, 18f, -d - HudOutline * 0.75f - StickRim);
+                return new Color(1f, 1f, 1f, Mathf.Lerp(StickInnerAlpha * 1.5f, StickInnerAlpha, t));
+            });
+        }
+
+        private static Texture2D BakeKnob()
+        {
+            float c = HudSize * 0.5f, r = c - 1f;
+            return Render(HudSize, HudSize, (x, y) =>
+            {
+                float d = Length(x - c, y - c) - r;
+                if (d > 0f) return Color.clear;
+                if (d > -HudOutline) return Outline;
+                // Face: lighter at the top, a darker crescent at the bottom (the toy "edge"), gloss ellipse on top.
+                float v = Mathf.Lerp(FaceShadeBottom, 1f, Smooth(0f, HudSize, y));
+                float lower = Length(x - c, y - c + 9f) - (r - HudOutline - 2f);
+                if (lower > 0f) v *= 0.8f;
+                float gloss = Length((x - c) / 34f, (y - c - 30f) / 15f);
+                Color face = new Color(v, v, v, 1f);
+                if (gloss < 1f) face = Color.Lerp(face, Color.white, 0.75f * Smooth(1f, 0.5f, gloss));
+                return face;
+            });
+        }
+
+        /// <summary>Half width of the petal at height v (0 = base, 1 = tip): an egg, widest at <see cref="PetalWidest"/>.</summary>
+        private static float PetalWidth01(float v)
+        {
+            if (v <= 0f || v >= 1f) return -1f;
+            float k = v > PetalWidest ? (v - PetalWidest) / (1f - PetalWidest) : (PetalWidest - v) / PetalWidest;
+            float w = Mathf.Sqrt(Mathf.Max(0f, 1f - k * k));
+            return v > PetalWidest ? w : Mathf.Pow(w, 1.6f);
+        }
+
+        private static Texture2D BakePetal()
+        {
+            float cx = PetalWidth * 0.5f;
+            const float bottom = 3f, top = PetalHeight - 3f;
+            return Render(PetalWidth, PetalHeight, (x, y) =>
+            {
+                float outer = PetalWidth01((y - bottom) / (top - bottom)) * PetalHalfWidth;
+                if (Mathf.Abs(x - cx) > outer) return Color.clear;
+                float inner = PetalWidth01((y - bottom - HudOutline) / (top - bottom - HudOutline * 2f)) * (PetalHalfWidth - HudOutline);
+                if (Mathf.Abs(x - cx) > inner) return Outline;
+                // Light towards the tip, a soft middle vein.
+                float v = Mathf.Lerp(0.82f, 1f, (y - bottom) / (top - bottom));
+                if (Mathf.Abs(x - cx) < 1.6f && y > bottom + 14f && y < top - 18f) v *= 0.88f;
+                return new Color(v, v, v, 1f);
+            });
+        }
+
+        private static Texture2D BakeGlow()
+        {
+            float c = HudSize * 0.5f;
+            return Render(HudSize, HudSize, (x, y) =>
+            {
+                float r = Length(x - c, y - c) / c;
+                if (r >= 1f) return Color.clear;
+                float a = (1f - r) * (1f - r);
+                return new Color(1f, 1f, 1f, a);
+            });
+        }
+
+        private static float Length(float x, float y) => Mathf.Sqrt(x * x + y * y);
 
         /// <summary>Signed distance to a rounded box centred at (cx, cy) with half size (hx, hy) and corner radius r.</summary>
         public static float RoundBox(float x, float y, float cx, float cy, float hx, float hy, float r)
@@ -83,10 +177,10 @@ namespace Arena.Editor.Art
             return Mathf.Sqrt(ox * ox + oy * oy) + Mathf.Min(Mathf.Max(qx, qy), 0f) - r;
         }
 
-        private delegate Color PixelFn(float x, float y);
+        internal delegate Color PixelFn(float x, float y);
 
         /// <summary>Renders <paramref name="shader"/> (straight alpha) with 4×4 samples per pixel into a texture.</summary>
-        private static Texture2D Render(int w, int h, PixelFn shader)
+        internal static Texture2D Render(int w, int h, PixelFn shader)
         {
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
             var pixels = new Color[w * h];
@@ -279,13 +373,13 @@ namespace Arena.Editor.Art
         private static float Frac(float v) => v - Mathf.Floor(v);
 
         // GLSL smoothstep (threshold), not Mathf.SmoothStep (which interpolates values) — see the A.3b note.
-        private static float Smooth(float e0, float e1, float x)
+        internal static float Smooth(float e0, float e1, float x)
         {
             float t = Mathf.Clamp01((x - e0) / (e1 - e0));
             return t * t * (3f - 2f * t);
         }
 
-        private static Sprite Save(Texture2D tex, string path, int border)
+        internal static Sprite Save(Texture2D tex, string path, int border)
         {
             try
             {

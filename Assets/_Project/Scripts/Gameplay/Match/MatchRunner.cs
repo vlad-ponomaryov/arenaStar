@@ -409,6 +409,8 @@ namespace Arena.Gameplay.Match
                 HealthBarView bar = Instantiate(_viewCatalog.HealthBarPrefab, transform);
                 bar.name = "HealthBar" + i;
                 bar.SetFillMaterial(ally ? _viewCatalog.BarAlly : alt ? _viewCatalog.BarEnemyAlt : _viewCatalog.BarEnemy);
+                bar.SetTopHeight(view.Rig != null ? view.Rig.TopHeight : 0f);
+                bar.SetOwn(i == LocalSlot);
                 _healthBars[i] = bar;
             }
         }

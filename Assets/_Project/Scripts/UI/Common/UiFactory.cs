@@ -186,6 +186,48 @@ namespace Arena.UI.Common
             return button;
         }
 
+        /// <summary>
+        /// Toy "tablet" without a button (A.7b: HUD score and timer plates): the same soft shadow, dark bottom edge, face in
+        /// <paramref name="color"/> (or <paramref name="faceSprite"/> coloured in the sprite, e.g. the wooden plank) and gloss as
+        /// <see cref="CreateButton"/>. Returns the face; content goes into it. Its size is the preferred size in a layout group.
+        /// </summary>
+        public static RectTransform CreateTablet(string name, Transform parent, UiStyle style, Vector2 size, Color color,
+            Sprite faceSprite = null)
+        {
+            RectTransform rt = CreateRect(name, parent);
+            rt.sizeDelta = size;
+            SetPreferredSize(rt.gameObject, size);
+            float scale = style.SliceScale;
+            bool skinned = style.ButtonFaceSprite != null;
+            float edge = skinned ? style.ButtonEdgeHeight : 0f;
+            float rim = skinned ? style.ButtonOutline : 0f;
+            if (style.ShadowSprite != null)
+            {
+                Image shadow = CreateSliced("Shadow", rt, style.ShadowSprite, style.ShadowColor, scale);
+                Stretch(shadow.rectTransform);
+                shadow.rectTransform.anchoredPosition = style.ShadowOffset;
+            }
+            Image edgeImage = CreateSliced("Edge", rt, style.ButtonEdgeSprite, style.EdgeFor(color), scale);
+            Stretch(edgeImage.rectTransform);
+            Image face = faceSprite != null
+                ? CreateSliced("Face", rt, faceSprite, Color.white, scale)
+                : CreateSliced("Face", rt, style.ButtonFaceSprite, color, scale);
+            RectTransform frt = face.rectTransform;
+            Stretch(frt);
+            frt.offsetMin = new Vector2(rim, edge + rim);
+            frt.offsetMax = new Vector2(-rim, -rim);
+            if (style.ButtonGlossSprite != null)
+            {
+                Image gloss = CreateSliced("Gloss", frt, style.ButtonGlossSprite, new Color(1f, 1f, 1f, style.ButtonGlossAlpha), scale);
+                RectTransform grt = gloss.rectTransform;
+                grt.anchorMin = new Vector2(0f, 0.5f);
+                grt.anchorMax = Vector2.one;
+                grt.offsetMin = new Vector2(rim * 1.5f, 0f);
+                grt.offsetMax = new Vector2(-rim * 1.5f, -rim);
+            }
+            return frt;
+        }
+
         /// <summary>Recolours a button of <see cref="CreateButton"/>: face, edge and the label contrast (chosen option and so on).</summary>
         public static void SetButtonColor(Button button, UiStyle style, Color color)
         {

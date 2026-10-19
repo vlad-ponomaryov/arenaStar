@@ -117,15 +117,14 @@ namespace Arena.UI.Hud
             text.text = NumberStringCache.Get(value);
         }
 
-        /// <summary>A panel box: the label in its upper part, the value below.</summary>
+        /// <summary>A wooden toy plate (A.7b, like the timer of the score bar): the label in its upper part, the value below.</summary>
         private static Text CreateBox(string name, Transform parent, UiStyle style, string labelKey, out GameObject box)
         {
-            Image image = UiFactory.CreateImage(name, parent, style.ScorePanelColor);
-            UiFactory.SetPreferredSize(image.gameObject, style.TimerBoxSize);
-            box = image.gameObject;
-            Text label = UiFactory.CreateText("Label", image.transform, style, style.SmallFontSize, TextAnchor.UpperCenter, Loc.Get(labelKey));
+            RectTransform face = UiFactory.CreateTablet(name, parent, style, style.TimerBoxSize, style.PanelBorderColor, style.PlankSprite);
+            box = face.parent.gameObject;
+            Text label = UiFactory.CreateText("Label", face, style, style.SmallFontSize, TextAnchor.UpperCenter, Loc.Get(labelKey));
             UiFactory.Stretch(label.rectTransform);
-            Text value = UiFactory.CreateText("Value", image.transform, style, style.MediumFontSize, TextAnchor.LowerCenter);
+            Text value = UiFactory.CreateText("Value", face, style, style.MediumFontSize, TextAnchor.LowerCenter);
             UiFactory.Stretch(value.rectTransform);
             return value;
         }
