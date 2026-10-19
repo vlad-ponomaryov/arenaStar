@@ -1,0 +1,48 @@
+Концепт карты «Снежная долина» (новогодняя) по раскладке Docs/Map-SnowValley.md §1 (21×31, вариант П1 — ёлка «плюсом»).
+Google Flow (https://flow.google.com), проект «Arena», агент Flow, новый сеанс, модель изображений проекта по умолчанию
+(Nano Banana), 2026-10-19. Аккаунт и условия — как в ../2026-10-19_tex-grass/prompt.md (Условия Google, без претензий на
+владение; Q-019, D-111). Без референс-картинок (07 не подавалась, чтобы не копировалась её раскладка — стиль описан словами).
+Попыток 2 (каждая — новый сеанс агента): 1-я дала широкое мелкое поле (поле шире, чем глубже), почти без ельника и снеговиков —
+раскладка не читалась, перегенерировано с явным «поле 21×31, высокий прямоугольник». Файл 1K (WebP 1376×768) сохранён в PNG без
+изменения пикселей. Видимого водяного знака нет. Видео и платное (2K/4K) не использовались. Ориентир для арта и раскладки, не в игру.
+Снеговики (предложение, Map-SnowValley.md §4.1): на месте одиночных Wall-клеток (3,15) (17,15) (2,7) (18,23).
+
+ПРОМПТ (итоговый, попытка 2 -> snow_valley.png):
+Generate 1 still image (image only, no video, do not use any existing images or references, brand-new design), landscape 16:9. Stylized glossy toy-like 3D game arena for our own family-friendly kids' mobile top-down 3v3 shooter, New Year snowy valley. IMPORTANT FRAMING: the playing field is a TALL narrow rectangle, 21 cells wide and 31 cells deep (portrait proportions, about 2:3), seen from its short near side; the camera looks down at about 55 degrees; the whole field is visible top to bottom in the middle of the wide frame, and the empty space left and right of the field is filled with the snowy surroundings (fir forest, two log cabins, firewood, sleds, a low wooden fence with warm garland lights). The near short edge (bottom of the image) is our base, the far short edge (top of the image) is the enemy base; each base has three round flat spawn pads in a row.
+
+Style: glossy toy-like 3D, soft rounded clay-like shapes, warm soft contact shadows, crisp sunny winter morning, packed snow floor in light warm grey-white (not pure white) with trodden sandy-brown snow paths; small cell-sized obstacles spread evenly over the whole field, like a tile-based level.
+
+Obstacles (POINT SYMMETRY: the far half is the near half rotated 180 degrees around the centre):
+- Exact centre: one big decorated New Year fir tree about three cells wide, golden, white, orange and lilac baubles, warm bulb garland, snowflake star on top, and four small gift boxes (mint, gold, lilac) diagonally around it.
+- Many small clusters of plump DARK-GREEN young fir bushes with snow only on the tips (about ten clusters of 2 to 6 little firs, spread over both halves, mostly along the side flanks and near the centre).
+- Four small square frozen ponds (2 by 2 cells) with a wooden plank rim: one on the near-left flank, one on the near-right next to the centre line, and the same rotated on the far half.
+- Short chunky snow-brick walls on a dark wooden base: a straight three-block wall between each base and the tree, L-shaped two-to-three-block forts on the flanks, stepped low snowdrifts at the side edges in front of each base.
+- In front of each base in the middle: a pile of three wrapped gift boxes (mint, gold, lilac with gold ribbons).
+- Exactly four friendly snowmen with green or lilac scarves and dark hats: two on the centre line at the far left and far right of the tree, one near the near-left border in front of our base, one near the far-right border in front of the enemy base.
+
+Colours: snowy whites and pale blue-greys, deep fir green, warm wood browns, gold, mint and lilac accents. Red and blue are NOT main colours anywhere. No characters, no people, no animals, no text, no letters, no numbers, no logos, no UI, no watermark. Clean readable shapes for a mobile game, original design, not resembling any existing game.
+
+ПРОМПТ попытки 1 (отклонена, не сохранена):
+Generate 1 still image (image only, no video, do not use any existing images or references from this project, brand-new design), landscape 16:9 aspect ratio. Stylized glossy toy-like 3D game arena for our own family-friendly kids' mobile top-down 3v3 shooter, New Year winter version. Camera looking down at about 55 degrees from the ground, the WHOLE rectangular playing field visible with a small margin on all four sides; the field is longer in depth than in width (about 2:3), its long axis pointing away from the camera, and it fills most of the frame. Style: glossy toy-like 3D, soft rounded clay-like shapes, warm soft contact shadows, crisp sunny winter morning light, packed snow floor in light warm grey-white (not pure white) with trodden sandy-brown snow paths, chunky white snow-brick walls on a dark wooden base, plump dark-green fir bushes with snow only on the tips.
+
+The field is a clean grid-like layout with POINT SYMMETRY around the centre (the far half is the near half rotated 180 degrees). Describe from the near edge (bottom of the image, our base) to the centre:
+- Near edge: an open trampled-snow base area with three round flat spawn pads in a row in the middle; two tiny dark fir bushes in each near corner.
+- Just in front of the base: a pile of three gift boxes side by side in the middle; on both side edges a stepped diagonal snow-brick wall going from the side border inwards (like a funnel).
+- Left flank, a bit further: one friendly snowman with a green scarf and a dark hat near the left border; then a small square frozen pond (2 by 2 cells) with a wooden plank rim and icy pale turquoise-grey surface, and next to it an L-shaped snow-brick fort.
+- Right flank at the same depth: a mirrored L-shaped snow-brick fort and a cluster of dark-green young fir bushes near the right border.
+- Middle of the near half: a straight low snow-brick wall, three blocks wide, in the centre, between the base and the big tree.
+- Closer to the centre line: on the left a short vertical snow-brick wall and a cluster of fir bushes at the left border; on the right an L-shaped snow-brick fort and a second small square frozen pond with a wooden rim near the right border.
+- Exact centre of the field: one big decorated New Year fir tree, round and full, about three cells wide, golden, white, orange and lilac baubles, warm bulb garland, a snowflake star on top; its lower branches form a plus shape on the snow. Four small wrapped gift boxes stand diagonally around the tree (mint, gold and lilac boxes with white and gold ribbons).
+- On the centre line, at the far left and far right of the tree row: one snowman on each side with a lilac or green scarf.
+- The far half (top of the image) repeats all of this rotated 180 degrees: far base with three spawn pads at the top edge, gift pile in front of it, ponds now on the far-right flank near the middle and on the far-left near the far base, a snowman near the far right border.
+
+Frame outside the field border: a low snow-covered wooden fence with warm garland lights on short posts, snow-capped fir forest, two small log cabins, stacked firewood and wooden sleds, muted and less saturated than the field. A few soft snowflakes.
+
+Colours: snowy whites and pale blue-greys, deep fir green, warm wood browns, gold, mint and lilac accents. Red and blue are NOT main colours anywhere on the field. No characters, no people, no animals, no text, no letters, no numbers, no logos, no UI, no watermark. Clean readable shapes for a mobile game, every obstacle clearly separated from the ground by a soft contact shadow, original design, not resembling any existing game.
+
+ЗАМЕЧАНИЯ к snow_valley.png
+- Совпало: высокое поле, спавны по 3 снизу/сверху, ёлка в центре с 4 подарками, горки подарков у баз, 4 пруда с бортиком,
+  Г-образные крепости на флангах, прямые стенки по 3 блока между базой и ёлкой, 4 снеговика, тёмный ельник, рамка (ели, 2 домика, гирлянды на заборе).
+- Не совпало: зеркальная симметрия вместо центральной; снеговики стоят вокруг ёлки, а не на флангах; ельника меньше (6 групп),
+  ёлка на квадратной площадке без «плюса»; камера круче (~65–70°); цветные (мятный/жёлтый/розовый) диски спавнов; горки подарков
+  за спавнами, а не перед ними; ряды 0–3 и 27–30 сжаты.
