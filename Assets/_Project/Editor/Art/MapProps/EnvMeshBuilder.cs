@@ -28,8 +28,8 @@ namespace Arena.Editor.Art.MapProps
         private static readonly Color BushCore = new Color32(0x0E, 0x4A, 0x38, 0xFF);
         /// <summary>Blade columns (along X) and rows (along Z, depth for the camera) of a cell; odd rows are shifted by half a
         /// column step, so the staggered pattern tiles across cells.</summary>
-        public const int BushColumns = 6;
-        public const int BushRows = 8;
+        public const int BushColumns = 5;   // A.3e: fewer, wider blades — a calmer mass (user: "рябит")
+        public const int BushRows = 6;
         /// <summary>Highest tip above the ground (test bound).</summary>
         public const float BushMaxHeight = 1.05f;
         /// <summary>How far a blade may reach over the cell edge (test bound).</summary>
@@ -39,17 +39,17 @@ namespace Arena.Editor.Art.MapProps
         private const float BladeOpenEdgeHeight = 0.85f;
         private const float BladeRootJitter = 0.22f;      // of the grid step
         private const float BladeOpenInset = 0.03f;
-        private const float BladeWidthMin = 0.11f;        // wide lancets like the concept (8+ px at 1080p)
-        private const float BladeWidthMax = 0.13f;
+        private const float BladeWidthMin = 0.15f;        // wide lancets like the concept (8+ px at 1080p)
+        private const float BladeWidthMax = 0.17f;
         private const float BladeLeanMin = 0.03f;         // tip offset at full height: mostly upright blades
-        private const float BladeLeanMax = 0.1f;
+        private const float BladeLeanMax = 0.07f;
         private const float BladeOpenLean = 0.07f;        // extra lean out of the mass on an open side
-        private const float BladeYawJitter = 20f;         // degrees; blades face ±Z (both team cameras) give or take this
+        private const float BladeYawJitter = 12f;         // degrees; blades face ±Z (both team cameras) give or take this
         private const float BladeCurl = 0.06f;
-        private const float BladeToneJitter = 0.04f;
-        private const float BladeValueMin = 0.72f;        // per-blade brightness: leaves read one by one, not as a felt
-        private const float BladeValueMax = 1.05f;
-        private const float BladeInnerShade = 0.74f;
+        private const float BladeToneJitter = 0.02f;
+        private const float BladeValueMin = 0.88f;        // per-blade brightness: leaves read one by one, not as a felt
+        private const float BladeValueMax = 1.0f;
+        private const float BladeInnerShade = 0.82f;
         private const float BladeInnerDepth = 0.45f;
         private static readonly float[] BladeLevels = { 0f, 0.45f, 0.82f, 1f };
         private static readonly float[] BladeWidths = { 0.9f, 1.1f, 0.85f, 0f };   // rounded lancet tip

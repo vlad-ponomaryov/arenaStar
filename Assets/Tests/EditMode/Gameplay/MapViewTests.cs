@@ -39,7 +39,7 @@ namespace Arena.Tests.EditMode.Gameplay
                 MapShadowMask mask = view.ShadowMask;
                 Assert.IsNotNull(mask);
                 int k = mask.TexelsPerCell, pad = MapShadowMask.PaddingCells;
-                int texel = (pad * k + k / 2) * mask.Width + pad * k + k / 2;
+                int texel = ((pad * k + k / 2) * mask.Width + pad * k + k / 2) * 2; // RG pairs: R = height
                 Assert.Greater(mask.Texture.GetPixelData<byte>(0)[texel], 0);
                 view.OnTileBroken(grid.IndexOf(0, 0));
                 Assert.IsFalse(view.IsBreakableShown(grid.IndexOf(0, 0)));

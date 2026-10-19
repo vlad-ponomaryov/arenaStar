@@ -100,6 +100,9 @@ def report(stats):
     if "bush_body" in stats and "sand_open" in stats:
         ratio = stats["bush_body"]["lum"] / max(stats["sand_open"]["lum"], 1e-3)
         check("bush_body", ratio <= 0.55, "%s  %.2f of open sand (<= 0.55)" % (stats["bush_body"]["hex"], ratio))
+    if "shadow_edge" in stats:
+        w = stats["shadow_edge"]["lum"]
+        check("shadow_edge", w >= 0.25, "%.2f cells from 10%% to 90%% (>= 0.25)  [A.3e]" % w)
     if "water" in stats:
         lines.append("INFO water: %s (concept #69BCDF)" % stats["water"]["hex"])
     lines.append("ALL OK" if ok_all else "SOME MISSES")

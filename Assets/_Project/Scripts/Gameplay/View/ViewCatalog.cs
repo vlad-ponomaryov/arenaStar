@@ -141,6 +141,9 @@ namespace Arena.Gameplay.View
         [Tooltip("Wall chamfer and colours, floor occlusion near walls, meadow frame (A.3a, MapMeshBuilder).")]
         public MapMeshStyle MapStyle;
 
+        [Tooltip("Floor details as geometry (A.3e, FloorDecorPlanner): stepping-stone paths, pebbles, sprouts, flowers.")]
+        public EnvDecorStyle DecorStyle;
+
         [Header("Materials")]
         [Tooltip("Ring under the local player's team (blue, D-029).")]
         public Material TeamAlly;

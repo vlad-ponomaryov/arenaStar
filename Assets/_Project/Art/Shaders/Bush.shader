@@ -21,7 +21,7 @@ Shader "Arena/Bush"
         _SwayAmplitude ("Sway Amplitude (world)", Range(0, 0.2)) = 0.035
         _SwaySpeed ("Sway Speed (rad/s)", Range(0, 6)) = 1.7
         _SwayPhaseScale ("Sway Phase Per World Unit", Range(0, 4)) = 1.3
-        _ShadeColor ("Shade Multiplier", Color) = (0.612, 0.576, 0.784, 1)
+        _ShadeColor ("Shade Multiplier (deep teal, A.3e)", Color) = (0.5, 0.66, 0.7, 1)
         _RimColor ("Rim Color", Color) = (1, 0.965, 0.878, 1)
         _RimStrength ("Rim Strength", Range(0, 1)) = 0.22
         _RimPower ("Rim Power", Range(1, 8)) = 2.5
@@ -43,6 +43,7 @@ Shader "Arena/Bush"
 
         HLSLINCLUDE
         #include "Include/ArenaToon.hlsl"
+        #include "Include/ArenaEnv.hlsl"
 
         CBUFFER_START(UnityPerMaterial)
             half4 _BaseColor;
@@ -148,7 +149,7 @@ Shader "Arena/Bush"
                 p.specSize = _SpecSize;
                 p.specSoftness = _SpecSoftness;
                 p.specStrength = _SpecStrength;
-                return half4(ArenaToonShade(s, p), _BaseColor.a);
+                return half4(ArenaGrade(ArenaToonShade(s, p)), _BaseColor.a);
             }
             ENDHLSL
         }

@@ -369,7 +369,7 @@ namespace Arena.Tests.EditMode.Gameplay
             int k = style.ShadowTexelsPerCell, pad = MapShadowMask.PaddingCells;
             Assert.AreEqual((2 + 2 * pad) * k, w);
             Assert.AreEqual((2 + 2 * pad) * k, h);
-            byte At(int c, int r) => mask[((r + pad) * k + k / 2) * w + (c + pad) * k + k / 2];
+            byte At(int c, int r) => mask[(((r + pad) * k + k / 2) * w + (c + pad) * k + k / 2) * 2]; // RG pairs: R = height
             // Rows read from the top: wall + bush is row 1, crate + floor is row 0.
             Assert.AreEqual(255, At(0, 1), "wall");
             Assert.AreEqual(MapShadowMask.CasterValue(TileType.Bush, in style), At(1, 1), "bush");
@@ -377,7 +377,7 @@ namespace Arena.Tests.EditMode.Gameplay
             Assert.AreEqual(0, At(1, 0), "floor");
             Assert.Less(At(1, 1), At(0, 0), "a bush is lower than a crate");
             Assert.Greater(At(1, 1), 0);
-            for (int x = 0; x < w; x++) Assert.AreEqual(0, mask[x], "padding row");
+            for (int x = 0; x < w * 2; x++) Assert.AreEqual(0, mask[x], "padding row");
         }
 
         [Test]

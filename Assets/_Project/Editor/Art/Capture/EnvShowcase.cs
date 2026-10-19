@@ -36,6 +36,11 @@ namespace Arena.Editor.Art.Capture
         private const int ShotHeight = 1080;
         private const int Supersample = 2;
         private const float CropMarginCells = 0.6f;
+        private const float ShadowEdgeZ = 5.0f;      // across the 2 × 2 block's shadow (median of three rows)
+        private const float ShadowEdgeRowGap = 0.5f;
+        private const float ShadowEdgeFrom = 3.02f;
+        private const float ShadowEdgeTo = 4.4f;
+        private const float ShadowEdgeStep = 0.02f;
 
         /// <summary>A measured spot: world point, world radius of the sample square, how the pixels are reduced.</summary>
         private readonly struct Spot
@@ -160,8 +165,54 @@ namespace Arena.Editor.Art.Capture
                     .Append(sat.ToString("0.00", CultureInfo.InvariantCulture)).Append(' ')
                     .Append(samples.Count.ToString(CultureInfo.InvariantCulture)).AppendLine();
             }
+            AppendShadowEdge(camera, shot, px, sb);
             File.WriteAllText(path, sb.ToString());
             Debug.Log("ArtCapture: wrote " + path + "\n" + sb);
+        }
+
+        /// <summary>
+        /// A.3e: width of the block shadow's edge — a luminance profile on the sand from inside the shadow to the east (world z
+        /// <see cref="ShadowEdgeZ"/>), 10 %–90 % of its range, in cells. Written in the stats format with the width in the lum field.
+        /// </summary>
+        private static void AppendShadowEdge(Camera camera, Texture2D shot, Color32[] px, StringBuilder sb)
+        {
+            var lum = new List<float>();
+            for (float x = ShadowEdgeFrom; x <= ShadowEdgeTo; x += ShadowEdgeStep)
+            {
+                // Median of three rows across the shadow: a path stone on one row does not bend the profile.
+                float a = SandLuminance(camera, shot, px, x, ShadowEdgeZ - ShadowEdgeRowGap);
+                float b = SandLuminance(camera, shot, px, x, ShadowEdgeZ);
+                float c = SandLuminance(camera, shot, px, x, ShadowEdgeZ + ShadowEdgeRowGap);
+                lum.Add(Mathf.Max(Mathf.Min(a, b), Mathf.Min(Mathf.Max(a, b), c)));
+            }
+            float min = float.MaxValue, max = float.MinValue;
+            foreach (float l in lum) { min = Mathf.Min(min, l); max = Mathf.Max(max, l); }
+            int i10 = -1, i90 = -1;
+            for (int i = 0; i < lum.Count; i++)
+            {
+                float t = (lum[i] - min) / Mathf.Max(1e-4f, max - min);
+                if (i10 < 0 && t >= 0.1f) i10 = i;
+                if (i90 < 0 && t >= 0.9f) i90 = i;
+            }
+            float width = i10 >= 0 && i90 >= 0 ? (i90 - i10) * ShadowEdgeStep : 0f;
+            sb.Append("shadow_edge #000000 ").Append(width.ToString("0.000", CultureInfo.InvariantCulture)).Append(" 0 0.00 ")
+                .Append(lum.Count.ToString(CultureInfo.InvariantCulture)).AppendLine();
+        }
+
+        private static float SandLuminance(Camera camera, Texture2D shot, Color32[] px, float x, float z)
+        {
+            Vector2 p = ToPixels(camera, shot, new Vector3(x, 0f, z));
+            float sum = 0f;
+            int n = 0;
+            for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                int ix = Mathf.RoundToInt(p.x) + dx, iy = Mathf.RoundToInt(p.y) + dy;
+                if (ix < 0 || iy < 0 || ix >= shot.width || iy >= shot.height) continue;
+                sum += Luminance(px[iy * shot.width + ix]);
+                n++;
+            }
+            return n > 0 ? sum / n : 0f;
         }
 
         private static Vector2 ToPixels(Camera camera, Texture2D shot, Vector3 world)

@@ -100,10 +100,10 @@ MonoBehaviour:
     WallFootShade: 0.72
     WallCellVariation: 0.04
     FloorSubdivisions: 2
-    FloorWallOcclusion: 0.5
+    FloorWallOcclusion: 0.2
     FloorOcclusionRadius: 0.75
-    FloorOcclusionColor: {r: 0.5411765, g: 0.4392157, b: 0.47843137, a: 1}
-    FloorBushOcclusion: 0.4
+    FloorOcclusionColor: {r: 0.6901961, g: 0.47058824, b: 0.32156864, a: 1}
+    FloorBushOcclusion: 0.15
     FloorBushOcclusionRadius: 0.45
     FloorPatchCell: 2.2
     FloorPatchCoverage: 0
@@ -118,13 +118,52 @@ MonoBehaviour:
     WaterShoreWidth: 0.42
     BankTop: {r: 0.7254902, g: 0.5411765, b: 0.36862746, a: 1}
     BankFoot: {r: 0.43137255, g: 0.30588236, b: 0.20392157, a: 1}
-    ShadowTexelsPerCell: 4
-    ShadowStrength: 0.6
-    ShadowSoftness: 0.12
+    ShadowTexelsPerCell: 8
+    ShadowStrength: 0.9
+    ShadowSoftness: 0.15
     ShadowFall: {x: 0.55, y: 0.4}
-    BushShadowHeight: 0
+    BushShadowHeight: 0.55
     CrateShadowHeight: 0.8
-    BoxShadowHeight: 0
+    BoxShadowHeight: 0.5
+    PropShadowHeight: 0.65
+    FootprintInset: 0.06
+    FootprintCorner: 0.15
+    ShadowBlur: 0.12
+    ContactAoBlur: 0.24
+    ContactAoStrength: 0.85
+    BushAoWeight: 0.6
+    Grade: {x: 0.05, y: 0.02, z: 0.03}
+  DecorStyle:
+    Paths:
+    - {x: 0.5, y: 0.04, z: 0.5, w: 0.5}
+    - {x: 0.1, y: 0.3, z: 0.9, w: 0.3}
+    PathStep: 0.58
+    PathHalfWidth: 0.27
+    PathJitter: 0.07
+    PathPairChance: 0.6
+    StoneRadius: {x: 0.2, y: 0.3}
+    StoneAspect: {x: 0.65, y: 0.9}
+    StoneHeight: 0.05
+    StoneTop: {r: 0.9647059, g: 0.8745098, b: 0.6901961, a: 1}
+    StoneEdge: {r: 0.76862746, g: 0.6039216, b: 0.42352942, a: 1}
+    ClearMargin: 0.06
+    PebbleChance: 0.08
+    SproutChance: 0.1
+    FlowerChance: 0.05
+    PebbleRadius: {x: 0.04, y: 0.07}
+    PebbleTop: {r: 0.7882353, g: 0.63529414, b: 0.47843137, a: 1}
+    PebbleEdge: {r: 0.5568628, g: 0.41568628, b: 0.2901961, a: 1}
+    SproutSize: 0.14
+    SproutBase: {r: 0.42745098, g: 0.56078434, b: 0.16470589, a: 1}
+    SproutTip: {r: 0.72156864, g: 0.84705883, b: 0.3529412, a: 1}
+    FlowerSize: 0.08
+    FlowerPetals:
+    - {r: 1, g: 0.56078434, b: 0.7058824, a: 1}
+    - {r: 1, g: 0.95686275, b: 0.87058824, a: 1}
+    - {r: 1, g: 0.8352941, b: 0.30980393, a: 1}
+    FlowerCentre: {r: 0.9490196, g: 0.63529414, b: 0.22745098, a: 1}
+    StoneClearance: 0.35
+    MaxTriangles: 5000
   TeamAlly: {fileID: 2100000, guid: 89d46a19bb4786245b570381bc47fa54, type: 2}
   TeamEnemy: {fileID: 2100000, guid: c8caa291b8137274eae2ca5c5297b215, type: 2}
   TeamEnemyAlt: {fileID: 2100000, guid: 992c1e09d9da09343a18aef4d9697214, type: 2}

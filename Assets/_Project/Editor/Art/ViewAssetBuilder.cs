@@ -231,10 +231,10 @@ namespace Arena.Editor.Art
             WallFootShade = 0.72f,
             WallCellVariation = 0.04f,
             FloorSubdivisions = 2,
-            FloorWallOcclusion = 0.5f,
+            FloorWallOcclusion = 0.2f,   // A.3e: the contact shade is the mask's AO channel now; vertices keep a faint broad term
             FloorOcclusionRadius = 0.75f,
-            FloorOcclusionColor = new Color32(0x8A, 0x70, 0x7A, 0xFF),   // A.3c: warm-lavender contact shade on sand
-            FloorBushOcclusion = 0.4f,
+            FloorOcclusionColor = new Color32(0xB0, 0x78, 0x52, 0xFF),   // A.3e: warm clay shade (was lavender)
+            FloorBushOcclusion = 0.15f,
             FloorBushOcclusionRadius = 0.45f,
             FloorPatchCell = 2.2f,
             FloorPatchCoverage = 0f,     // A.3d: no grass stains on the sand (they read as mould)
@@ -249,13 +249,52 @@ namespace Arena.Editor.Art
             WaterShoreWidth = 0.42f,
             BankTop = new Color32(0xB9, 0x8A, 0x5E, 0xFF),
             BankFoot = new Color32(0x6E, 0x4E, 0x34, 0xFF),
-            ShadowTexelsPerCell = 4,
-            ShadowStrength = 0.6f,
-            ShadowSoftness = 0.12f,
+            ShadowTexelsPerCell = 8,     // A.3e (D-130): 8 texels per cell, blurred footprints, G = contact AO
+            ShadowStrength = 0.9f,
+            ShadowSoftness = 0.15f,
             ShadowFall = new Vector2(0.55f, 0.4f),
-            BushShadowHeight = 0f,       // blob caps cast square mask shadows — the bush's dark foot is enough
+            BushShadowHeight = 0.55f,
             CrateShadowHeight = 0.8f,
-            BoxShadowHeight = 0f
+            BoxShadowHeight = 0.5f,
+            PropShadowHeight = 0.65f,
+            FootprintInset = 0.06f,
+            FootprintCorner = 0.15f,
+            ShadowBlur = 0.12f,
+            ContactAoBlur = 0.24f,
+            ContactAoStrength = 0.85f,
+            BushAoWeight = 0.6f,
+            Grade = new Vector3(0.05f, 0.02f, 0.03f)
+        };
+
+        // A.3e (D-130): floor details as geometry (FloorDecorPlanner) — stepping-stone paths base → centre and across, rare
+        // pebbles, sprouts, flowers (concept 002: ≈ 1 small detail per 3–4 free cells).
+        private static EnvDecorStyle DecorStyle() => new EnvDecorStyle
+        {
+            Paths = new[] { new Vector4(0.5f, 0.04f, 0.5f, 0.5f), new Vector4(0.1f, 0.3f, 0.9f, 0.3f) },
+            PathStep = 0.58f,
+            PathHalfWidth = 0.27f,
+            PathJitter = 0.07f,
+            PathPairChance = 0.6f,
+            StoneRadius = new Vector2(0.2f, 0.3f),
+            StoneAspect = new Vector2(0.65f, 0.9f),
+            StoneHeight = 0.05f,
+            StoneTop = new Color32(0xF6, 0xDF, 0xB0, 0xFF),
+            StoneEdge = new Color32(0xC4, 0x9A, 0x6C, 0xFF),
+            ClearMargin = 0.06f,
+            PebbleChance = 0.08f,
+            SproutChance = 0.1f,
+            FlowerChance = 0.05f,
+            PebbleRadius = new Vector2(0.04f, 0.07f),
+            PebbleTop = new Color32(0xC9, 0xA2, 0x7A, 0xFF),
+            PebbleEdge = new Color32(0x8E, 0x6A, 0x4A, 0xFF),
+            SproutSize = 0.14f,
+            SproutBase = new Color32(0x6D, 0x8F, 0x2A, 0xFF),
+            SproutTip = new Color32(0xB8, 0xD8, 0x5A, 0xFF),
+            FlowerSize = 0.08f,
+            FlowerPetals = new Color[] { new Color32(0xFF, 0x8F, 0xB4, 0xFF), new Color32(0xFF, 0xF4, 0xDE, 0xFF), new Color32(0xFF, 0xD5, 0x4F, 0xFF) },
+            FlowerCentre = new Color32(0xF2, 0xA2, 0x3A, 0xFF),
+            StoneClearance = 0.35f,
+            MaxTriangles = 5000
         };
 
         // A.3b environment (D-125). Wall: top = baked stone slabs with moss (2 cells per tile, aligned to the cells), sides = Flow
@@ -492,6 +531,7 @@ namespace Arena.Editor.Art
             catalog.Water = water;
             catalog.Meadow = meadow;
             catalog.MapStyle = MapStyle;
+            catalog.DecorStyle = DecorStyle();
             catalog.FighterHidden = fighterHidden;
             catalog.ProjectilePoolPrewarm = ProjectilePoolPrewarm;
             catalog.ProjectileHeight = ProjectileHeight;

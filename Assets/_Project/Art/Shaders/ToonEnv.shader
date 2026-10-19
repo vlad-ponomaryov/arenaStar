@@ -6,6 +6,8 @@
 // A.3b (D-125): side faces (|n.y| < 0.5) take _SideMap in world (x or z, y) — planks on wall sides, the crate, wicker of the
 // basket; _BaseNormalize / _SideNormalize divide a map by its mean luminance (the vertex colour keeps the palette, the map adds
 // only detail). _ReceiveMapShadow: soft wall shadows from the map mask (ArenaEnv.hlsl) — on the floor and the meadow, not on walls.
+// A.3e (D-130): warm clay shading (soft light step, warm shade), a darker foot on side faces, warm ground shadows and the contact
+// occlusion of the mask (G), the shader-side grade (ArenaGrade).
 // uv0.x = 1 turns the texture detail off for a vertex (berries and leaves of the basket); meshes without UVs are textured.
 // Opaque, one forward pass + depth.
 Shader "Arena/ToonEnv"
@@ -32,15 +34,18 @@ Shader "Arena/ToonEnv"
         _PatchEdge ("Patch Edge Softness", Range(0.01, 0.5)) = 0.12
         _PatchBreakup ("Patch Edge Breakup By The Map", Range(0, 2)) = 0.6
         _ReceiveMapShadow ("Receive Wall Shadows (map mask)", Range(0, 1)) = 0
-        _MapShadowColor ("Wall Shadow Multiplier", Color) = (0.56, 0.56, 0.74, 1)
-        _ShadeColor ("Shade Multiplier", Color) = (0.612, 0.576, 0.784, 1)
+        _MapShadowColor ("Ground Shadow Multiplier (warm)", Color) = (0.63, 0.45, 0.34, 1)
+        _MapAoColor ("Contact Occlusion Multiplier", Color) = (0.6, 0.4, 0.28, 1)
+        _ShadeColor ("Shade Multiplier (warm clay)", Color) = (0.8, 0.64, 0.56, 1)
+        _SideGradient ("Side Darkening At The Foot", Range(0, 1)) = 0.3
+        _SideGradientHeight ("Side Gradient Height (world)", Float) = 0.9
         _RimColor ("Rim Color", Color) = (1, 0.965, 0.878, 1)
         _RimStrength ("Rim Strength", Range(0, 1)) = 0.12
         _RimPower ("Rim Power", Range(1, 8)) = 3
         _RimTopBias ("Rim Top Bias", Range(0, 1)) = 0.6
         _AmbientStrength ("Ambient Strength", Range(0, 1)) = 0.25
         _StepCenter ("Light Step Center", Range(-1, 1)) = 0.1
-        _StepSoftness ("Light Step Softness", Range(0.001, 0.5)) = 0.12
+        _StepSoftness ("Light Step Softness", Range(0.001, 0.5)) = 0.4
         _SpecSize ("Highlight N.H Threshold", Range(0.5, 1)) = 0.99
         _SpecSoftness ("Highlight Softness", Range(0.001, 0.1)) = 0.01
         _SpecStrength ("Highlight Strength", Range(0, 1)) = 0
@@ -75,7 +80,10 @@ Shader "Arena/ToonEnv"
             half _PatchBreakup;
             half _ReceiveMapShadow;
             half4 _MapShadowColor;
+            half4 _MapAoColor;
             half4 _ShadeColor;
+            half _SideGradient;
+            float _SideGradientHeight;
             half4 _RimColor;
             half _RimStrength;
             half _RimPower;
@@ -186,8 +194,15 @@ Shader "Arena/ToonEnv"
                 p.specSoftness = _SpecSoftness;
                 p.specStrength = _SpecStrength;
                 half3 color = ArenaToonShade(s, p);
+                // A.3e: vertical gradient on side faces (the foot of every object is darker — the clay look without AO passes).
+                half sideness = saturate(1.0h - abs((half)i.normalWS.y) * 1.6h);
+                half foot = saturate(i.positionWS.y / max(_SideGradientHeight, 0.01));
+                color *= 1.0h - _SideGradient * sideness * (1.0h - foot);
                 half shadow = ArenaMapShadow(i.positionWS) * _ReceiveMapShadow;
-                return half4(color * lerp(half3(1.0h, 1.0h, 1.0h), _MapShadowColor.rgb, shadow), 1.0h);
+                half ao = ArenaMapOcclusion(i.positionWS) * _ReceiveMapShadow;
+                color *= lerp(half3(1.0h, 1.0h, 1.0h), _MapShadowColor.rgb, shadow);
+                color *= lerp(half3(1.0h, 1.0h, 1.0h), _MapAoColor.rgb, ao);
+                return half4(ArenaGrade(color), 1.0h);
             }
             ENDHLSL
         }

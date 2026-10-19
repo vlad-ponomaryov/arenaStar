@@ -35,6 +35,10 @@ namespace Arena.Gameplay.View
         /// <summary>Wall cells drawn as obstacle props instead of stone blocks (A.3c).</summary>
         public int ObstaclePropCount { get; private set; }
 
+        /// <summary>Floor details planned for this map and their triangles (A.3e).</summary>
+        public int DecorCount { get; private set; }
+        public int DecorTriangles { get; private set; }
+
         /// <summary>True if the bush and breakable cubes are static-batched (tests).</summary>
         public bool IsStaticBatched { get; private set; }
 
@@ -119,12 +123,18 @@ namespace Arena.Gameplay.View
             TileType hole = sunken ? TileType.Water : TileType.Wall;
             bool[] propCells = PlaceObstacleProps(catalog, in grid, root);
             CreateMeshObject("Floor", root, MapMeshBuilder.BuildFloor(in grid, TileType.Wall, hole, in style, "Floor", propCells), catalog.Floor);
+            // A.3e (D-130): stepping-stone paths, pebbles, sprouts and flowers — one mesh with the floor material.
+            var decor = new System.Collections.Generic.List<FloorDecorItem>();
+            EnvDecorStyle decorStyle = catalog.DecorStyle;
+            DecorTriangles = FloorDecorPlanner.Plan(in grid, in decorStyle, decor);
+            DecorCount = decor.Count;
+            if (decor.Count > 0) CreateMeshObject("FloorDecor", root, FloorDecorMeshBuilder.Build(decor, in decorStyle, "FloorDecor"), catalog.Floor);
             CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, in style, "Walls", propCells), catalog.Wall);
             CreateMeshObject("Water", root, MapMeshBuilder.BuildSheet(in grid, TileType.Water, catalog.WaterHeight, in style, "Water"), catalog.Water);
             if (sunken)
                 CreateMeshObject("Banks", root, MapMeshBuilder.BuildBanks(in grid, TileType.Water, catalog.WaterHeight - catalog.BankOverlap, in style, "Banks"), catalog.Wall);
 
-            _shadowMask = new MapShadowMask(in grid, in style);
+            _shadowMask = new MapShadowMask(in grid, in style, propCells);
             _shadowMask.Apply(catalog.WallHeight, in style);
 
             int bushCount = 0;

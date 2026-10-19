@@ -131,7 +131,7 @@ Shader "Arena/Water"
                 col *= lerp(half3(1.0h, 1.0h, 1.0h), light.color, _LightInfluence);
                 col *= _BaseColor.rgb * i.color.rgb;
                 half shadow = ArenaMapShadow(i.positionWS);
-                return half4(col * lerp(half3(1.0h, 1.0h, 1.0h), _MapShadowColor.rgb, shadow), 1.0h);
+                return half4(ArenaGrade(col * lerp(half3(1.0h, 1.0h, 1.0h), _MapShadowColor.rgb, shadow)), 1.0h);
             }
             ENDHLSL
         }

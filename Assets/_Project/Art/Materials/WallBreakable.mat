@@ -65,6 +65,8 @@ Material:
     - _RimStrength: 0.12
     - _RimTopBias: 0.6
     - _SideContrast: 0.9
+    - _SideGradient: 0.3
+    - _SideGradientHeight: 0.9
     - _SideMeanLuminance: 0.43148696
     - _SideNormalize: 1
     - _SideTiling: 1.6
@@ -72,13 +74,14 @@ Material:
     - _SpecSoftness: 0.01
     - _SpecStrength: 0
     - _StepCenter: 0.1
-    - _StepSoftness: 0.12
+    - _StepSoftness: 0.4
     - _WorldTiling: 1.6
     m_Colors:
     - _BaseColor: {r: 0.95, g: 0.95, b: 0.95, a: 1}
-    - _MapShadowColor: {r: 0.56, g: 0.56, b: 0.74, a: 1}
+    - _MapAoColor: {r: 0.6, g: 0.39999998, b: 0.27999997, a: 1}
+    - _MapShadowColor: {r: 0.63, g: 0.45, b: 0.33999997, a: 1}
     - _PatchTint: {r: 1, g: 1, b: 1, a: 1}
     - _RimColor: {r: 1, g: 0.965, b: 0.878, a: 1}
-    - _ShadeColor: {r: 0.6119999, g: 0.5759999, b: 0.784, a: 1}
+    - _ShadeColor: {r: 0.8, g: 0.6399999, b: 0.56, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

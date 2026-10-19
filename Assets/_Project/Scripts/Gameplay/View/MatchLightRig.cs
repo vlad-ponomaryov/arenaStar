@@ -7,12 +7,14 @@ namespace Arena.Gameplay.View
     /// camera yaw + <see cref="ViewCatalog.LightYawFromCamera"/>. Team 1 looks from the other side (camera yaw 180°, D-016); a
     /// world-fixed light would leave its view of every fighter in the toon shade. Also turns the soft wall shadows on the ground
     /// (A.3b, D-125): they fall by <see cref="MapMeshStyle.ShadowFall"/> in the camera frame (to the screen right and towards the
-    /// viewer), so both teams see them beside the walls, not hidden behind. Applied by <c>MatchRunner</c> at match start and by the
+    /// viewer), so both teams see them beside the walls, not hidden behind; and the shader-side grade of the environment
+    /// (<see cref="MapMeshStyle.Grade"/>, A.3e). Applied by <c>MatchRunner</c> at match start and by the
     /// screenshot stand in the editor.
     /// </summary>
     public static class MatchLightRig
     {
         private static readonly int ShadowReachId = Shader.PropertyToID("_ArenaShadowReach");
+        private static readonly int GradeId = Shader.PropertyToID("_ArenaGrade");
 
         public static Quaternion Rotation(float cameraYawDegrees, float pitchDegrees, float yawFromCameraDegrees) =>
             Quaternion.Euler(pitchDegrees, cameraYawDegrees + yawFromCameraDegrees, 0f);
@@ -36,6 +38,8 @@ namespace Arena.Gameplay.View
             if (catalog == null) return;
             Vector2 reach = ShadowReach(cameraYawDegrees, catalog.MapStyle.ShadowFall, catalog.WallHeight);
             Shader.SetGlobalVector(ShadowReachId, new Vector4(reach.x, reach.y, 0f, 0f));
+            Vector3 grade = catalog.MapStyle.Grade;
+            Shader.SetGlobalVector(GradeId, new Vector4(grade.x, grade.y, grade.z, 0f));
             if (light == null) return;
             light.transform.rotation = Rotation(cameraYawDegrees, catalog.LightPitch, catalog.LightYawFromCamera);
         }
