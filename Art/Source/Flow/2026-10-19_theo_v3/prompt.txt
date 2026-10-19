@@ -1,0 +1,31 @@
+Theo (Тео) v3 — космический рейнджер, концепт персонажа. Google Flow (https://flow.google.com), проект «Arena», агент Flow, модель
+изображений Nano Banana 2.1, 2026-10-19 ≈ 17:08–17:10 по местному времени. Аккаунт и условия — как в
+../2026-10-19_tex-grass/prompt.md (Условия Google от 30.07.2026, без претензий на владение; Q-019, D-111). Видео не генерировалось,
+платное (2K/4K) не использовалось; скачано «1K — исходный размер» (JPEG 896×1200), сохранено в PNG без изменения пикселей.
+Видимого водяного знака нет. Новый сеанс агента, без референсов; чужие игры, фильмы, студии и картинки как вход не использовались.
+Одна генерация, перегенерации не было (указание пользователя: одного варианта достаточно). В игру не идёт.
+
+ОТЗЫВ ПОЛЬЗОВАТЕЛЯ НА v2 (19.10):
+v2 (мальчик-водомётчик в панаме) не нравится. Тео — КОСМИЧЕСКИЙ РЕЙНДЖЕР, очень крутой, с огромным космическим бластером;
+светлый (блондин, светлая кожа), образ под англоязычную аудиторию. Механика стрелка прежняя.
+Бриф арт-директора: мальчик ~12 лет, героическая уверенная поза, огромный явно фантастический бластер со светящимися
+энергоячейками/кольцами (не реалистичное огнестрельное оружие), костюм-броня своего дизайна — не Базз Лайтер (никаких
+бело-зелёно-фиолетовых скафандров, крыльев, купола-шлема), не Marvel, не Brawl Stars. Палитра мандарин #FF7A1A / графит / крем,
+свечение тёплое или белое, без синего и красного как основных. Стиль как v2: глянцевый винил, крупная голова и кисти, контровой
+свет, градиентный фон, полный рост, 3/4.
+
+ПРОМПТ (1 генерация, новый сеанс) -> theo_v3.png:
+
+Generate 1 still image (image only, no video, do not use any existing images or character references from this project, this is a brand-new design), portrait 3:4. Stylized 3D render of an original hero character for our own family-friendly kids' mobile arena game. Character: Theo, a very cool, confident 12-year-old boy, a young space ranger hero. Premium glossy vinyl toy proportions: big head about one third of body height, big expressive bright eyes, big hands, big chunky boots, short sturdy legs, thick clear readable silhouette, smooth rounded shapes. Fair light skin, light freckles, tousled spiky golden blond hair, confident heroic half-smile, one eyebrow slightly raised, kind and brave, not smug. Original sleek space armor suit of our own design: rounded glossy graphite (#2F3440) armor plates over a cream (#FFF1DC) flight suit, bright mandarin orange (#FF7A1A) accent panels and stripes, chunky rounded shoulder pads, a small glowing warm-amber star emblem on the chest, a utility belt with little glowing amber energy capsules, armored gloves and boots with mandarin soles, a compact visor-headset over one ear with a small amber holographic lens, a short cream scarf flowing behind him. No helmet, no wings, no dome, no jetpack wings. He holds an enormous fantasy space blaster, bigger than his torso, obviously a fantastical sci-fi energy device and not a realistic gun: chunky rounded futuristic shapes in glossy mandarin orange, graphite and cream, several glowing warm-white and amber energy rings around the long barrel, a big glowing amber energy core cell in a clear capsule on the side, cooling fins, a wide rounded emitter tip with a soft warm glow. Heroic confident pose: standing tall with legs apart, weight on one leg, the huge blaster held across his body with both hands and resting on his shoulder, chest and face fully visible, small floating warm sparks and tiny stars around him. Three-quarter view, full body. Style: polished stylized 3D game character render, glossy vinyl toy material with soft highlights, strong warm rim light and soft key light, rich saturated clean colors, crisp sharp details, simple smooth vertical gradient background from deep warm graphite purple-brown at top to glowing mandarin peach at the bottom with a few soft stars. No blue and no red as main colors, no green, no purple suit. Whole character in frame with margin, original character, not resembling any existing movie, toy, comic or game character, no text, no logos, no watermark.
+
+ФИЛЬТРЫ FLOW: слово «blaster» с уточнением «fantasy / sci-fi energy device, not a realistic gun» и рамкой «family-friendly kids'
+game» прошло без отказа.
+
+ОЦЕНКА
+- Плюсы: блондин со светлой кожей и веснушками, уверенная полуулыбка, бровь приподнята — «крутой», но добрый; броня своего
+  дизайна (графит + крем + мандарин, звезда на груди, пояс с янтарными капсулами, гарнитура-визор, шарф), без шлема и крыльев,
+  на Базза/Marvel не похоже; бластер явно фантастический (светящиеся кольца-спираль, ячейка-капсула, широкий эмиттер);
+  палитра в брифе, синего/красного нет; глянец, контровой свет, градиент со звёздами, полный рост, 3/4.
+- Минусы: бластер крупный, но не «огромный» (≈ торс) и поднят одной рукой вверх, а не держится двумя на плече; пропорции
+  ближе к «подростку» (голова меньше 1/3 роста), чем у v2-винила; есть пистолетная рукоять. В 3D: бластер увеличить ×1.5,
+  держать двумя руками, голову крупнее.
