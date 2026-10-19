@@ -8,6 +8,9 @@
 - Разрешено человеком (19.10): Unity с графикой в batchmode (без `-nographics`) для скриншотов; скачать шрифт Nunito (OFL);
   CC0-наборы (Quaternius/Kenney) и Blender — только если реально поднимают качество, с записью лицензии в `Docs/AssetLicenses.md`;
   правки GDD под ТЗ арта.
+- Ориентиры пользователя (персонажи, арены, HUD): `C:\Users\Computer\AppData\Roaming\Claude\side-session-notes\local_906d5e56-6c85-4e57-98a5-5eb029403c09\refs\README.md`
+  (разбор «почему круто» + PNG). Только изучение приёмов: в репозиторий не класть, Flow как образец не давать, ничего не копировать.
+  Читать только шагам персонажей, окружения и HUD.
 - Цикл: compile → `Tools/test.ps1` EditMode + PlayMode (+ `server-test.ps1`, если трогал сервер/общий код сети) → контрольные
   скриншоты, если требует шаг (смотри их сам, Read по PNG) → commit (только свои файлы; `git commit -- <пути>` или аккуратный `git add`;
   не коммитить `ProjectSettings/QualitySettings.asset` после PlayMode, `GraphicsSettings.asset` и неотслеживаемые
