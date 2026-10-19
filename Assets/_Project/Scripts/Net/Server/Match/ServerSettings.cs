@@ -50,7 +50,7 @@ namespace Arena.Net.Server.Match
         /// <summary>Connected, but only zero inputs (no stick, no button) this long — a bot until the next move or press.</summary>
         public float AfkSeconds;
 
-        /// <summary>Difficulty of fill bots and of takeovers (D-107: Medium, "Normal" — Novice/Easy were too weak; was Novice, D-087).</summary>
+        /// <summary>Difficulty of fill bots and of takeovers (D-116: Medium, "Normal" — Novice/Easy were too weak; was Novice, D-087).</summary>
         public BotDifficulty FillBotDifficulty;
 
         /// <summary>The <c>MatchStart</c> slot table marks bots (D-087: off).</summary>
@@ -74,7 +74,7 @@ namespace Arena.Net.Server.Match
 
         // ---- Lobby (§6.2, S3.8) ----
 
-        /// <summary>The oldest ticket of a queue waited this long — the match is assembled with bots in the free slots (D-107: 5 s; GDD §7 said 15).</summary>
+        /// <summary>The oldest ticket of a queue waited this long — the match is assembled with bots in the free slots (D-116: 5 s; GDD §7 said 15).</summary>
         public float BotFillSeconds;
 
         /// <summary>The same for players under 300 trophies (GDD §7) — used from stage 4, when trophies exist.</summary>

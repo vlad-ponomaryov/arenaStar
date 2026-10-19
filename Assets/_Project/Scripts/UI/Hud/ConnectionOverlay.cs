@@ -20,7 +20,7 @@ namespace Arena.UI.Hud
     /// only with a rejoin ticket); when the server answered <c>MatchOver</c> — "the match is already over". With every banner
     /// except "a bot is playing your fighter" a "Menu" button (and Escape / Android Back) leaves the match at once:
     /// <see cref="SceneFlow.ToMenu"/> → <c>OnlineSession</c> sends <c>Leave</c>, closes the connection and forgets the ticket
-    /// (F1, D-107). Hidden when all is well or the match is over. Texts change only with the state and the whole seconds
+    /// (F1, D-116). Hidden when all is well or the match is over. Texts change only with the state and the whole seconds
     /// (cached number strings) — no allocations per frame.
     /// </summary>
     public sealed class ConnectionOverlay
