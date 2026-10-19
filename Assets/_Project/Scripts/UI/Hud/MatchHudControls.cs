@@ -13,12 +13,17 @@ namespace Arena.UI.Hud
         public VirtualStick UltStick;
         public TapButton TrickButton;
 
-        /// <summary>Base and knob images of the ult stick (recoloured by charge state).</summary>
+        /// <summary>Base and knob images of the attack stick (light, translucent; accented while held, A.7c).</summary>
+        public Image AttackBase;
+        public Image AttackKnob;
+
+        /// <summary>Ult stick (A.7c): the base is the thin charge ring track, the knob is the round ult button (recoloured by
+        /// charge state).</summary>
         public Image UltBase;
         public Image UltKnob;
 
-        /// <summary>Petals of the ult "flower" around the ult stick (A.7a): they fill one by one with the charge.</summary>
-        public Image[] UltPetals;
+        /// <summary>Radial fill of the ult charge ring (child of the base, under the button): fillAmount = charge.</summary>
+        public Image UltRingFill;
 
         /// <summary>Golden glow behind the ult while it is charged.</summary>
         public Image UltGlow;

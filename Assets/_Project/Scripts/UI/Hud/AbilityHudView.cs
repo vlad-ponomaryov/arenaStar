@@ -5,9 +5,9 @@ using UnityEngine.UI;
 namespace Arena.UI.Hud
 {
     /// <summary>
-    /// Shows <see cref="AbilityHudInfo"/> on the HUD controls (GDD §5.1, Art-Spec §4.1): the ult stick is bright only when the
-    /// ult is charged; the petals of the ult "flower" fill one by one with the charge (the current petal brightens gradually)
-    /// and all turn gold with a glow when it is ready; the trick button and its icon dim while not ready, acorn beads show the
+    /// Shows <see cref="AbilityHudInfo"/> on the HUD controls (GDD §5.1, Art-Spec §4.1): the ult button is bright only when the
+    /// ult is charged; the thin ring around it fills clockwise with the charge and turns gold (full) with a soft glow when it is
+    /// ready (A.7c, replaces the A.7a petals); the attack stick gets a light accent while held; the trick button and its icon dim while not ready, acorn beads show the
     /// uses left (no text). Writes to uGUI only when a value changes (no canvas rebuild every frame, no allocations after the
     /// beads exist).
     /// </summary>
@@ -18,6 +18,8 @@ namespace Arena.UI.Hud
 
         private bool _hasShown;
         private AbilityHudInfo _shown;
+        private bool _attackShown;
+        private bool _attackHeldShown;
 
         public AbilityHudView(MatchHudControls controls, UiStyle style)
         {
@@ -41,7 +43,7 @@ namespace Arena.UI.Hud
                 if (_controls.UltGlow != null && _controls.UltGlow.enabled != info.UltCharged) _controls.UltGlow.enabled = info.UltCharged;
             }
             if (!_hasShown || info.UltCharge != _shown.UltCharge || info.HasUlt != _shown.HasUlt || info.UltCharged != _shown.UltCharged)
-                ShowPetals(info.HasUlt ? info.UltCharge : 0f, info.UltCharged);
+                ShowRing(info.HasUlt ? info.UltCharge : 0f, info.UltCharged);
 
             if (!_hasShown || info.TrickReady != _shown.TrickReady)
             {
@@ -59,26 +61,28 @@ namespace Arena.UI.Hud
             _hasShown = true;
         }
 
-        /// <summary>
-        /// Petal i is filled when the charge passes (i + 1) / count; the one being filled lerps from the off to the on colour.
-        /// A charged ult shows every petal in the ready colour.
-        /// </summary>
-        private void ShowPetals(float charge, bool charged)
+        /// <summary>Ring fill = charge (charging colour); a charged ult shows the full ring in the ready colour.</summary>
+        private void ShowRing(float charge, bool charged)
         {
-            Image[] petals = _controls.UltPetals;
-            if (petals == null) return;
-            int count = petals.Length;
-            for (int i = 0; i < count; i++)
-            {
-                Color c;
-                if (charged) c = _style.UltPetalReadyColor;
-                else c = Color.Lerp(_style.UltPetalOffColor, _style.UltPetalOnColor, Mathf.Clamp01(charge * count - i));
-                SetColor(petals[i], c);
-            }
+            Image fill = _controls.UltRingFill;
+            if (fill == null) return;
+            float amount = charged ? 1f : Mathf.Clamp01(charge);
+            if (fill.fillAmount != amount) fill.fillAmount = amount;
+            SetColor(fill, charged ? _style.UltStick.BaseColor : _style.UltRingFillColor);
+        }
+
+        /// <summary>Light accent of the attack stick while it is pressed / aiming (A.7c). Call every frame; writes only on change.</summary>
+        public void ShowAttackHeld(bool held)
+        {
+            if (_attackHeldShown == held && _attackShown) return;
+            _attackShown = true;
+            _attackHeldShown = held;
+            SetColor(_controls.AttackBase, held ? _style.AttackHeldBaseColor : _style.AttackStick.BaseColor);
+            SetColor(_controls.AttackKnob, held ? _style.AttackHeldKnobColor : _style.AttackStick.KnobColor);
         }
 
         /// <summary>
-        /// Glow of the charged ult (GDD §5.1: the button lights up): the ult stick base and the golden glow behind the flower
+        /// Glow of the charged ult (GDD §5.1: the button lights up): the ult ring (with the button) and the golden glow behind it
         /// pulse in size while charged and return to normal otherwise. Call every frame.
         /// </summary>
         /// <param name="time">Unscaled time, seconds.</param>

@@ -29,20 +29,20 @@ MonoBehaviour:
     BaseSize: 260
     KnobSize: 120
     Radius: 110
-    BaseColor: {r: 1, g: 0.47843137, b: 0.36078432, a: 0.6}
-    KnobColor: {r: 1, g: 0.47843137, b: 0.36078432, a: 1}
+    BaseColor: {r: 1, g: 0.95686275, b: 0.87058824, a: 0.42}
+    KnobColor: {r: 1, g: 0.95686275, b: 0.87058824, a: 0.55}
   UltStick:
-    Position: {x: 620, y: 190}
+    Position: {x: 610, y: 200}
     HitSize: 260
-    BaseSize: 190
-    KnobSize: 95
+    BaseSize: 178
+    KnobSize: 150
     Radius: 80
-    BaseColor: {r: 1, g: 0.7882353, b: 0.23529412, a: 0.7}
+    BaseColor: {r: 1, g: 0.8235294, b: 0.23529412, a: 1}
     KnobColor: {r: 1, g: 0.7882353, b: 0.23529412, a: 1}
   TrickButtonPosition: {x: 290, y: 600}
   TrickButtonSize: 150
   TrickButtonColor: {r: 0.29803923, g: 0.7490196, b: 0.3372549, a: 1}
-  UltNotReadyBaseColor: {r: 0.84705883, g: 0.8156863, b: 0.7529412, a: 0.4}
+  UltNotReadyBaseColor: {r: 0.23137255, g: 0.16470589, b: 0.11764706, a: 0.35}
   UltNotReadyKnobColor: {r: 0.72156864, g: 0.6901961, b: 0.627451, a: 0.75}
   TrickButtonDisabledColor: {r: 0.5411765, g: 0.6039216, b: 0.54901963, a: 0.6}
   TrickDotSize: 36
@@ -148,7 +148,7 @@ MonoBehaviour:
   DisabledLabelAlpha: 0.6
   StickBaseSprite: {fileID: 21300000, guid: 590bf73bf808eaa4ba548976c29f7293, type: 3}
   KnobSprite: {fileID: 21300000, guid: 2b95b2ae3d37d4546a061b63e8ebd762, type: 3}
-  PetalSprite: {fileID: 21300000, guid: d0a538326b6eaf142b45ef9044be9dfc, type: 3}
+  UltRingSprite: {fileID: 21300000, guid: f18878e5bc0b7f84e96f2a96bc5bee3c, type: 3}
   GlowSprite: {fileID: 21300000, guid: 78855fa7b7a652545bcb7f132734e001, type: 3}
   AcornIcon: {fileID: 21300000, guid: fabc7700215c7d443b00fa2c4ce875e9, type: 3}
   PawIcon: {fileID: 21300000, guid: 02006eaf76287554eb9d7b1dbe913810, type: 3}
@@ -156,15 +156,12 @@ MonoBehaviour:
   StarsIcon: {fileID: 21300000, guid: f93c19a66fd498941ab44f72812a833d, type: 3}
   UltIcon: {fileID: 21300000, guid: 536909e9269ec18439df93160b691f04, type: 3}
   TrickIcon: {fileID: 21300000, guid: d40d9ab67260c2047832b7450b0f16da, type: 3}
-  UltPetalCount: 8
-  UltPetalSize: {x: 54, y: 80}
-  UltPetalRadius: 118
-  UltPetalOffColor: {r: 1, g: 1, b: 1, a: 0.45}
-  UltPetalOnColor: {r: 1, g: 0.68235296, b: 0.20392157, a: 1}
-  UltPetalReadyColor: {r: 1, g: 0.8784314, b: 0.2901961, a: 1}
-  UltGlowSize: 380
-  UltGlowColor: {r: 1, g: 0.84705883, b: 0.2901961, a: 0.7}
-  UltIconSize: 62
+  UltRingFillColor: {r: 1, g: 0.68235296, b: 0.20392157, a: 1}
+  AttackHeldBaseColor: {r: 1, g: 0.95686275, b: 0.87058824, a: 0.6}
+  AttackHeldKnobColor: {r: 1, g: 0.8039216, b: 0.72156864, a: 0.72}
+  UltGlowSize: 330
+  UltGlowColor: {r: 1, g: 0.84705883, b: 0.2901961, a: 0.75}
+  UltIconSize: 84
   TrickIconSize: 84
   IconReadyColor: {r: 1, g: 1, b: 1, a: 1}
   IconNotReadyColor: {r: 1, g: 1, b: 1, a: 0.45}

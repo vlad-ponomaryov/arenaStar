@@ -36,7 +36,7 @@ namespace Arena.UI.Style
         public Color TrickButtonColor;
 
         [Header("Ability state (ult charge, trick uses)")]
-        [Tooltip("Ult stick base / knob while the ult is not charged (dim); charged = UltStick colours.")]
+        [Tooltip("Ult charge ring track / ult button while the ult is not charged (dim); charged = UltStick colours.")]
         public Color UltNotReadyBaseColor;
         public Color UltNotReadyKnobColor;
 
@@ -273,8 +273,8 @@ namespace Arena.UI.Style
         [Tooltip("Toy knob / round button: dark outline, shaded face, gloss on top (white, tinted).")]
         public Sprite KnobSprite;
 
-        [Tooltip("One petal of the ult flower (points up, white with a dark outline, tinted by the charge state).")]
-        public Sprite PetalSprite;
+        [Tooltip("A.7c: thin ult charge ring around the ult button (white band with a dark outline; filled radially by the charge).")]
+        public Sprite UltRingSprite;
 
         [Tooltip("Soft radial glow (white, tinted): behind the charged ult.")]
         public Sprite GlowSprite;
@@ -289,15 +289,13 @@ namespace Arena.UI.Style
         public Sprite UltIcon;
         public Sprite TrickIcon;
 
-        [Tooltip("Ult flower: number of petals around the ult stick, petal size, distance of the petal centres from the stick centre.")]
-        public int UltPetalCount;
-        public Vector2 UltPetalSize;
-        public float UltPetalRadius;
+        [Tooltip("A.7c ult button: the charge ring fills clockwise from the top in this colour (its track = UltNotReadyBaseColor, "
+            + "the full ring of the ready ult = UltStick.BaseColor).")]
+        public Color UltRingFillColor;
 
-        [Tooltip("Petal colours: not yet filled, filled (charging), all open (ult ready).")]
-        public Color UltPetalOffColor;
-        public Color UltPetalOnColor;
-        public Color UltPetalReadyColor;
+        [Tooltip("A.7c attack stick while pressed / aiming: a light accent over the translucent base (at rest = AttackStick colours).")]
+        public Color AttackHeldBaseColor;
+        public Color AttackHeldKnobColor;
 
         [Tooltip("Golden glow behind the ready ult: size and colour (alpha pulses with the ult glow).")]
         public float UltGlowSize;

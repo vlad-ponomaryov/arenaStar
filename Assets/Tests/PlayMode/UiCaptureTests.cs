@@ -4,10 +4,12 @@ using System.Collections.Generic;
 using System.IO;
 using Arena.Gameplay.Flow;
 using Arena.Gameplay.Match;
+using Arena.UI.Controls;
 using Arena.UI.Hud;
 using Arena.UI.Menu;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
@@ -66,7 +68,7 @@ namespace Arena.Tests.PlayMode
         }
 
         /// <summary>
-        /// A.7a: the match HUD of a training match — ult flower partly filled (<c>match_hud</c>, also at the wide phone size),
+        /// A.7a/A.7c: the match HUD of a training match — ult charge ring partly filled (<c>match_hud</c>, also at the wide phone size),
         /// then the charged ult with its glow (<c>match_hud_ult</c>).
         /// </summary>
         [UnityTest]
@@ -97,6 +99,24 @@ namespace Arena.Tests.PlayMode
             while (Time.realtimeSinceStartup < until) yield return null;
             yield return Capture(dir, "match_hud", Width, Height);
             yield return Capture(dir, "match_hud_phone", PhoneWidth, Height);
+
+            // A.7c: the attack stick pressed and dragged (aiming accent).
+            MatchHud hud = Object.FindFirstObjectByType<MatchHud>();
+            Assert.IsNotNull(hud, "MatchHud");
+            VirtualStick attack = hud.Controls.AttackStick;
+            var press = new PointerEventData(EventSystem.current)
+            {
+                pointerId = 7,
+                position = RectTransformUtility.WorldToScreenPoint(null, attack.transform.position)
+            };
+            attack.OnPointerDown(press);
+            press.position += new Vector2(-70f, 55f);
+            attack.OnDrag(press);
+            until = Time.realtimeSinceStartup + 0.3f;
+            while (Time.realtimeSinceStartup < until) yield return null;
+            yield return Capture(dir, "match_hud_pressed", PhoneWidth, Height);
+            press.position -= new Vector2(-70f, 55f); // back to the touch point: the release is a tap (an auto-aimed shot, harmless here)
+            attack.OnPointerUp(press);
 
             state.Fighters[slot].UltCharge = required;
             until = Time.realtimeSinceStartup + 0.4f;

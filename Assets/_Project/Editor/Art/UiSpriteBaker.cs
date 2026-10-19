@@ -27,7 +27,7 @@ namespace Arena.Editor.Art
         public const string BackdropPath = SpritesFolder + "/UiBackdrop.png";
         public const string StickBasePath = SpritesFolder + "/HudStickBase.png";
         public const string KnobPath = SpritesFolder + "/HudKnob.png";
-        public const string PetalPath = SpritesFolder + "/HudPetal.png";
+        public const string UltRingPath = SpritesFolder + "/HudUltRing.png";
         public const string GlowPath = SpritesFolder + "/HudGlow.png";
 
         private const int Samples = 4;
@@ -75,10 +75,11 @@ namespace Arena.Editor.Art
             s.PlankSprite = Save(BakePlank(), PlankPath, PlankBorder);
             s.LeafSprite = Save(BakeLeaf(), LeafPath, 0);
             s.BackdropSprite = Save(BakeBackdrop(s.BackdropTopColor, s.BackdropBottomColor, s.BackdropLeafColor), BackdropPath, 0);
-            // A.7a match HUD: stick bases, toy knobs, ult flower petals and glow (white, tinted by the HUD), then the icons.
+            // A.7a match HUD: stick bases, toy knobs, glow (white, tinted by the HUD), then the icons. A.7c: the thin ult charge
+            // ring replaces the petals of the ult flower.
             s.StickBaseSprite = Save(BakeStickBase(), StickBasePath, 0);
             s.KnobSprite = Save(BakeKnob(), KnobPath, 0);
-            s.PetalSprite = Save(BakePetal(), PetalPath, 0);
+            s.UltRingSprite = Save(BakeUltRing(), UltRingPath, 0);
             s.GlowSprite = Save(BakeGlow(), GlowPath, 0);
             IconBaker.BakeAll(s);
         }
@@ -88,10 +89,8 @@ namespace Arena.Editor.Art
         private const float StickRim = 10f;
         private const float StickInnerAlpha = 0.38f;
         private const float StickOutlineAlpha = 0.55f;
-        private const int PetalWidth = 64;
-        private const int PetalHeight = 96;
-        private const float PetalHalfWidth = 27f;
-        private const float PetalWidest = 0.62f;
+        private const float UltRingWidth = 11f;
+        private const float UltRingOutline = 2.2f;
 
         private static Texture2D BakeStickBase()
         {
@@ -127,29 +126,20 @@ namespace Arena.Editor.Art
             });
         }
 
-        /// <summary>Half width of the petal at height v (0 = base, 1 = tip): an egg, widest at <see cref="PetalWidest"/>.</summary>
-        private static float PetalWidth01(float v)
+        /// <summary>
+        /// A.7c ult charge ring: a thin white band with a soft dark outline on both edges (readable over the sand and the grass),
+        /// filled radially by the HUD (Image.Type.Filled) and tinted by the charge state.
+        /// </summary>
+        private static Texture2D BakeUltRing()
         {
-            if (v <= 0f || v >= 1f) return -1f;
-            float k = v > PetalWidest ? (v - PetalWidest) / (1f - PetalWidest) : (PetalWidest - v) / PetalWidest;
-            float w = Mathf.Sqrt(Mathf.Max(0f, 1f - k * k));
-            return v > PetalWidest ? w : Mathf.Pow(w, 1.6f);
-        }
-
-        private static Texture2D BakePetal()
-        {
-            float cx = PetalWidth * 0.5f;
-            const float bottom = 3f, top = PetalHeight - 3f;
-            return Render(PetalWidth, PetalHeight, (x, y) =>
+            float c = HudSize * 0.5f, outer = c - 1f, inner = outer - UltRingWidth;
+            return Render(HudSize, HudSize, (x, y) =>
             {
-                float outer = PetalWidth01((y - bottom) / (top - bottom)) * PetalHalfWidth;
-                if (Mathf.Abs(x - cx) > outer) return Color.clear;
-                float inner = PetalWidth01((y - bottom - HudOutline) / (top - bottom - HudOutline * 2f)) * (PetalHalfWidth - HudOutline);
-                if (Mathf.Abs(x - cx) > inner) return Outline;
-                // Light towards the tip, a soft middle vein.
-                float v = Mathf.Lerp(0.82f, 1f, (y - bottom) / (top - bottom));
-                if (Mathf.Abs(x - cx) < 1.6f && y > bottom + 14f && y < top - 18f) v *= 0.88f;
-                return new Color(v, v, v, 1f);
+                float r = Length(x - c, y - c);
+                if (r > outer || r < inner) return Color.clear;
+                float edge = Mathf.Min(outer - r, r - inner);
+                if (edge < UltRingOutline) return new Color(Outline.r, Outline.g, Outline.b, 0.7f);
+                return Color.white;
             });
         }
 

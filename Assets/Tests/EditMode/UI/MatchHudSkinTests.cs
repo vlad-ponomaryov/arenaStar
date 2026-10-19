@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 namespace Arena.Tests.EditMode.UI
 {
-    /// <summary>A.7a match HUD skin: baked HUD sprites and icons, the ult flower, trick beads, zero allocations, mirrored layout, the health bar.</summary>
+    /// <summary>A.7a match HUD skin: baked HUD sprites and icons, the ult ring (A.7c), the light attack stick, trick beads, zero allocations, mirrored layout, the health bar.</summary>
     public sealed class MatchHudSkinTests
     {
         private GameObject _root;
@@ -41,12 +41,14 @@ namespace Arena.Tests.EditMode.UI
         public void SeededStyle_HasHudSpritesAndIcons()
         {
             UiStyle s = Style();
-            Sprite[] sprites = { s.StickBaseSprite, s.KnobSprite, s.PetalSprite, s.GlowSprite, s.AcornIcon, s.PawIcon, s.LeafMedalIcon,
+            Sprite[] sprites = { s.StickBaseSprite, s.KnobSprite, s.UltRingSprite, s.GlowSprite, s.AcornIcon, s.PawIcon, s.LeafMedalIcon,
                 s.StarsIcon, s.UltIcon, s.TrickIcon };
             foreach (Sprite sprite in sprites) Assert.IsNotNull(sprite);
-            Assert.Greater(s.UltPetalCount, 0);
-            Assert.Greater(s.UltPetalRadius, s.UltStick.BaseSize * 0.5f * 0.8f, "petals around the stick base");
-            Assert.AreNotEqual(s.UltPetalOffColor, s.UltPetalOnColor);
+            Assert.AreEqual(s.TrickButtonSize, s.UltStick.KnobSize, 1e-3f, "the ult button is trick-button sized (A.7c)");
+            Assert.Greater(s.UltStick.BaseSize, s.UltStick.KnobSize, "the charge ring goes around the ult button");
+            Assert.AreNotEqual(s.UltRingFillColor, s.UltStick.BaseColor);
+            Assert.Less(s.AttackStick.KnobColor.a, 0.9f, "the attack knob is translucent at rest");
+            Assert.Greater(s.AttackStick.KnobColor.g, 0.8f, "the attack knob is light, not red, at rest");
         }
 
         [Test]
@@ -54,8 +56,10 @@ namespace Arena.Tests.EditMode.UI
         {
             UiStyle s = Style();
             MatchHudControls c = MatchHudBuilder.Build(_root.transform, s);
-            Assert.AreEqual(s.UltPetalCount, c.UltPetals.Length);
-            Assert.AreSame(s.StickBaseSprite, c.UltBase.sprite);
+            Assert.IsNotNull(c.UltRingFill);
+            Assert.AreEqual(Image.Type.Filled, c.UltRingFill.type);
+            Assert.AreSame(s.UltRingSprite, c.UltBase.sprite);
+            Assert.AreSame(s.StickBaseSprite, c.AttackBase.sprite);
             Assert.AreSame(s.KnobSprite, c.UltKnob.sprite);
             Assert.AreSame(s.KnobSprite, c.TrickImage.sprite);
             Assert.IsNotNull(c.UltIcon);
@@ -65,24 +69,40 @@ namespace Arena.Tests.EditMode.UI
         }
 
         [Test]
-        public void Petals_FillWithCharge_AndTurnGoldWhenCharged()
+        public void Ring_FillsWithCharge_AndTurnsGoldWhenCharged()
         {
             UiStyle s = Style();
             MatchHudControls c = MatchHudBuilder.Build(_root.transform, s);
             var view = new AbilityHudView(c, s);
-            int n = c.UltPetals.Length;
 
-            view.Apply(Info(2.5f / n, false, 3, true));
-            Assert.AreEqual(s.UltPetalOnColor, c.UltPetals[0].color);
-            Assert.AreEqual(s.UltPetalOnColor, c.UltPetals[1].color);
-            Assert.AreEqual(Color.Lerp(s.UltPetalOffColor, s.UltPetalOnColor, 0.5f), c.UltPetals[2].color, "half-filled petal");
-            Assert.AreEqual(s.UltPetalOffColor, c.UltPetals[n - 1].color);
+            view.Apply(Info(0.4f, false, 3, true));
+            Assert.AreEqual(0.4f, c.UltRingFill.fillAmount, 1e-5f);
+            Assert.AreEqual(s.UltRingFillColor, c.UltRingFill.color);
+            Assert.AreEqual(s.UltNotReadyBaseColor, c.UltBase.color);
+            Assert.AreEqual(s.UltNotReadyKnobColor, c.UltKnob.color);
             Assert.IsFalse(c.UltGlow.enabled);
 
             view.Apply(Info(1f, true, 3, true));
-            for (int i = 0; i < n; i++) Assert.AreEqual(s.UltPetalReadyColor, c.UltPetals[i].color);
+            Assert.AreEqual(1f, c.UltRingFill.fillAmount, 1e-5f);
+            Assert.AreEqual(s.UltStick.BaseColor, c.UltRingFill.color);
+            Assert.AreEqual(s.UltStick.KnobColor, c.UltKnob.color);
             Assert.IsTrue(c.UltGlow.enabled, "glow when charged");
             Assert.AreEqual(s.IconReadyColor, c.UltIcon.color);
+        }
+
+        [Test]
+        public void AttackStick_IsLightAtRest_AccentedWhileHeld()
+        {
+            UiStyle s = Style();
+            MatchHudControls c = MatchHudBuilder.Build(_root.transform, s);
+            var view = new AbilityHudView(c, s);
+            view.ShowAttackHeld(false);
+            Assert.AreEqual(s.AttackStick.KnobColor, c.AttackKnob.color);
+            view.ShowAttackHeld(true);
+            Assert.AreEqual(s.AttackHeldKnobColor, c.AttackKnob.color);
+            Assert.AreEqual(s.AttackHeldBaseColor, c.AttackBase.color);
+            view.ShowAttackHeld(false);
+            Assert.AreEqual(s.AttackStick.BaseColor, c.AttackBase.color);
         }
 
         [Test]
@@ -119,8 +139,9 @@ namespace Arena.Tests.EditMode.UI
                     view.Apply(in b);
                     view.Apply(in charged);
                     view.AnimateUltGlow(true, t += 0.1f, 1.5f, 0.08f);
+                    view.ShowAttackHeld((i & 1) == 0);
                 }
-            }, "AbilityHudView.Apply / AnimateUltGlow");
+            }, "AbilityHudView.Apply / AnimateUltGlow / ShowAttackHeld");
         }
 
         [Test]
@@ -131,7 +152,7 @@ namespace Arena.Tests.EditMode.UI
             var ult = (RectTransform)c.UltStick.transform;
             Assert.AreEqual(Vector2.zero, ult.anchorMin);
             Assert.Greater(ult.anchoredPosition.x, 0f);
-            Assert.AreEqual(s.UltPetalCount, c.UltPetals.Length, "the flower goes with the ult stick");
+            Assert.IsTrue(c.UltRingFill.transform.IsChildOf(ult), "the ring goes with the ult stick");
             var trick = (RectTransform)c.TrickButton.transform;
             Assert.Greater(trick.anchoredPosition.x, 0f);
         }

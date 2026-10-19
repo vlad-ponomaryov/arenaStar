@@ -133,6 +133,7 @@ namespace Arena.UI.Hud
             input.SetMove(InputChannel.Touch, ToVec2(_controls.MoveStick.Value));
 
             bool aimingAttack = _controls.AttackStick.IsHeld;
+            _abilityView.ShowAttackHeld(aimingAttack);
             Vector2 aim = aimingAttack ? _controls.AttackStick.Aim
                 : ultActive && _controls.UltStick.IsHeld ? _controls.UltStick.Aim : Vector2.zero;
             input.SetAim(InputChannel.Touch, ToVec2(aim), !aimingAttack);

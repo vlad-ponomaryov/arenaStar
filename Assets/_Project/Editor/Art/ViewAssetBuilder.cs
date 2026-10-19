@@ -630,20 +630,26 @@ namespace Arena.Editor.Art
                 Position = new Vector2(320f, 300f), HitSize = 0f, BaseSize = 280f, KnobSize = 130f, Radius = 120f,
                 BaseColor = WithAlpha(Hex(0xFFF4DE), 0.6f), KnobColor = WithAlpha(Hex(0xFFF4DE), 0.85f)
             };
+            // A.7c (user feedback 19.10): the attack stick is light and translucent like the movement stick (same base, more
+            // transparent), no solid red knob at rest; a light warm accent only while pressed / aiming.
             s.AttackStick = new StickStyle
             {
                 Position = new Vector2(300f, 290f), HitSize = 380f, BaseSize = 260f, KnobSize = 120f, Radius = 110f,
-                BaseColor = WithAlpha(Hex(0xFF7A5C), 0.6f), KnobColor = Hex(0xFF7A5C)
+                BaseColor = WithAlpha(Hex(0xFFF4DE), 0.42f), KnobColor = WithAlpha(Hex(0xFFF4DE), 0.55f)
             };
+            s.AttackHeldBaseColor = WithAlpha(Hex(0xFFF4DE), 0.6f);
+            s.AttackHeldKnobColor = WithAlpha(Hex(0xFFCDB8), 0.72f);
+            // A.7c ult: a small round button (the knob, trick-button sized, with the ult icon) inside a thin charge ring (the
+            // base); the full ring and the button turn gold when ready.
             s.UltStick = new StickStyle
             {
-                Position = new Vector2(620f, 190f), HitSize = 260f, BaseSize = 190f, KnobSize = 95f, Radius = 80f,
-                BaseColor = WithAlpha(Hex(0xFFC93C), 0.7f), KnobColor = Hex(0xFFC93C)
+                Position = new Vector2(610f, 200f), HitSize = 260f, BaseSize = 178f, KnobSize = 150f, Radius = 80f,
+                BaseColor = Hex(0xFFD23C), KnobColor = Hex(0xFFC93C)
             };
             s.TrickButtonPosition = new Vector2(290f, 600f);
             s.TrickButtonSize = 150f;
             s.TrickButtonColor = Hex(0x4CBF56);
-            s.UltNotReadyBaseColor = WithAlpha(Hex(0xD8D0C0), 0.4f);
+            s.UltNotReadyBaseColor = WithAlpha(Hex(0x3B2A1E), 0.35f);
             s.UltNotReadyKnobColor = WithAlpha(Hex(0xB8B0A0), 0.75f);
             s.TrickButtonDisabledColor = WithAlpha(Hex(0x8A9A8C), 0.6f);
             s.TrickDotSize = 36f;
@@ -748,16 +754,11 @@ namespace Arena.Editor.Art
             s.LabelBaselineShift = 0.06f;
             s.MenuLabelWidth = 340f;
             s.DisabledLabelAlpha = 0.6f;
-            // A.7a ult flower (8 petals around the ult stick), glow and button icons.
-            s.UltPetalCount = 8;
-            s.UltPetalSize = new Vector2(54f, 80f);
-            s.UltPetalRadius = 118f;
-            s.UltPetalOffColor = new Color(1f, 1f, 1f, 0.45f);
-            s.UltPetalOnColor = Hex(0xFFAE34);
-            s.UltPetalReadyColor = Hex(0xFFE04A);
-            s.UltGlowSize = 380f;
-            s.UltGlowColor = WithAlpha(Hex(0xFFD84A), 0.7f);
-            s.UltIconSize = 62f;
+            // A.7c ult charge ring (replaces the A.7a petals), soft glow of the ready ult, button icons.
+            s.UltRingFillColor = Hex(0xFFAE34);
+            s.UltGlowSize = 330f;
+            s.UltGlowColor = WithAlpha(Hex(0xFFD84A), 0.75f);
+            s.UltIconSize = 84f;
             s.TrickIconSize = 84f;
             s.IconReadyColor = Color.white;
             s.IconNotReadyColor = new Color(1f, 1f, 1f, 0.45f);

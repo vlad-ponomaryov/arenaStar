@@ -9,8 +9,8 @@ namespace Arena.UI.Hud
     /// Builds the match controls canvas at runtime from <see cref="UiStyle"/> (D-018): the left half of the screen is the
     /// floating movement stick zone; on the right — the attack stick, the ult stick (anchored: the aim is measured from the touch
     /// point, D-129) and the trick button. A.7a "toy" skin (Art-Spec §4.1): translucent stick bases with a light rim, glossy
-    /// knobs, the ult "flower" (<see cref="UiStyle.UltPetalCount"/> petals that fill with the charge, a golden glow when ready,
-    /// the ult icon on the knob), the trick button with its icon and acorn beads for the uses left (<see cref="CreateTrickDots"/>).
+    /// knobs; A.7c: the attack stick is light and translucent like the movement stick; the ult is a small round button (the
+    /// knob, trick-button sized, with the ult icon) inside a thin charge ring that fills clockwise, gold with a soft glow when ready, the trick button with its icon and acorn beads for the uses left (<see cref="CreateTrickDots"/>).
     /// Called once at match start.
     /// </summary>
     public static class MatchHudBuilder
@@ -28,13 +28,17 @@ namespace Arena.UI.Hud
             Transform root = controls.Canvas.transform;
 
             controls.MoveStick = CreateMoveStick(root, style, mirrored);
-            controls.AttackStick = CreateFixedStick("AttackStick", root, style, style.AttackStick, mirrored);
-            controls.UltStick = CreateFixedStick("UltStick", root, style, style.UltStick, mirrored);
+            controls.AttackStick = CreateFixedStick("AttackStick", root, style, style.AttackStick, mirrored, style.StickBaseSprite);
+            Transform attackBase = controls.AttackStick.transform.Find("Base");
+            controls.AttackBase = attackBase != null ? attackBase.GetComponent<Image>() : null;
+            Transform attackKnob = attackBase != null ? attackBase.Find("Knob") : null;
+            controls.AttackKnob = attackKnob != null ? attackKnob.GetComponent<Image>() : null;
+            controls.UltStick = CreateFixedStick("UltStick", root, style, style.UltStick, mirrored, style.UltRingSprite);
             Transform ultBase = controls.UltStick.transform.Find("Base");
             controls.UltBase = ultBase != null ? ultBase.GetComponent<Image>() : null;
             Transform ultKnob = ultBase != null ? ultBase.Find("Knob") : null;
             controls.UltKnob = ultKnob != null ? ultKnob.GetComponent<Image>() : null;
-            controls.UltPetals = CreatePetals(controls.UltStick.transform, style);
+            if (ultBase != null) controls.UltRingFill = CreateRingFill(ultBase, style);
             controls.UltGlow = CreateGlow(controls.UltStick.transform, style);
             if (ultKnob != null) controls.UltIcon = CreateIcon("UltIcon", ultKnob, style.UltIcon, style.UltIconSize, style.IconNotReadyColor);
             controls.TrickButton = CreateTrickButton(root, style, mirrored);
@@ -65,30 +69,26 @@ namespace Arena.UI.Hud
             }
         }
 
-        /// <summary>Petals around the stick centre, the first at the top, then clockwise; each points outwards.</summary>
-        private static Image[] CreatePetals(Transform stickZone, UiStyle style)
+        /// <summary>Radial fill over the ring track, under the ult button: clockwise from the top, empty until charged.</summary>
+        private static Image CreateRingFill(Transform ultBase, UiStyle style)
         {
-            int count = style.UltPetalCount < 0 ? 0 : style.UltPetalCount;
-            var petals = new Image[count];
-            Sprite sprite = SpriteOr(style.PetalSprite, style.CircleSprite);
-            for (int i = 0; i < count; i++)
-            {
-                float angle = 90f - i * 360f / count;
-                float rad = angle * Mathf.Deg2Rad;
-                RectTransform petal = CreateImage("Petal" + i, stickZone, sprite, style.UltPetalSize, style.UltPetalOffColor);
-                petal.localPosition = new Vector3(Mathf.Cos(rad) * style.UltPetalRadius, Mathf.Sin(rad) * style.UltPetalRadius, 0f);
-                petal.localRotation = Quaternion.Euler(0f, 0f, angle - 90f);
-                petal.SetSiblingIndex(i); // behind the base and the knob
-                petals[i] = petal.GetComponent<Image>();
-            }
-            return petals;
+            RectTransform fill = CreateImage("RingFill", ultBase, SpriteOr(style.UltRingSprite, style.CircleSprite),
+                new Vector2(style.UltStick.BaseSize, style.UltStick.BaseSize), style.UltRingFillColor);
+            fill.SetAsFirstSibling(); // under the knob
+            Image image = fill.GetComponent<Image>();
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Radial360;
+            image.fillOrigin = (int)Image.Origin360.Top;
+            image.fillClockwise = true;
+            image.fillAmount = 0f;
+            return image;
         }
 
         private static Image CreateGlow(Transform stickZone, UiStyle style)
         {
             RectTransform glow = CreateImage("Glow", stickZone, SpriteOr(style.GlowSprite, style.CircleSprite),
                 new Vector2(style.UltGlowSize, style.UltGlowSize), style.UltGlowColor);
-            glow.SetAsFirstSibling(); // behind the petals
+            glow.SetAsFirstSibling(); // behind the ring and the button
             Image image = glow.GetComponent<Image>();
             image.enabled = false;
             return image;
@@ -127,7 +127,7 @@ namespace Arena.UI.Hud
             AddTransparentRaycastImage(zone);
 
             StickStyle s = style.MoveStick;
-            RectTransform stickBase = CreateStickBase(zone, style, s);
+            RectTransform stickBase = CreateStickBase(zone, style, s, style.StickBaseSprite);
             stickBase.localPosition = mirrored ? new Vector3(-s.Position.x, s.Position.y, 0f) : (Vector3)s.Position;
             RectTransform knob = CreateKnob(stickBase, style, s);
 
@@ -136,13 +136,14 @@ namespace Arena.UI.Hud
             return stick;
         }
 
-        private static VirtualStick CreateFixedStick(string name, Transform root, UiStyle style, StickStyle s, bool mirrored)
+        private static VirtualStick CreateFixedStick(string name, Transform root, UiStyle style, StickStyle s, bool mirrored,
+            Sprite baseSprite)
         {
             RectTransform zone = CreateRect(name, root);
             AnchorCorner(zone, s.Position, new Vector2(s.HitSize, s.HitSize), mirrored);
             AddTransparentRaycastImage(zone);
 
-            RectTransform stickBase = CreateStickBase(zone, style, s);
+            RectTransform stickBase = CreateStickBase(zone, style, s, baseSprite);
             RectTransform knob = CreateKnob(stickBase, style, s);
 
             var stick = zone.gameObject.AddComponent<VirtualStick>();
@@ -150,8 +151,8 @@ namespace Arena.UI.Hud
             return stick;
         }
 
-        private static RectTransform CreateStickBase(Transform zone, UiStyle style, StickStyle s) =>
-            CreateImage("Base", zone, SpriteOr(style.StickBaseSprite, style.CircleSprite), new Vector2(s.BaseSize, s.BaseSize), s.BaseColor);
+        private static RectTransform CreateStickBase(Transform zone, UiStyle style, StickStyle s, Sprite sprite) =>
+            CreateImage("Base", zone, SpriteOr(sprite, style.CircleSprite), new Vector2(s.BaseSize, s.BaseSize), s.BaseColor);
 
         private static RectTransform CreateKnob(Transform stickBase, UiStyle style, StickStyle s) =>
             CreateImage("Knob", stickBase, SpriteOr(style.KnobSprite, style.CircleSprite), new Vector2(s.KnobSize, s.KnobSize), s.KnobColor);
