@@ -252,7 +252,7 @@ namespace Arena.Bots
             }
             bool hasObjective = Perception.FindObjective(state, defs, f.Position, _behaviour.LootRadiusCells, out Vec2 objective);
             float fireRange = def.AttackRange * _behaviour.FireRangeFraction;
-            int memoryEnemy = FindBushMemory(state, slot, tick, out Vec2 bushPoint);
+            int memoryEnemy = FindBushMemory(state, defs, slot, tick, out Vec2 bushPoint);
             var situation = new BotSituation
             {
                 HealthFraction = f.MaxHealth > 0 ? (float)f.Health / f.MaxHealth : 0f,
@@ -274,7 +274,7 @@ namespace Arena.Bots
             if (wantsRetreat)
             {
                 Vec2 threat = target >= 0 ? state.Fighters[target].Position : f.Position;
-                situation.HasHideBush = FindHideBush(state.Grid, f.Position, threat, target >= 0, out hideBush);
+                situation.HasHideBush = FindHideBush(state, defs, f.Position, threat, target >= 0, out hideBush);
             }
 
             BotAction action = UtilityScorer.Choose(in situation, _behaviour);
@@ -420,9 +420,9 @@ namespace Arena.Bots
 
         /// <summary>
         /// The most recently lost enemy (within <c>MemoryTicks</c>, still alive) whose extrapolated position has a bush within
-        /// <c>BushNearCells</c>; <paramref name="point"/> = the centre of that bush cell. −1 if none.
+        /// <c>BushNearCells</c> outside the coming fog; <paramref name="point"/> = the centre of that bush cell. −1 if none.
         /// </summary>
-        private int FindBushMemory(MatchState state, int slot, int tick, out Vec2 point)
+        private int FindBushMemory(MatchState state, MatchDefs defs, int slot, int tick, out Vec2 point)
         {
             point = Vec2.Zero;
             int best = -1;
@@ -440,7 +440,7 @@ namespace Arena.Bots
                 }
                 if (seen <= bestTick) continue;
                 Vec2 predicted = _memory.PredictedPosition(slot, j, tick, _behaviour.MemoryPredictTicks);
-                if (!FindNearestBush(state.Grid, predicted, _behaviour.BushNearCells, out Vec2 bush)) continue;
+                if (!FindNearestBush(state, defs, predicted, _behaviour.BushNearCells, out Vec2 bush)) continue;
                 best = j;
                 bestTick = seen;
                 point = bush;
@@ -448,9 +448,11 @@ namespace Arena.Bots
             return best;
         }
 
-        private static bool FindNearestBush(in TileGrid grid, Vec2 p, int radiusCells, out Vec2 point)
+        /// <summary>Nearest bush cell within <paramref name="radiusCells"/> that the fog does not cover within <c>FogWarnTicks</c>.</summary>
+        private bool FindNearestBush(MatchState state, MatchDefs defs, Vec2 p, int radiusCells, out Vec2 point)
         {
             point = Vec2.Zero;
+            TileGrid grid = state.Grid;
             GridCell c = GridCell.Of(p);
             float bestSq = float.PositiveInfinity;
             for (int dy = -radiusCells; dy <= radiusCells; dy++)
@@ -459,7 +461,7 @@ namespace Arena.Bots
                 if (!TileRules.IsBush(grid.Get(c.Column + dx, c.Row + dy))) continue;
                 Vec2 center = new GridCell(c.Column + dx, c.Row + dy).Center;
                 float d = Vec2.SqrDistance(center, p);
-                if (d < bestSq)
+                if (d < bestSq && !LastBeastRules.IsInFogSoon(state, defs, center, _behaviour.FogWarnTicks))
                 {
                     bestSq = d;
                     point = center;
@@ -468,10 +470,14 @@ namespace Arena.Bots
             return bestSq < float.PositiveInfinity;
         }
 
-        /// <summary>Nearest bush cell within <c>HideBushRadiusCells</c> that is not nearer to the threat than the bot is now.</summary>
-        private bool FindHideBush(in TileGrid grid, Vec2 position, Vec2 threat, bool hasThreat, out Vec2 point)
+        /// <summary>
+        /// Nearest bush cell within <c>HideBushRadiusCells</c> that is not nearer to the threat than the bot is now and that the fog
+        /// does not cover within <c>FogWarnTicks</c> (else the bot would swing between hiding and fleeing the fog).
+        /// </summary>
+        private bool FindHideBush(MatchState state, MatchDefs defs, Vec2 position, Vec2 threat, bool hasThreat, out Vec2 point)
         {
             point = Vec2.Zero;
+            TileGrid grid = state.Grid;
             int r = _behaviour.HideBushRadiusCells;
             if (r <= 0) return false;
             GridCell c = GridCell.Of(position);
@@ -486,6 +492,7 @@ namespace Arena.Bots
                 float d = Vec2.SqrDistance(center, position);
                 if (d > maxSq || d >= bestSq) continue;
                 if (hasThreat && Vec2.SqrDistance(center, threat) < threatSq) continue;
+                if (LastBeastRules.IsInFogSoon(state, defs, center, _behaviour.FogWarnTicks)) continue;
                 bestSq = d;
                 point = center;
             }

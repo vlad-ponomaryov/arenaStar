@@ -101,6 +101,44 @@ namespace Arena.Tests.EditMode.Bots
         }
 
         [Test]
+        public void LowHealth_NeverPicksABushInTheComingFog()
+        {
+            // Bushes along the west edge (the first fog step covers them) and one bush deeper inside, east of the bot.
+            MatchDefs defs = LastBeastTestFactory.Defs();
+            for (int row = 6; row <= 14; row++)
+            {
+                defs.Map.Tiles[row * LastBeastTestFactory.Size + 0] = Arena.Core.Map.TileType.Bush;
+                defs.Map.Tiles[row * LastBeastTestFactory.Size + 1] = Arena.Core.Map.TileType.Bush;
+            }
+            defs.Map.Tiles[10 * LastBeastTestFactory.Size + 7] = Arena.Core.Map.TileType.Bush;
+            MatchSimulation sim = LastBeastTestFactory.Create(defs, new Vec2(3.5f, 10.5f), new Vec2(18.5f, 18.5f));
+            BotController bots = BotTestFactory.Bots(sim, BotTestFactory.Careful(), 0);
+            PlayerInput[] inputs = TestMatchFactory.Inputs();
+            TestMatchFactory.Run(sim, inputs, LastBeastTestFactory.FogStart - BotTestFactory.FogWarn - 60);
+
+            int switches = 0;
+            BotAction last = BotAction.Wander;
+            int end = LastBeastTestFactory.FogStart + LastBeastTestFactory.FogInterval;
+            while (sim.State.Globals.Tick < end && sim.State.Fighters[0].Alive)
+            {
+                sim.State.Fighters[0].Health = sim.State.Fighters[0].MaxHealth / 5; // 20 %: always wants to hide
+                BotTestFactory.Step(sim, bots, inputs);
+                BotBrain brain = bots.GetBrain(0);
+                // The goal is kept until the next decision, so up to one decision interval less warning than at choice time.
+                if (brain.Action == BotAction.HideInBush || brain.Action == BotAction.CheckBush)
+                    Assert.IsFalse(LastBeastRules.IsInFogSoon(sim.State, sim.Defs, brain.Goal,
+                            BotTestFactory.FogWarn - BotTestFactory.DecisionInterval),
+                        $"tick {sim.State.Globals.Tick}: the bush {brain.Goal} is in the coming fog");
+                if (brain.Action != last) switches++;
+                last = brain.Action;
+            }
+            Assert.IsTrue(sim.State.Fighters[0].Alive, "the fog does not catch the hiding bot");
+            Assert.AreEqual(Arena.Core.Map.TileType.Bush, sim.State.Grid.Get(Arena.Core.Map.GridCell.Of(sim.State.Fighters[0].Position)),
+                "hides in the inner bush");
+            Assert.LessOrEqual(switches, 4, "no swinging between hiding and fleeing the fog");
+        }
+
+        [Test]
         public void FleeFog_ScoresOnlyUnderFogThreat()
         {
             BotBehaviourDef b = BotTestFactory.Behaviour();
