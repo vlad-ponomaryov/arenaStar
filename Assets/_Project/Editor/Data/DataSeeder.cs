@@ -408,8 +408,9 @@ namespace Arena.Editor.Data
             "......\"\"..............." // text row 22: the middle row (its own mirror)
         };
 
-        // Last Beast map "Snow Valley" (D-139, D-140, Docs/Map-SnowValley-LB.md §3.1 verbatim = Tools/maps/snow_valley_lb_quarter.txt):
-        // 4 snow forts in the corners, 2 ice ponds on the side axis, the spruce square in the centre, 44 gifts; top-left quarter, mirrored.
+        // Last Beast map "Snow Valley" (D-139, D-140, D-142, Docs/Map-SnowValley-LB.md §3.1 verbatim = Tools/maps/snow_valley_lb_quarter.txt):
+        // 4 snow forts in the corners, 2 ice ponds on the side axis, the spruce square in the centre; 48 gifts in heaps that grow towards
+        // the spruce (D-142: 3 at the spruce, 2 in the forts and on the axis, 1 at the spawns); top-left quarter, mirrored.
         private const string RoyaleSnowValleyId = "royale_snow_valley";
         private static readonly string[] RoyaleSnowValleyQuarter =
         {
@@ -423,22 +424,23 @@ namespace Arena.Editor.Data
             "......#......#..\"\"\"....",
             "\"\"....%......%..\"\"\"....",
             "\"\".......$$.......#....",
-            ".........$........#..##",
-            "...$..%......%...$.....",
-            "......#......#...%.....",
+            "..................#..##",
+            "...$..%......%........$",
+            "......#......#...%....$",
             "......##%..%##.....\"\"..",
             "....##.............\"\"..",
             "..S............%.......",
-            "..................%....",
-            "...%.....%$...........$",
+            "..................%..$$",
+            "...%.....%#...........%",
             "..\"\"............%......",
-            "..\"\"........\"\"\"....$...",
-            "......~~~..$\"\"\"........",
-            "......~~~..#..........#",
-            "..$...~~~..#.....$...##" // text row 22: the middle row (its own mirror)
+            "..\"\"........\"\"\"....$$..",
+            "......~~~...\"\"\"....$...",
+            "......~~~..#....$.....#",
+            "..$...~~~..#....$%...##" // text row 22: the middle row (its own mirror)
         };
 
-        // Its decor layer (§5, legend in Arena.Data.MapDecor): T spruce, f fort / pier / snow bricks, d drift, s sled, m snowman, G big gift.
+        // Its decor layer (§5, legend in Arena.Data.MapDecor): T spruce, f fort / pier / snow bricks, L fort corner / pier with a lantern,
+        // d drift, s sled, m snowman, G big gift.
         private static readonly string[] RoyaleSnowValleyDecorQuarter =
         {
             ".......................", // text row 0
@@ -447,23 +449,23 @@ namespace Arena.Editor.Data
             ".......................",
             "..............s........",
             "...dd.........s........",
-            "......fff..fff.........",
+            "......Lff..ffL.........",
             "......f......f.........",
             "......f......f.........",
             "..................s....",
             "..................s..ff",
             "......f......f.........",
             "......f......f...m.....",
-            "......fff..fff.........",
+            "......Lff..ffL.........",
             "....dd.................",
             "...............m.......",
-            "..................m....",
-            "...m.....m............G",
+            "..................m...G",
+            "...m.....md...........m",
             "................m......",
             "...................G...",
             ".......................",
-            "...........f..........T",
-            "...........f.....G...TT" // text row 22
+            "...........L..........T",
+            "...........f....Gm...TT" // text row 22
         };
 
         // PROTO (D-013): body radii in cells.

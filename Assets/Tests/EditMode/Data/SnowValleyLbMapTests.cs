@@ -5,6 +5,7 @@ using Arena.Core.Sim;
 using Arena.Data;
 using Arena.Data.Conversion;
 using Arena.Editor.Art;
+using Arena.Editor.Art.MapProps;
 using Arena.Editor.Data;
 using Arena.Gameplay.View;
 using NUnit.Framework;
@@ -14,17 +15,19 @@ using UnityEngine;
 namespace Arena.Tests.EditMode.Data
 {
     /// <summary>
-    /// The seeded Last Beast map "Snow Valley" (D-139, D-140, Map-SnowValley-LB §5 п.5): 45×45, 10 shared spawns, 44 berry boxes
+    /// The seeded Last Beast map "Snow Valley" (D-139, D-140, D-142, Map-SnowValley-LB §5 п.5): 45×45, 10 shared spawns, 48 berry boxes
     /// within <see cref="SimLimits.MaxBoxes"/>, mirrored on both axes, every walkable cell connected, no 1-cell pinch (port of
     /// <c>pinches</c> of Tools/map_check.py), the last safe square ≥ 20 walkable and connected around the spruce, a valid decor layer
-    /// and its view (spruce, forts, snowmen, gifts; a snow pile after a break).
+    /// and its view (spruce, forts, snowmen, gifts; a snow pile after a break; D-142: spruce-grove bushes, the frame wall instead of
+    /// frame trees, lumps and trails).
     /// </summary>
     public sealed class SnowValleyLbMapTests
     {
         private const int Size = 45;
         private const int Spawns = 10;
-        private const int Boxes = 44;
-        private const int Breakables = 60;
+        private const int Boxes = 48;
+        private const int Breakables = 64;
+        private const int Walls = 101;
         private const int MinFinalWalkable = 20;
 
         private static GameDatabase Database()
@@ -44,7 +47,7 @@ namespace Arena.Tests.EditMode.Data
         }
 
         [Test]
-        public void SeededMap_45x45_TenSpawns_44Boxes_MirroredOnBothAxes()
+        public void SeededMap_45x45_TenSpawns_48Boxes_MirroredOnBothAxes()
         {
             MapDef map = MapConverter.ToMapDef(SnowValley(Database()));
             Assert.AreEqual(Size, map.Width);
@@ -54,6 +57,7 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(Boxes, map.CountTiles(TileType.BerryBox));
             Assert.LessOrEqual(Boxes, SimLimits.MaxBoxes);
             Assert.AreEqual(Breakables, map.CountTiles(TileType.BreakableWall));
+            Assert.AreEqual(Walls, map.CountTiles(TileType.Wall));
             for (int r = 0; r < map.Height; r++)
                 for (int c = 0; c < map.Width; c++)
                 {
@@ -113,6 +117,8 @@ namespace Arena.Tests.EditMode.Data
             Assert.IsFalse(MapDecor.IsAllowed('.', MapDecor.Snowman));
             Assert.IsFalse(MapDecor.IsAllowed('%', MapDecor.Tree));
             Assert.IsTrue(MapDecor.IsAllowed('$', MapDecor.BigGift));
+            Assert.IsTrue(MapDecor.IsAllowed('#', MapDecor.Lantern));
+            Assert.IsFalse(MapDecor.IsAllowed('%', MapDecor.Lantern));
 
             var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
             TileGrid grid = MapConverter.ToMapDef(config).InitialGrid;
@@ -126,9 +132,19 @@ namespace Arena.Tests.EditMode.Data
                 Assert.AreEqual(0, view.WallBlockCount, "every wall has a decor prop");
                 Assert.AreEqual(0, view.ObstaclePropCount);
                 Assert.AreEqual(0, view.DecorCount, "no meadow flowers on snow");
-                Assert.Greater(view.FrameTreeCount, 0);
-                // Walls: 97 cells, the 5 of the spruce are one object → 93 + 60 breakables + 44 gifts.
-                Assert.AreEqual(97 - 4 + Breakables + Boxes, view.DecorPropCount);
+                Assert.AreEqual(0, view.FrameTreeCount, "D-142: no frame trees");
+                Assert.Greater(view.FrameWallCount, 0, "D-142: the frame wall");
+                Assert.Greater(view.FrameExtraCount, 0, "D-142: cabins / woodpiles behind the wall");
+                Assert.Greater(view.WallLumpCount, 0, "D-142: snow lumps at the wall feet");
+                Assert.IsTrue(view.HasTrails, "D-142: footprint trails");
+                // The 5 wall cells of the spruce are one object → walls − 4 + breakables + gifts.
+                Assert.AreEqual(Walls - 4 + Breakables + Boxes, view.DecorPropCount);
+                Assert.AreEqual(EnvMeshBuilder.BushMaskCount * catalog.BushVariantsPerMask, config.Theme.BushVariants.Length, "a grove mesh per mask and variant");
+                foreach (Mesh grove in config.Theme.BushVariants)
+                {
+                    Assert.IsNotNull(grove);
+                    Assert.LessOrEqual(grove.triangles.Length / 3, EnvMeshBuilder.BushTriangleBudget, grove.name);
+                }
 
                 // The snowman at text row 2, column 16 → map row 42: breaks into a snow pile.
                 int snowman = grid.IndexOf(16, grid.Height - 1 - 2);

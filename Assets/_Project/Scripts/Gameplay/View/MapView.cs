@@ -17,6 +17,8 @@ namespace Arena.Gameplay.View
     /// D-140 (Map-SnowValley-LB Р1/Р2): a map may bring a theme (<see cref="MapThemeConfig"/>: materials, colours, props) and a decor
     /// layer (<see cref="MapConfig.Decor"/>, legend <see cref="MapDecor"/>): walls become a spruce, fort corners, drifts, sleds;
     /// breakable walls snowmen or snow bricks (a flat snow pile shows when they break); berry boxes gifts. View only.
+    /// D-142: fort corners with lanterns, a snow-brick frame wall with garlands and cabins behind it (<see cref="MapFrameDecor"/>), snow
+    /// lumps at wall feet and footprint trails (<see cref="SnowTrailBuilder"/>).
     /// </summary>
     public sealed class MapView : MonoBehaviour
     {
@@ -48,6 +50,13 @@ namespace Arena.Gameplay.View
         /// <summary>Cells drawn by the decor layer (walls, breakables and boxes with a decor prop, D-140) and frame trees placed.</summary>
         public int DecorPropCount { get; private set; }
         public int FrameTreeCount { get; private set; }
+
+        /// <summary>D-142: frame wall objects (segments, posts, garlands, lumps), cabins / woodpiles / mounds behind it, snow lumps at
+        /// decor walls, and whether footprint trails were built.</summary>
+        public int FrameWallCount { get; private set; }
+        public int FrameExtraCount { get; private set; }
+        public int WallLumpCount { get; private set; }
+        public bool HasTrails { get; private set; }
 
         /// <summary>Theme of the map this view was built for, or null (shared look).</summary>
         public MapThemeConfig Theme { get; private set; }
@@ -166,12 +175,18 @@ namespace Arena.Gameplay.View
                 var meadowRenderer = meadow.GetComponentInChildren<Renderer>();
                 if (theme != null && theme.Meadow != null && meadowRenderer != null) meadowRenderer.sharedMaterial = theme.Meadow;
             }
-            if (theme != null) FrameTreeCount = PlaceFrameTrees(theme, propMaterial, in grid, root);
+            if (theme != null)
+            {
+                FrameTreeCount = PlaceFrameTrees(theme, propMaterial, in grid, root);
+                FrameWallCount = MapFrameDecor.PlaceWall(theme, propMaterial, in grid, root);
+                FrameExtraCount = MapFrameDecor.PlaceExtras(theme, propMaterial, in grid, root);
+            }
 
             // A sunken pond (WaterHeight < 0): no floor under the water, banks (wall material) close its sides.
             bool sunken = catalog.WaterHeight < 0f;
             TileType hole = sunken ? TileType.Water : TileType.Wall;
             bool[] decorWalls = theme != null && decor != null ? PlaceDecorWalls(theme, propMaterial, in grid, decor, root) : null;
+            if (theme != null) WallLumpCount = MapFrameDecor.PlaceWallLumps(theme, propMaterial, in grid, decor, root);
             bool[] propCells = Merge(PlaceObstacleProps(catalog, in grid, root, decorWalls), decorWalls);
             // A.3f: every wall cell is a separate stone block with a gap to its neighbours — the floor runs under all of them.
             bool blocks = catalog.WallBlockVariants != null && catalog.WallBlockVariants.Length > 0 && catalog.ObstacleProp != null;
@@ -188,6 +203,10 @@ namespace Arena.Gameplay.View
             if (theme == null || theme.FloorDecor) DecorTriangles = FloorDecorPlanner.Plan(in grid, in decorStyle, details);
             DecorCount = details.Count;
             if (details.Count > 0) CreateMeshObject("FloorDecor", root, FloorDecorMeshBuilder.Build(details, in decorStyle, "FloorDecor"), floorMaterial);
+            // D-142: footprint trails on the snow (spawns → centre).
+            Mesh trails = theme != null && map != null ? SnowTrailBuilder.Build(in grid, map.Rows, theme) : null;
+            HasTrails = trails != null;
+            if (trails != null) CreateMeshObject("Trails", root, trails, propMaterial);
             if (blocks) PlaceWallBlocks(catalog, in grid, root, propCells);
             else CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, in style, "Walls", propCells), catalog.Wall);
             if (style.PondRimWidth > 0f && sunken && catalog.ObstacleProp != null)
@@ -423,6 +442,9 @@ namespace Arena.Gameplay.View
                         case MapDecor.Fort:
                             mesh = theme.FortCorner;
                             break;
+                        case MapDecor.Lantern:
+                            mesh = theme.FortLantern != null ? theme.FortLantern : theme.FortCorner;
+                            break;
                         case MapDecor.Drift:
                             mesh = theme.Drift;
                             yaw = (CellHash(c, r) >> 5 & 3) * QuarterTurn;
@@ -501,7 +523,7 @@ namespace Arena.Gameplay.View
             return 1;
         }
 
-        private static GameObject CreatePropObject(string name, Transform parent, Mesh mesh, Material material, Vector3 position, float yaw)
+        internal static GameObject CreatePropObject(string name, Transform parent, Mesh mesh, Material material, Vector3 position, float yaw)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -564,7 +586,7 @@ namespace Arena.Gameplay.View
             return key;
         }
 
-        private static int CellHash(int c, int r)
+        internal static int CellHash(int c, int r)
         {
             unchecked
             {

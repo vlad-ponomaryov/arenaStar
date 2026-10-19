@@ -3,7 +3,8 @@ namespace Arena.Data
     /// <summary>
     /// Legend of the decor layer <see cref="MapConfig.Decor"/> (D-140, Map-SnowValley-LB §5 п.2): which prop the view draws on a cell.
     /// View only — the cell's rules come from <see cref="MapConfig.Rows"/>. <c>.</c> = the look by the cell type.
-    /// On a wall <c>#</c>: <see cref="Tree"/>, <see cref="Fort"/> (fort corner / pier), <see cref="Drift"/>, <see cref="Sled"/>;
+    /// On a wall <c>#</c>: <see cref="Tree"/>, <see cref="Fort"/> (fort corner / pier), <see cref="Lantern"/> (the same with a lantern,
+    /// D-142), <see cref="Drift"/>, <see cref="Sled"/>;
     /// on a breakable wall <c>%</c>: <see cref="Snowman"/>, <see cref="Fort"/> (snow bricks); on a berry box <c>$</c>:
     /// <see cref="BigGift"/>; any other cell: only <c>.</c>.
     /// </summary>
@@ -12,6 +13,7 @@ namespace Arena.Data
         public const char None = '.';
         public const char Tree = 'T';
         public const char Fort = 'f';
+        public const char Lantern = 'L';
         public const char Drift = 'd';
         public const char Sled = 's';
         public const char Snowman = 'm';
@@ -27,7 +29,7 @@ namespace Arena.Data
             if (decor == None) return true;
             switch (tile)
             {
-                case WallChar: return decor == Tree || decor == Fort || decor == Drift || decor == Sled;
+                case WallChar: return decor == Tree || decor == Fort || decor == Lantern || decor == Drift || decor == Sled;
                 case BreakableChar: return decor == Snowman || decor == Fort;
                 case BoxChar: return decor == BigGift;
                 default: return false;
