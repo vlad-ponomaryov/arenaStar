@@ -9,6 +9,7 @@ using Arena.Net.Server.Match;
 using Arena.Net.Snapshots;
 using Arena.Net.Transport;
 using Arena.Tests.EditMode.Core;
+using Arena.Tests.EditMode.Net.Server;
 using NUnit.Framework;
 
 namespace Arena.Tests.EditMode.Net.Lobby
@@ -77,12 +78,12 @@ namespace Arena.Tests.EditMode.Net.Lobby
         [TestCase(3)]
         [TestCase(4)]
         [TestCase(5)]
-        public void FewClients_GetBotsAtTheFifteenthSecond_PlayersSplitEvenly(int players)
+        public void FewClients_GetBotsAtTheFifthSecond_PlayersSplitEvenly(int players)
         {
             var rig = new LobbyRig(seed: 10 + players);
             LobbyTestClient[] clients = rig.AddSearching(players, ModeKind.Acorns);
             long joined = rig.Now;
-            rig.RunSeconds(14.5f);
+            rig.RunSeconds(4.5f);
             Assert.AreEqual(0, rig.Metrics.MatchesAssembled, "nobody is assembled before BotFillSeconds");
             foreach (LobbyTestClient c in clients)
             {
@@ -90,12 +91,12 @@ namespace Arena.Tests.EditMode.Net.Lobby
                 Assert.IsTrue(c.Lobby.HasStatus, "QueueStatus arrives");
                 Assert.AreEqual(players, c.Lobby.Status.Found);
                 Assert.AreEqual(6, c.Lobby.Status.Needed);
-                Assert.GreaterOrEqual(c.Lobby.Status.WaitSeconds, 13);
+                Assert.GreaterOrEqual(c.Lobby.Status.WaitSeconds, 3);
             }
             Assert.IsTrue(rig.RunUntil(() => rig.Metrics.MatchesAssembled == 1, 1f));
             long waited = rig.Now - joined;
-            Assert.GreaterOrEqual(waited, 15000000L, "bot fill at the 15th second");
-            Assert.Less(waited, 15100000L);
+            Assert.GreaterOrEqual(waited, 5000000L, "bot fill at the 5th second (D-107)");
+            Assert.Less(waited, 5100000L);
             Assert.AreEqual(1, rig.Metrics.BotFilledMatches);
             Assert.AreEqual(6 - players, rig.Metrics.FillBots);
 
@@ -193,7 +194,10 @@ namespace Arena.Tests.EditMode.Net.Lobby
         [Test]
         public void DroppedConnection_InTheQueue_LosesItsTicket_AfterTheTimeout()
         {
-            var rig = new LobbyRig(seed: 6);
+            // The bot fill must come after the disconnect timeout (5 s) — otherwise the lone ticket is assembled first.
+            ServerSettings settings = MatchServerRig.CreateSettings();
+            settings.BotFillSeconds = 15f;
+            var rig = new LobbyRig(seed: 6, settings: settings);
             LobbyTestClient c = rig.AddSearching(1, ModeKind.Acorns)[0];
             Assert.IsTrue(rig.RunUntil(() => c.Lobby.HasStatus, 2f));
             c.Paused = true;

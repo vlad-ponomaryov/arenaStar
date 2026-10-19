@@ -34,14 +34,14 @@
     "LagCompSlackTicks": 2,
     "BotTakeoverSeconds": 1.5,
     "AfkSeconds": 30,
-    "FillBotDifficulty": "Novice",
+    "FillBotDifficulty": "Medium",   // Novice | Easy | Medium (menu "Normal")
     "ShowBots": false,
     "JoinTimeoutSeconds": 10,
     "LoadTimeoutSeconds": 15,
     "CountdownSeconds": 3,
     "ResultLingerSeconds": 30,
     "RecordInputLog": false,
-    "BotFillSeconds": 15,
+    "BotFillSeconds": 5,               // the oldest ticket waits this long, then bots fill the match
     "BotFillSecondsNewPlayers": 8,
     "QueueStatusIntervalSeconds": 1,
     "Snapshots": {
