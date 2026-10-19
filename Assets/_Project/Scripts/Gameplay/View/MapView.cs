@@ -35,6 +35,9 @@ namespace Arena.Gameplay.View
         /// <summary>Wall cells drawn as obstacle props instead of stone blocks (A.3c).</summary>
         public int ObstaclePropCount { get; private set; }
 
+        /// <summary>Wall cells drawn as separate stone blocks (A.3f).</summary>
+        public int WallBlockCount { get; private set; }
+
         /// <summary>Floor details planned for this map and their triangles (A.3e).</summary>
         public int DecorCount { get; private set; }
         public int DecorTriangles { get; private set; }
@@ -122,17 +125,38 @@ namespace Arena.Gameplay.View
             bool sunken = catalog.WaterHeight < 0f;
             TileType hole = sunken ? TileType.Water : TileType.Wall;
             bool[] propCells = PlaceObstacleProps(catalog, in grid, root);
-            CreateMeshObject("Floor", root, MapMeshBuilder.BuildFloor(in grid, TileType.Wall, hole, in style, "Floor", propCells), catalog.Floor);
+            // A.3f: every wall cell is a separate stone block with a gap to its neighbours — the floor runs under all of them.
+            bool blocks = catalog.WallBlockVariants != null && catalog.WallBlockVariants.Length > 0 && catalog.ObstacleProp != null;
+            bool[] floorUnder = propCells;
+            if (blocks)
+            {
+                floorUnder = new bool[cells];
+                for (int i = 0; i < cells; i++) floorUnder[i] = grid.Tiles[i] == TileType.Wall;
+            }
+            CreateMeshObject("Floor", root, MapMeshBuilder.BuildFloor(in grid, TileType.Wall, hole, in style, "Floor", floorUnder), catalog.Floor);
             // A.3e (D-130): stepping-stone paths, pebbles, sprouts and flowers — one mesh with the floor material.
             var decor = new System.Collections.Generic.List<FloorDecorItem>();
             EnvDecorStyle decorStyle = catalog.DecorStyle;
             DecorTriangles = FloorDecorPlanner.Plan(in grid, in decorStyle, decor);
             DecorCount = decor.Count;
             if (decor.Count > 0) CreateMeshObject("FloorDecor", root, FloorDecorMeshBuilder.Build(decor, in decorStyle, "FloorDecor"), catalog.Floor);
-            CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, in style, "Walls", propCells), catalog.Wall);
-            CreateMeshObject("Water", root, MapMeshBuilder.BuildSheet(in grid, TileType.Water, catalog.WaterHeight, in style, "Water"), catalog.Water);
-            if (sunken)
-                CreateMeshObject("Banks", root, MapMeshBuilder.BuildBanks(in grid, TileType.Water, catalog.WaterHeight - catalog.BankOverlap, in style, "Banks"), catalog.Wall);
+            if (blocks) PlaceWallBlocks(catalog, in grid, root, propCells);
+            else CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, in style, "Walls", propCells), catalog.Wall);
+            if (style.PondRimWidth > 0f && sunken && catalog.ObstacleProp != null)
+            {
+                // A.3f: one round pond with a plank rim (corners smoothed by the neighbour mask) instead of square sheets.
+                Mesh water = MapMeshBuilder.BuildPond(in grid, TileType.Water, catalog.WaterHeight, catalog.WaterHeight - catalog.BankOverlap,
+                    in style, "Water", out Mesh rim, out Mesh fill);
+                CreateMeshObject("Water", root, water, catalog.Water);
+                CreateMeshObject("PondRim", root, rim, catalog.ObstacleProp);
+                CreateMeshObject("PondFill", root, fill, catalog.Floor);
+            }
+            else
+            {
+                CreateMeshObject("Water", root, MapMeshBuilder.BuildSheet(in grid, TileType.Water, catalog.WaterHeight, in style, "Water"), catalog.Water);
+                if (sunken)
+                    CreateMeshObject("Banks", root, MapMeshBuilder.BuildBanks(in grid, TileType.Water, catalog.WaterHeight - catalog.BankOverlap, in style, "Banks"), catalog.Wall);
+            }
 
             _shadowMask = new MapShadowMask(in grid, in style, propCells);
             _shadowMask.Apply(catalog.WallHeight, in style);
@@ -278,6 +302,36 @@ namespace Arena.Gameplay.View
                     ObstaclePropCount++;
                 }
             }            return propCells;
+        }
+
+        /// <summary>
+        /// A.3f: one stone block renderer per wall cell that is not a prop: a variant and a quarter turn by a hash that is the same
+        /// for a cell and its mirror on the other half of the map (both teams see the same blocks). View only.
+        /// </summary>
+        private void PlaceWallBlocks(ViewCatalog catalog, in TileGrid grid, Transform root, bool[] propCells)
+        {
+            Mesh[] variants = catalog.WallBlockVariants;
+            for (int r = 0; r < grid.Height; r++)
+            {
+                for (int c = 0; c < grid.Width; c++)
+                {
+                    int index = grid.IndexOf(c, r);
+                    if (grid.Tiles[index] != TileType.Wall || (propCells != null && propCells[index])) continue;
+                    int mc = grid.Width - 1 - c, mr = grid.Height - 1 - r;
+                    bool mirrored = r * grid.Width + c > mr * grid.Width + mc;
+                    int hash = mirrored ? CellHash(mc, mr) : CellHash(c, r);
+                    float yaw = (hash >> 4 & 3) * 90f + (mirrored ? 180f : 0f);
+                    var go = new GameObject("Block_" + c + "_" + r);
+                    go.transform.SetParent(root, false);
+                    go.transform.SetPositionAndRotation(WorldCoords.ToWorld(new GridCell(c, r).Center), Quaternion.Euler(0f, yaw, 0f));
+                    go.AddComponent<MeshFilter>().sharedMesh = variants[hash % variants.Length];
+                    var renderer = go.AddComponent<MeshRenderer>();
+                    renderer.sharedMaterial = catalog.ObstacleProp;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.receiveShadows = false;
+                    WallBlockCount++;
+                }
+            }
         }
 
         /// <summary>

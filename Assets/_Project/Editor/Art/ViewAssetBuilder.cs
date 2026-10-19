@@ -98,7 +98,7 @@ namespace Arena.Editor.Art
 
         // Map geometry (world units, view only, PROTO): wall and breakable wall height, bush height, water sheet height,
         // see-through radius around the local fighter in a bush.
-        private const float WallHeight = 1.2f;
+        private const float WallHeight = 0.9f;      // A.3f: separate stone blocks (0.86 + leaf relief), crate 0.8
         private const float WaterHeight = -0.1f;    // A.3b: a sunken pond with plank banks
         private const float BankOverlap = 0.03f;
         private const float BushSeeThroughRadius = 2.5f;
@@ -249,6 +249,16 @@ namespace Arena.Editor.Art
             WaterShoreWidth = 0.42f,
             BankTop = new Color32(0xB9, 0x8A, 0x5E, 0xFF),
             BankFoot = new Color32(0x6E, 0x4E, 0x34, 0xFF),
+            PondRimWidth = 0.15f,        // A.3f: a round pond with a plank rim (concept 002), corners by the neighbour mask
+            PondRimHeight = 0.07f,
+            PondCornerRadius = 0.9f,
+            PondPlankLength = 0.17f,
+            PondPlankLight = new Color32(0xC8, 0x82, 0x48, 0xFF),
+            PondPlankDark = new Color32(0xB0, 0x6C, 0x3A, 0xFF),
+            PondPlankSeam = new Color32(0x6A, 0x40, 0x22, 0xFF),
+            PondRimSide = new Color32(0x9A, 0x5E, 0x32, 0xFF),
+            PondShoreMax = 0.6f,
+            WallBlocksSeparate = true,
             ShadowTexelsPerCell = 8,     // A.3e (D-130): 8 texels per cell, blurred footprints, G = contact AO
             ShadowStrength = 0.9f,
             ShadowSoftness = 0.15f,
@@ -410,6 +420,9 @@ namespace Arena.Editor.Art
             Mesh[] bushMeshes = SaveEnvMeshes();
             Mesh crateMesh = SaveMesh(EnvMeshBuilder.BuildCrate(), EnvMeshesFolder + "/Crate.asset");
             Mesh basketMesh = SaveMesh(EnvMeshBuilder.BuildBasket(), EnvMeshesFolder + "/BerryBasket.asset");
+            Mesh[] wallBlocks = EnvMeshBuilder.BuildWallBlocks();
+            for (int i = 0; i < wallBlocks.Length; i++)
+                wallBlocks[i] = SaveMesh(wallBlocks[i], EnvMeshesFolder + "/" + wallBlocks[i].name + ".asset");
             Mesh[] obstacleProps = EnvMeshBuilder.BuildObstacleProps();
             for (int i = 0; i < obstacleProps.Length; i++)
             {
@@ -480,6 +493,7 @@ namespace Arena.Editor.Art
             catalog.BushVariants = bushMeshes;
             catalog.BushVariantsPerMask = EnvMeshBuilder.BushVariantCount;
             catalog.ObstacleProps = obstacleProps;
+            catalog.WallBlockVariants = wallBlocks;
             catalog.ObstacleProp = obstacleProp;
             catalog.ObstaclePropMaxCells = ObstaclePropMaxCells;
             catalog.ObstacleStoneEvery = ObstacleStoneEvery;

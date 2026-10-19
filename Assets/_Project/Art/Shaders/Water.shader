@@ -9,8 +9,8 @@ Shader "Arena/Water"
     Properties
     {
         _BaseColor ("Base Color", Color) = (1, 1, 1, 1)
-        _DeepColor ("Deep", Color) = (0.247, 0.718, 0.910, 1)
-        _ShallowColor ("Shallow (near the shore)", Color) = (0.42, 0.82, 0.95, 1)
+        _DeepColor ("Deep", Color) = (0.247, 0.624, 0.878, 1)
+        _ShallowColor ("Shallow (near the shore)", Color) = (0.604, 0.867, 0.941, 1)
         _GlintColor ("Glint", Color) = (0.561, 0.890, 1.0, 1)
         _FoamColor ("Foam", Color) = (0.910, 0.984, 1.0, 1)
         _RippleMap ("Ripple (R lines, G noise)", 2D) = "black" {}
@@ -18,8 +18,8 @@ Shader "Arena/Water"
         _FlowSpeed ("Flow Speed (units/s)", Range(0, 1)) = 0.12
         _GlintThreshold ("Glint Threshold (sum of two lines)", Range(0, 2)) = 1.4
         _GlintSoftness ("Glint Softness", Range(0.001, 0.3)) = 0.08
-        _LineStrength ("Ripple Line Lightening", Range(0, 1)) = 0.14
-        _GlintStrength ("Glint Strength", Range(0, 1)) = 0.85
+        _LineStrength ("Ripple Line Lightening", Range(0, 1)) = 0.06
+        _GlintStrength ("Glint Strength", Range(0, 1)) = 0.5
         _FoamEdge ("Foam Edge (shore factor)", Range(0, 1)) = 0.72
         _FoamWobble ("Foam Wobble", Range(0, 1.5)) = 0.9
         _FoamBreath ("Foam Breathing", Range(0, 0.3)) = 0.06

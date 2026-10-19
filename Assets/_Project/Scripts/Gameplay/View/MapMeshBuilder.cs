@@ -299,6 +299,180 @@ namespace Arena.Gameplay.View
             return b.Create(name);
         }
 
+        /// <summary>
+        /// Round pond (A.3f): the water cells of <paramref name="type"/> drawn as one organic pond with a plank rim instead of square
+        /// sheets. The shore is smoothed by the neighbour mask of each cell corner: a convex corner (both side neighbours are land)
+        /// becomes an arc of up to <see cref="MapMeshStyle.PondCornerRadius"/> (a single cell → a disc, 2 × 2 → a circle), a concave
+        /// corner gets a small notch so the rim runs on. The rim (<see cref="MapMeshStyle.PondRimWidth"/>, planks across it) lies
+        /// inside the water cells, so walkable floor is never covered; the sand left outside an arc is filled by
+        /// <paramref name="fill"/> (floor material). View only: the cells still are water for the simulation.
+        /// Returns the water surface (vertex alpha = shore factor for <c>Arena/Water</c>, capped at <see cref="MapMeshStyle.PondShoreMax"/>);
+        /// <paramref name="rim"/> = planks + sides (vertex colours, matte), <paramref name="fill"/> = floor pieces at the arcs.
+        /// </summary>
+        public static Mesh BuildPond(in TileGrid grid, TileType type, float waterHeight, float bankBottom, in MapMeshStyle style,
+            string name, out Mesh rim, out Mesh fill)
+        {
+            float w = Mathf.Max(0.01f, style.PondRimWidth), top = style.PondRimHeight;
+            float shoreWidth = Mathf.Max(0.01f, style.WaterShoreWidth);
+            int reach = Mathf.CeilToInt(shoreWidth + w) + 1;
+            var verts = new List<Vector3>();
+            var colors = new List<Color>();
+            var tris = new List<int>();
+            var rimBuf = new Buffers();
+            var fillBuf = new Buffers();
+            var outer = new List<Vector2>();
+            var inner = new List<Vector2>();
+            var isRim = new List<bool>();
+            Color light = style.PondPlankLight.linear, dark = style.PondPlankDark.linear, seam = style.PondPlankSeam.linear;
+            Color side = style.PondRimSide.linear, sideFoot = Scale(side, 0.55f), sand = new Color(1f, 1f, 1f, 0f);
+            for (int r = 0; r < grid.Height; r++)
+            {
+                for (int c = 0; c < grid.Width; c++)
+                {
+                    if (grid.Get(c, r) != type) continue;
+                    outer.Clear(); inner.Clear(); isRim.Clear();
+                    var origin = new Vector2(c, r);
+                    for (int k = 0; k < 4; k++)
+                    {
+                        int prev = (k + 3) & 3;
+                        bool landIn = IsPondLand(in grid, c, r, prev, type), landOut = IsPondLand(in grid, c, r, k, type);
+                        Vector2 corner = origin + PondCorner[k];
+                        Vector2 dirIn = PondEdgeDir[prev], dirOut = PondEdgeDir[k];
+                        if (landIn && landOut)
+                        {
+                            bool otherIn = IsPondLand(in grid, c, r, (k + 2) & 3, type);   // edge prev's far corner is convex too
+                            bool otherOut = IsPondLand(in grid, c, r, (k + 1) & 3, type);
+                            float radius = Mathf.Min(style.PondCornerRadius, otherIn ? 0.5f : 1f, otherOut ? 0.5f : 1f);
+                            radius = Mathf.Max(radius, w + 0.02f);
+                            Vector2 inPrev = PondInward[prev], inK = PondInward[k];
+                            Vector2 centre = corner + (inPrev + inK) * radius;
+                            int samples = Mathf.Max(3, Mathf.CeilToInt(radius * Mathf.PI * 0.5f / style.PondPlankLength));
+                            for (int s = 0; s <= samples; s++)
+                            {
+                                float a = s * Mathf.PI * 0.5f / samples;
+                                Vector2 u = -inPrev * Mathf.Cos(a) - inK * Mathf.Sin(a);
+                                outer.Add(centre + u * radius);
+                                inner.Add(centre + u * (radius - w));
+                                isRim.Add(s < samples || landOut);
+                                if (s > 0)
+                                {
+                                    Vector2 p0 = outer[outer.Count - 2], p1 = outer[outer.Count - 1];
+                                    fillBuf.AddTriangle(To3(corner, 0f), To3(p0, 0f), To3(p1, 0f), Vector3.up, sand, sand, sand);
+                                }
+                            }
+                            continue;
+                        }
+                        if (landIn || landOut)
+                        {
+                            outer.Add(corner);
+                            inner.Add(landIn ? corner + dirOut * w : corner - dirIn * w);
+                            isRim.Add(landOut);
+                            continue;
+                        }
+                        if (IsPondDiagonalLand(in grid, c, r, k, type))
+                        {
+                            // Concave corner: the rims of the two side neighbours meet here — a w × w notch closes the gap.
+                            outer.Add(corner); inner.Add(corner - dirIn * w); isRim.Add(true);
+                            outer.Add(corner); inner.Add(corner - dirIn * w + dirOut * w); isRim.Add(true);
+                            outer.Add(corner); inner.Add(corner + dirOut * w); isRim.Add(false);
+                            continue;
+                        }
+                        outer.Add(corner); inner.Add(corner); isRim.Add(false);
+                    }
+
+                    // Water: a fan from the cell centre over the inner contour.
+                    var centre3 = new Vector3(c + 0.5f, waterHeight, r + 0.5f);
+                    int ic = verts.Count;
+                    verts.Add(centre3);
+                    colors.Add(new Color(1f, 1f, 1f, PondShore(in grid, centre3.x, centre3.z, type, reach, w, shoreWidth, style.PondShoreMax)));
+                    int n = inner.Count;
+                    for (int i = 0; i < n; i++)
+                    {
+                        verts.Add(To3(inner[i], waterHeight));
+                        colors.Add(new Color(1f, 1f, 1f, PondShore(in grid, inner[i].x, inner[i].y, type, reach, w, shoreWidth, style.PondShoreMax)));
+                    }
+                    for (int i = 0; i < n; i++)
+                    {
+                        int a = ic + 1 + i, b = ic + 1 + (i + 1) % n;
+                        Vector3 cross = Vector3.Cross(verts[a] - centre3, verts[b] - centre3);
+                        if (Mathf.Abs(cross.y) < 1e-9f) continue;
+                        tris.Add(ic);
+                        if (cross.y > 0f) { tris.Add(a); tris.Add(b); }
+                        else { tris.Add(b); tris.Add(a); }
+                    }
+
+                    // Rim: planks across the band (seam at each plank start), outer side down to the floor, inner side into the water.
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (!isRim[i]) continue;
+                        int j = (i + 1) % n;
+                        Vector2 o0 = outer[i], o1 = outer[j], i0 = inner[i], i1 = inner[j];
+                        float length = Mathf.Max((o1 - o0).magnitude, (i1 - i0).magnitude);
+                        int planks = Mathf.Max(1, Mathf.RoundToInt(length / style.PondPlankLength));
+                        Vector2 toWater = ((i0 - o0) + (i1 - o1)).normalized;
+                        for (int p = 0; p < planks; p++)
+                        {
+                            float t0 = (float)p / planks, t1 = (float)(p + 1) / planks;
+                            Vector2 a0 = Vector2.Lerp(o0, o1, t0), a1 = Vector2.Lerp(o0, o1, t1);
+                            Vector2 b0 = Vector2.Lerp(i0, i1, t0), b1 = Vector2.Lerp(i0, i1, t1);
+                            Vector2 mid = (a0 + a1 + b0 + b1) * 0.25f;
+                            Color plank = (PondPlankHash(mid) & 1) == 0 ? light : dark;
+                            float seamT = Mathf.Clamp01(PondSeam / Mathf.Max(1e-4f, (a1 - a0).magnitude + (b1 - b0).magnitude) * 2f);
+                            Vector2 sa = Vector2.Lerp(a0, a1, seamT), sb = Vector2.Lerp(b0, b1, seamT);
+                            rimBuf.AddQuad(To3(a0, top), seam, To3(sa, top), seam, To3(sb, top), seam, To3(b0, top), seam, Vector3.up);
+                            rimBuf.AddQuad(To3(sa, top), plank, To3(a1, top), plank, To3(b1, top), Scale(plank, 0.92f), To3(sb, top), Scale(plank, 0.92f), Vector3.up);
+                        }
+                        Vector3 outward = new Vector3(-toWater.x, 0f, -toWater.y);
+                        rimBuf.AddQuad(To3(o0, -0.01f), sideFoot, To3(o1, -0.01f), sideFoot, To3(o1, top), side, To3(o0, top), side, outward);
+                        rimBuf.AddQuad(To3(i0, bankBottom), sideFoot, To3(i1, bankBottom), sideFoot, To3(i1, top), side, To3(i0, top), side, -outward);
+                    }
+                }
+            }
+            rim = rimBuf.Create(name + "Rim");
+            fill = fillBuf.Create(name + "Fill");
+            var normals = new List<Vector3>(verts.Count);
+            for (int k = 0; k < verts.Count; k++) normals.Add(Vector3.up);
+            return Create(name, verts, normals, colors, tris);
+        }
+
+        // Cell corners SW, SE, NE, NW; edge k runs from corner k to corner k + 1 (S, E, N, W) with these directions and inward normals.
+        private static readonly Vector2[] PondCorner = { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f) };
+        private static readonly Vector2[] PondEdgeDir = { new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(-1f, 0f), new Vector2(0f, -1f) };
+        private static readonly Vector2[] PondInward = { new Vector2(0f, 1f), new Vector2(-1f, 0f), new Vector2(0f, -1f), new Vector2(1f, 0f) };
+        private const float PondSeam = 0.018f;
+
+        /// <summary>True if the neighbour across edge <paramref name="edge"/> (S, E, N, W) is not <paramref name="type"/> (or off the map).</summary>
+        private static bool IsPondLand(in TileGrid grid, int c, int r, int edge, TileType type)
+        {
+            int nc = c + (edge == 1 ? 1 : edge == 3 ? -1 : 0), nr = r + (edge == 0 ? -1 : edge == 2 ? 1 : 0);
+            return !IsType(in grid, nc, nr, type);
+        }
+
+        private static bool IsPondDiagonalLand(in TileGrid grid, int c, int r, int corner, TileType type)
+        {
+            int nc = c + (corner == 1 || corner == 2 ? 1 : -1), nr = r + (corner >= 2 ? 1 : -1);
+            return !IsType(in grid, nc, nr, type);
+        }
+
+        private static float PondShore(in TileGrid grid, float x, float z, TileType type, int reach, float rim, float width, float max)
+        {
+            float t = 1f - Mathf.Clamp01((DistanceToOther(in grid, x, z, type, reach) - rim) / width);
+            return max * t * t * (3f - 2f * t);
+        }
+
+        private static int PondPlankHash(Vector2 p)
+        {
+            unchecked
+            {
+                uint h = (uint)Mathf.RoundToInt(p.x * 50f) * 73856093u ^ (uint)Mathf.RoundToInt(p.y * 50f) * 19349663u;
+                h ^= h >> 13;
+                h *= 0x5bd1e995;
+                return (int)(h >> 7);
+            }
+        }
+
+        private static Vector3 To3(Vector2 p, float y) => new Vector3(p.x, y, p.y);
+
         /// <summary>Distance in the XZ plane from (x, z) to the nearest cell that is not <paramref name="type"/> (out of the map counts).</summary>
         private static float DistanceToOther(in TileGrid grid, float x, float z, TileType type, int reach)
         {

@@ -164,7 +164,7 @@ namespace Arena.Gameplay.View
                         default: continue;
                     }
                     // Blocks and bushes join their own kind: no inset or rounding on a side towards a neighbour of that kind.
-                    bool joins = t == TileType.Wall || t == TileType.Bush;
+                    bool joins = (t == TileType.Wall && !style.WallBlocksSeparate) || t == TileType.Bush;
                     bool west = joins && !round && Joins(in grid, roundCells, c - 1, r, t);
                     bool east = joins && !round && Joins(in grid, roundCells, c + 1, r, t);
                     bool south = joins && !round && Joins(in grid, roundCells, c, r - 1, t);

@@ -78,6 +78,14 @@ namespace Arena.Tests.EditMode.Gameplay
                     if (!t.name.StartsWith("Obstacle_")) continue;
                     Assert.AreNotEqual("5", t.name.Split('_')[2], "the long wall on the top row is never a prop");
                 }
+                // A.3f: every wall cell that is not a prop is exactly one stone block renderer.
+                int walls = 0, blocks = 0;
+                for (int i = 0; i < grid.Tiles.Length; i++)
+                    if (grid.Tiles[i] == TileType.Wall) walls++;
+                foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+                    if (t.name.StartsWith("Block_")) blocks++;
+                Assert.AreEqual(walls - view.ObstaclePropCount, view.WallBlockCount);
+                Assert.AreEqual(view.WallBlockCount, blocks);
                 Assert.AreEqual(2, view.BushCount);
                 Assert.AreEqual(2, view.BushMask(0), "left bush: east neighbour");
                 Assert.AreEqual(1, view.BushMask(1), "right bush: west neighbour");

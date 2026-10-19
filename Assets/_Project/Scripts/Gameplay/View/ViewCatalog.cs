@@ -67,6 +67,10 @@ namespace Arena.Gameplay.View
         [Tooltip("Arena/ToonEnv material of the obstacle props (vertex colours).")]
         public Material ObstacleProp;
 
+        [Tooltip("Stone block meshes (A.3f): every wall cell is a separate rounded block (a variant and a quarter turn per cell), " +
+                 "pivot at the bottom centre, drawn with ObstacleProp. Empty = the old combined wall mesh (MapMeshBuilder.BuildBlocks).")]
+        public Mesh[] WallBlockVariants;
+
         [Tooltip("Wall groups larger than this (cells) always stay stone blocks; smaller ones may become props.")]
         [Min(0)] public int ObstaclePropMaxCells;
 

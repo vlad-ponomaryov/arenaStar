@@ -132,6 +132,35 @@ namespace Arena.Tests.EditMode.Art
         }
 
         [Test]
+        public void WallBlocks_AreRoundedStoneToysInTheCell_InBudget_WithColours()
+        {
+            Mesh[] blocks = EnvMeshBuilder.BuildWallBlocks();
+            try
+            {
+                Assert.AreEqual(EnvMeshBuilder.WallBlockVariantCount, blocks.Length);
+                int withLeaf = 0;
+                foreach (Mesh m in blocks)
+                {
+                    Assert.AreEqual(m.vertexCount, m.colors.Length, m.name);
+                    Assert.AreEqual(m.vertexCount, m.normals.Length, m.name);
+                    foreach (Vector2 uv in m.uv) Assert.AreEqual(1f, uv.x, 1e-5f, m.name + ": vertex colours only");
+                    Assert.GreaterOrEqual(m.bounds.min.y, -1e-4f, m.name + " stands on the ground");
+                    Assert.LessOrEqual(m.bounds.extents.x, 0.46f, m.name + " leaves a gap to the neighbour block");
+                    Assert.LessOrEqual(m.bounds.extents.z, 0.46f, m.name);
+                    Assert.Greater(m.bounds.extents.x, 0.42f, m.name + " fills the blocked cell");
+                    Assert.That(m.bounds.size.y, Is.InRange(0.8f, 0.92f), m.name);
+                    Assert.LessOrEqual(m.triangles.Length / 3, EnvMeshBuilder.WallBlockTriangleBudget, m.name);
+                    if (m.bounds.max.y > 0.865f) withLeaf++;
+                }
+                Assert.AreEqual(EnvMeshBuilder.WallBlockVariantCount - 1, withLeaf, "all variants but one carry the leaf relief, one is plain");
+            }
+            finally
+            {
+                foreach (Mesh m in blocks) Object.DestroyImmediate(m);
+            }
+        }
+
+        [Test]
         public void Crate_And_Basket_StandInTheCell_WithColoursAndGlossyBerries()
         {
             Mesh crate = EnvMeshBuilder.BuildCrate();
@@ -146,7 +175,7 @@ namespace Arena.Tests.EditMode.Art
                     Assert.LessOrEqual(m.bounds.extents.x, 0.5f, m.name + " stays in its cell");
                     Assert.LessOrEqual(m.bounds.extents.z, 0.5f, m.name);
                 }
-                Assert.Greater(crate.bounds.size.y, 0.9f, "a crate is about wall height");
+                Assert.Greater(crate.bounds.size.y, 0.7f, "a crate is a little lower than a stone block (A.3f)");
                 bool glossy = false;
                 foreach (Color c in basket.colors) glossy |= c.a > 0.9f;
                 Assert.IsTrue(glossy, "berries are glossy (vertex alpha)");

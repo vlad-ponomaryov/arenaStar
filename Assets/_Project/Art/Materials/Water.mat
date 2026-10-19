@@ -35,20 +35,20 @@ Material:
     - _FoamSpeed: 1.6
     - _FoamWobble: 0.9
     - _GlintSoftness: 0.08
-    - _GlintStrength: 0.85
+    - _GlintStrength: 0.5
     - _GlintThreshold: 1.4
     - _LightInfluence: 0.35
-    - _LineStrength: 0.14
+    - _LineStrength: 0.06
     - _RingStrength: 0.55
     - _RingWidth: 0.045
     - _RippleTiling: 2.2
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _DeepColor: {r: 0.24699995, g: 0.718, b: 0.91, a: 1}
+    - _DeepColor: {r: 0.24699995, g: 0.624, b: 0.878, a: 1}
     - _FoamColor: {r: 0.91, g: 0.984, b: 1, a: 1}
     - _GlintColor: {r: 0.561, g: 0.89, b: 1, a: 1}
     - _MapShadowColor: {r: 0.56, g: 0.6, b: 0.78, a: 1}
-    - _ShallowColor: {r: 0.41999996, g: 0.82, b: 0.95, a: 1}
+    - _ShallowColor: {r: 0.6039999, g: 0.867, b: 0.941, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &770793636544808630

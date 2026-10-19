@@ -322,6 +322,60 @@ namespace Arena.Tests.EditMode.Gameplay
         }
 
         [Test]
+        public void RoundPond_StaysInsideTheWaterCells_RoundsConvexCorners_AndFillsTheSandOutsideTheArcs()
+        {
+            MapMeshStyle style = Style();
+            style.PondRimWidth = 0.15f;
+            style.PondRimHeight = 0.07f;
+            style.PondCornerRadius = 0.9f;
+            style.PondPlankLength = 0.17f;
+            style.PondShoreMax = 0.6f;
+            // A 2 × 2 pond (→ a near circle of radius ≈ 0.9) and a single cell (→ a disc of radius 0.5).
+            TileGrid grid = Grid("......", ".~~...", ".~~.~.", "......");
+            Mesh water = MapMeshBuilder.BuildPond(in grid, TileType.Water, -0.1f, -0.13f, in style, "pond", out Mesh rim, out Mesh fill);
+            try
+            {
+                Assert.Greater(rim.vertexCount, 0);
+                Assert.Greater(fill.vertexCount, 0);
+                foreach (Mesh m in new[] { water, rim, fill })
+                {
+                    foreach (Vector3 v in m.vertices)
+                    {
+                        bool inWater = false;
+                        for (int k = 0; k < 4; k++)
+                        {
+                            int cc = Mathf.FloorToInt(v.x + ((k & 1) == 0 ? 1e-4f : -1e-4f));
+                            int rr = Mathf.FloorToInt(v.z + ((k & 2) == 0 ? 1e-4f : -1e-4f));
+                            inWater |= grid.InBounds(cc, rr) && grid.Get(cc, rr) == TileType.Water;
+                        }
+                        Assert.IsTrue(inWater, m.name + ": vertex " + v + " stays in a water cell (floor is never covered)");
+                        Assert.LessOrEqual(v.y, style.PondRimHeight + 1e-4f, m.name);
+                    }
+                }
+                // The water of the 2 × 2 pond lies within a circle round its centre (2, 2): convex corners are rounded off.
+                // The lone cell (4, 1) is a disc.
+                foreach (Vector3 v in water.vertices)
+                {
+                    bool big = v.x < 3.5f;
+                    var centre = big ? new Vector2(2f, 2f) : new Vector2(4.5f, grid.Get(4, 1) == TileType.Water ? 1.5f : 2.5f);
+                    // Square corners would reach √2 (2 × 2) / 0.5·√2 (single); rounded ones stay within the arc + rim.
+                    float limit = big ? 1.1f + 1e-3f : 0.5f - style.PondRimWidth + 1e-3f;
+                    Assert.LessOrEqual((new Vector2(v.x, v.z) - centre).magnitude, limit, "water vertex " + v);
+                    Assert.AreEqual(-0.1f, v.y, 1e-5f);
+                }
+                foreach (Color c in water.colors) Assert.LessOrEqual(c.a, style.PondShoreMax + 1e-4f, "shore factor capped");
+                foreach (Vector3 v in fill.vertices) Assert.AreEqual(0f, v.y, 1e-6f, "sand fill at floor level");
+                Assert.Greater(UpArea(water), 0.5f * Mathf.PI * 0.35f * 0.35f, "water is visible");
+            }
+            finally
+            {
+                Object.DestroyImmediate(water);
+                Object.DestroyImmediate(rim);
+                Object.DestroyImmediate(fill);
+            }
+        }
+
+        [Test]
         public void SunkenPond_HasNoFloor_AndBanksFaceTheWater()
         {
             MapMeshStyle style = Style();

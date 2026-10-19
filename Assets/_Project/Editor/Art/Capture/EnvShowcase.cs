@@ -136,8 +136,8 @@ namespace Arena.Editor.Art.Capture
                 new Spot("sand_shadow", new Vector3(3.22f, 0f, 4.25f), 0.12f, SpotReduce.Mean),
                 new Spot("bush_tips", new Vector3(6.5f, 0.9f, 4.5f), 0.45f, SpotReduce.BrightestFifteenPercent),
                 new Spot("bush_body", new Vector3(6.5f, 0.9f, 4.5f), 0.45f, SpotReduce.DarkerHalf),
-                new Spot("block_top", new Vector3(2f, h, 5f), 0.3f, SpotReduce.Mean),
-                new Spot("block_side", new Vector3(2f, h * 0.55f, 3.98f), 0.12f, SpotReduce.Mean),
+                new Spot("block_top", new Vector3(1.5f, h - 0.04f, 4.5f), 0.3f, SpotReduce.Mean),   // A.3f: a block top, not the gap
+                new Spot("block_side", new Vector3(1.5f, h * 0.55f, 4.04f), 0.12f, SpotReduce.Mean),
                 new Spot("meadow", new Vector3(-3f, 0f, 3f), 0.5f, SpotReduce.Mean),
                 new Spot("water", new Vector3(1f, catalog.WaterHeight, 1f), 0.25f, SpotReduce.Mean)
             };

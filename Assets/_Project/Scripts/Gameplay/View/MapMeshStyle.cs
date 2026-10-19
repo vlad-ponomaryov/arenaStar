@@ -88,6 +88,32 @@ namespace Arena.Gameplay.View
         [Tooltip("Bank colour at the water line (wet, darker).")]
         public Color BankFoot;
 
+        [Header("Pond (A.3f, MapMeshBuilder.BuildPond)")]
+        [Tooltip("Plank rim width inside the water cells along the shore, world units; 0 = the old square sheet with banks.")]
+        [Min(0f)] public float PondRimWidth;
+
+        [Tooltip("Rim top above the floor, world units.")]
+        [Min(0f)] public float PondRimHeight;
+
+        [Tooltip("Largest rounding radius of a convex pond corner (≤ 1; halved where both corners of a cell side are convex).")]
+        [Range(0f, 1f)] public float PondCornerRadius;
+
+        [Tooltip("Plank width along the rim, world units.")]
+        [Min(0.02f)] public float PondPlankLength;
+
+        [Tooltip("Rim planks (two tones alternate), the seam between planks and the rim sides.")]
+        public Color PondPlankLight;
+        public Color PondPlankDark;
+        public Color PondPlankSeam;
+        public Color PondRimSide;
+
+        [Tooltip("Shore factor (water vertex alpha) right at the rim: below the shader foam edge = a light shallow band, foam only in flecks.")]
+        [Range(0f, 1f)] public float PondShoreMax;
+
+        [Header("Stone blocks (A.3f)")]
+        [Tooltip("Walls are separate blocks per cell (A.3f): their shadow footprints do not join the neighbours (a gap between blocks).")]
+        public bool WallBlocksSeparate;
+
         [Header("Wall shadows on the ground (A.3b, MapShadowMask)")]
         [Tooltip("Shadow mask texels per cell side (bilinear: more = sharper shadow edges).")]
         [Min(1)] public int ShadowTexelsPerCell;

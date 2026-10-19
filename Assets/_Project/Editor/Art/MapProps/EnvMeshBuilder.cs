@@ -87,12 +87,34 @@ namespace Arena.Editor.Art.MapProps
         private const float PropFootShade = 0.7f;
 
         // Crate (palette: planks #E4A85E, dark edge #9A6232).
-        private static readonly Color CratePanel = new Color32(0xE4, 0xA8, 0x5E, 0xFF);
-        private static readonly Color CrateFrame = new Color32(0x9A, 0x62, 0x32, 0xFF);
-        private static readonly Color CrateBrace = new Color32(0xC0, 0x80, 0x44, 0xFF);
-        private const float CrateHalf = 0.39f;
-        private const float CrateHeight = 1.0f;
-        private const float CrateBeam = 0.1f;
+        // A.3f crate: rounded wooden toy in the barrel's palette (boards, grooves, darker corner posts, lighter lid).
+        private static readonly Color CrateBoard = new Color32(0xD8, 0x96, 0x52, 0xFF);
+        private static readonly Color CrateBoardDark = new Color32(0xC4, 0x82, 0x44, 0xFF);
+        private static readonly Color CrateGrooveColour = new Color32(0x7A, 0x4A, 0x26, 0xFF);
+        private static readonly Color CrateLid = new Color32(0xE8, 0xB0, 0x6C, 0xFF);
+        private const float CrateHalf = 0.42f;
+        private const float CrateHeight = 0.8f;
+        private const float CrateCornerRadius = 0.12f;
+        private const float CrateTopRadius = 0.08f;
+        private const float CrateGroove = 0.02f;
+        private const float CrateCornerShade = 0.72f;
+        // A.3f stone block (concept 002: cream stone toy with a carved leaf; target top #FBE6B8 in game light).
+        private static readonly Color StoneTop = new Color32(0xFF, 0xEE, 0xC8, 0xFF);
+        private static readonly Color StoneSide = new Color32(0xE6, 0xC4, 0x8E, 0xFF);
+        private static readonly Color StoneSideLow = new Color32(0xC8, 0x9C, 0x68, 0xFF);
+        private static readonly Color StoneSeam = new Color32(0xB8, 0x90, 0x60, 0xFF);
+        private static readonly Color LeafBody = new Color32(0xFF, 0xF4, 0xD8, 0xFF);
+        private static readonly Color LeafGroove = new Color32(0xA0, 0x6E, 0x48, 0xFF);
+        private static readonly Color LeafRib = new Color32(0xB4, 0x84, 0x58, 0xFF);
+        private const float StoneHalf = 0.45f;
+        private const float StoneHeight = 0.86f;
+        private const float StoneCornerRadius = 0.16f;
+        private const float StoneTopRadius = 0.12f;
+        private const float StoneFootShade = 0.72f;
+        private const float StoneTopGloss = 0.15f;
+        private const float LeafRaise = 0.02f;
+        private const float LeafGrooveWidth = 0.032f;
+        private const float LeafRibWidth = 0.024f;
         private const float CrateFootShade = 0.78f;
 
         // Basket (palette: wicker #D9A55B, berry #E0306A).
@@ -443,45 +465,222 @@ namespace Arena.Editor.Art.MapProps
             m.FlatTri(a, b, c, outward, col);
         }
 
+        /// <summary>
+        /// Breakable crate (A.3f, user feedback: the square box with an X brace read as "strange"): one chunky wooden toy in the
+        /// style of the barrel — a rounded box (big radii, smooth normals) of three horizontal boards with grooves between them,
+        /// darker rounded corner posts, a plank lid with two seams. Vertex colours only (uv0.x = 1), matte, dark foot.
+        /// </summary>
         public static Mesh BuildCrate()
         {
-            var m = new MeshData();
-            float h = CrateHalf, top = CrateHeight, beam = CrateBeam, o = h + beam * 0.5f;
-            m.Box(new Vector3(-h, 0f, -h), new Vector3(h, top - 0.02f, h), CratePanel, true);
-            // Corner posts, top and bottom rims.
-            for (int sx = -1; sx <= 1; sx += 2)
-                for (int sz = -1; sz <= 1; sz += 2)
-                    m.Box(new Vector3(sx * o - beam * 0.5f, 0f, sz * o - beam * 0.5f), new Vector3(sx * o + beam * 0.5f, top + 0.02f, sz * o + beam * 0.5f), CrateFrame, true);
-            foreach (float y in new[] { 0f, top - beam })
+            var m = new MeshData { Plain = 1f };
+            float h = CrateHeight, g = CrateGroove;
+            Color a = CrateBoard, b = CrateBoardDark, groove = CrateGrooveColour, lid = CrateLid;
+            float y1 = h * 0.34f, y2 = h * 0.66f, rt = CrateTopRadius;
+            var rings = new[]
             {
-                m.Box(new Vector3(-o, y, -o - beam * 0.5f), new Vector3(o, y + beam, -o + beam * 0.5f), CrateFrame, true);
-                m.Box(new Vector3(-o, y, o - beam * 0.5f), new Vector3(o, y + beam, o + beam * 0.5f), CrateFrame, true);
-                m.Box(new Vector3(-o - beam * 0.5f, y, -o), new Vector3(-o + beam * 0.5f, y + beam, o), CrateFrame, true);
-                m.Box(new Vector3(o - beam * 0.5f, y, -o), new Vector3(o + beam * 0.5f, y + beam, o), CrateFrame, true);
-            }
-            // X braces on the four sides and on top.
-            float panelW = h, panelH = (top - 2f * beam) * 0.5f, midY = top * 0.5f, depth = 0.025f;
-            float len = Mathf.Sqrt(panelW * panelW + panelH * panelH), angle = Mathf.Atan2(panelH, panelW);
-            Vector3[] normals = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-            foreach (Vector3 n in normals)
-            {
-                Vector3 side = Vector3.Cross(Vector3.up, n);
-                Vector3 c = n * (h + depth * 0.5f) + Vector3.up * midY;
-                for (int s = -1; s <= 1; s += 2)
-                {
-                    Vector3 u = (side * Mathf.Cos(angle) + Vector3.up * Mathf.Sin(angle) * s).normalized;
-                    Vector3 v = Vector3.Cross(n, u).normalized;
-                    m.OrientedBox(c, u * len * 2f * 0.94f, v * beam * 0.45f, n * depth, CrateBrace);
-                }
-            }
+                new BlockRing(0.012f, 0f, -0.2f, b), new BlockRing(0f, 0.05f, 0f, a),
+                new BlockRing(0f, y1 - g, 0f, a), new BlockRing(g * 0.8f, y1, 0f, groove), new BlockRing(0f, y1 + g, 0f, b),
+                new BlockRing(0f, y2 - g, 0f, b), new BlockRing(g * 0.8f, y2, 0f, groove), new BlockRing(0f, y2 + g, 0f, a),
+                new BlockRing(0f, h - rt, 0f, a),
+                new BlockRing(rt * (1f - Mathf.Cos(Mathf.PI / 6f)), h - rt + rt * Mathf.Sin(Mathf.PI / 6f), 0.5f, a),
+                new BlockRing(rt * (1f - Mathf.Cos(Mathf.PI / 3f)), h - rt + rt * Mathf.Sin(Mathf.PI / 3f), 0.87f, lid),
+                new BlockRing(rt, h, 1f, lid)
+            };
+            AddRoundedBlock(m, CrateHalf, CrateCornerRadius, 3, rings, CrateCornerShade, lid, 0f);
+            // Lid seams: two dark strips across the top (three planks).
+            float half = CrateHalf - rt - 0.01f, sw = 0.012f;
             for (int s = -1; s <= 1; s += 2)
             {
-                Vector3 u = new Vector3(1f, 0f, s).normalized;
-                Vector3 v = Vector3.Cross(Vector3.up, u).normalized;
-                m.OrientedBox(new Vector3(0f, top - 0.02f + depth * 0.5f, 0f), u * h * 2f * 1.41f * 0.94f, v * beam * 0.45f, Vector3.up * depth, CrateBrace);
+                float x = s * half / 3f;
+                m.Quad(new Vector3(x - sw, h + 0.002f, -half), new Vector3(x + sw, h + 0.002f, -half), new Vector3(x + sw, h + 0.002f, half),
+                    new Vector3(x - sw, h + 0.002f, half), Vector3.up, groove);
             }
-            m.ShadeFoot(0.45f, CrateFootShade);
+            m.ShadeFoot(0.3f, CrateFootShade);
             return m.Create("Crate");
+        }
+
+        /// <summary>Stone block variants (A.3f): leaf along the diagonal, a rounder leaf along an axis, a broad leaf on the other diagonal, a plain top.</summary>
+        public const int WallBlockVariantCount = 4;
+
+        /// <summary>Triangle budget of a stone block (brief §3.3 asks ≈ 360; smooth rounding + the leaf relief).</summary>
+        public const int WallBlockTriangleBudget = 420;
+
+        public static Mesh[] BuildWallBlocks()
+        {
+            var meshes = new Mesh[WallBlockVariantCount];
+            for (int v = 0; v < WallBlockVariantCount; v++) meshes[v] = BuildStoneBlock(v);
+            return meshes;
+        }
+
+        /// <summary>
+        /// Stone block of one wall cell (A.3f, concept 002; user: "one understandable material per object"): a single light stone
+        /// toy — rounded box 0.9 × 0.9 with big vertical and top radii (smooth normals), a faint seam between two stacked slabs,
+        /// warmer and darker towards the foot; on top a carved leaf (variant 0 diagonal, 1 rounder along an axis, 2 plain): a dark
+        /// groove ring around a slightly raised leaf body with a midrib and veins. Vertex colours only, light gloss on the top.
+        /// </summary>
+        public static Mesh BuildStoneBlock(int variant)
+        {
+            var m = new MeshData { Plain = 1f };
+            float h = StoneHeight, rt = StoneTopRadius, g = 0.018f, seamY = h * 0.42f;
+            Color top = StoneTop, side = StoneSide, low = StoneSideLow, seam = StoneSeam;
+            var rings = new[]
+            {
+                new BlockRing(0.014f, 0f, -0.2f, low), new BlockRing(0f, 0.06f, 0f, low),
+                new BlockRing(0f, seamY - g, 0f, Color.Lerp(low, side, 0.6f)), new BlockRing(g * 0.9f, seamY, 0f, seam),
+                new BlockRing(0f, seamY + g, 0f, side),
+                new BlockRing(-0.006f, (seamY + h - rt) * 0.5f, 0f, side),
+                new BlockRing(0f, h - rt, 0.05f, Color.Lerp(side, top, 0.35f)),
+                new BlockRing(rt * (1f - Mathf.Cos(Mathf.PI / 6f)), h - rt + rt * Mathf.Sin(Mathf.PI / 6f), 0.5f, Color.Lerp(side, top, 0.7f)),
+                new BlockRing(rt * (1f - Mathf.Cos(Mathf.PI / 3f)), h - rt + rt * Mathf.Sin(Mathf.PI / 3f), 0.87f, top),
+                new BlockRing(rt, h, 1f, top)
+            };
+            AddRoundedBlock(m, StoneHalf, StoneCornerRadius, 3, rings, 1f, top, StoneTopGloss);
+            if (variant == 0) AddLeaf(m, h, 45f, 0.62f, 0.3f);
+            else if (variant == 1) AddLeaf(m, h, 90f, 0.56f, 0.36f);
+            else if (variant == 2) AddLeaf(m, h, -45f, 0.6f, 0.34f);
+            m.ShadeFoot(0.32f, StoneFootShade);
+            return m.Create("StoneBlock" + variant);
+        }
+
+        /// <summary>Carved leaf on the block top: groove ring (dark) around a raised body, a midrib and three pairs of veins.</summary>
+        private static void AddLeaf(MeshData m, float h, float yawDegrees, float length, float width)
+        {
+            const int N = 16;
+            float yaw = yawDegrees * Mathf.Deg2Rad;
+            var axis = new Vector3(Mathf.Cos(yaw), 0f, Mathf.Sin(yaw));
+            var across = new Vector3(-axis.z, 0f, axis.x);
+            Vector3 origin = axis * 0.03f;   // shifted a little to the tip: a short stem fits below the leaf
+            var pts = new Vector3[N];
+            for (int i = 0; i < N; i++)
+            {
+                // Two sides from the base (t = 0) to the tip (t = 1): half-width ~ sin(πt)^0.75, the tip a little pointed.
+                int k = i < N / 2 ? i : N - i;
+                float t = (float)k / (N / 2);
+                float half = width * 0.5f * Mathf.Pow(Mathf.Sin(Mathf.PI * Mathf.Clamp01(t * 0.92f + 0.04f)), 0.75f);
+                float sideSign = i < N / 2 ? 1f : -1f;
+                pts[i] = origin + axis * ((t - 0.5f) * length) + across * (half * sideSign);
+            }
+            float yRing = h + 0.002f, yBody = h + LeafRaise;
+            Color body = LeafBody, groove = LeafGroove, rib = LeafRib;
+            Vector3 centre = Vector3.zero;
+            for (int i = 0; i < N; i++) centre += pts[i];
+            centre /= N;
+            for (int i = 0; i < N; i++)
+            {
+                Vector3 p0 = pts[i], p1 = pts[(i + 1) % N];
+                Vector3 n0 = Outward(pts, i, centre), n1 = Outward(pts, (i + 1) % N, centre);
+                Vector3 q0 = p0 + n0 * LeafGrooveWidth, q1 = p1 + n1 * LeafGrooveWidth;
+                // Groove ring on the top, wall of the raised body, body fan.
+                m.Quad(Y(q0, yRing), Y(q1, yRing), Y(p1, yRing), Y(p0, yRing), Vector3.up, groove);
+                Vector3 wallOut = (n0 + n1).normalized;
+                m.Quad(Y(p0, yRing), Y(p1, yRing), Y(p1, yBody), Y(p0, yBody), wallOut, groove);
+                m.FlatTri(Y(centre, yBody), Y(p0, yBody), Y(p1, yBody), Vector3.up, body, StoneTopGloss);
+            }
+            // Midrib from the stem to near the tip, veins from it towards the edges.
+            float yLine = yBody + 0.002f;
+            Vector3 baseP = origin - axis * (length * 0.5f + 0.06f), tipP = origin + axis * (length * 0.36f);
+            Strip(m, baseP, tipP, LeafRibWidth, yLine, rib, yRing);
+            for (int v = 0; v < 3; v++)
+            {
+                float t = -0.22f + v * 0.2f;
+                Vector3 from = origin + axis * (t * length);
+                for (int s = -1; s <= 1; s += 2)
+                {
+                    Vector3 to = from + axis * (length * 0.13f) + across * (s * width * (0.34f - v * 0.05f));
+                    Strip(m, from, to, LeafRibWidth * 0.75f, yLine, rib, yLine);
+                }
+            }
+        }
+
+        private static Vector3 Outward(Vector3[] pts, int i, Vector3 centre)
+        {
+            Vector3 a = pts[(i + pts.Length - 1) % pts.Length], b = pts[(i + 1) % pts.Length];
+            Vector3 tangent = (b - a).normalized;
+            var n = new Vector3(tangent.z, 0f, -tangent.x);
+            if (Vector3.Dot(n, pts[i] - centre) < 0f) n = -n;
+            return n;
+        }
+
+        /// <summary>Flat upward strip from <paramref name="a"/> to <paramref name="b"/>; its start may sit lower (the stem on the stone).</summary>
+        private static void Strip(MeshData m, Vector3 a, Vector3 b, float width, float y, Color colour, float yStart)
+        {
+            Vector3 d = (b - a).normalized;
+            var side = new Vector3(-d.z, 0f, d.x) * (width * 0.5f);
+            m.Quad(Y(a - side, yStart), Y(a + side, yStart), Y(b + side, y), Y(b - side, y), Vector3.up, colour);
+        }
+
+        private static Vector3 Y(Vector3 p, float y) => new Vector3(p.x, y, p.z);
+
+        /// <summary>One horizontal ring of a rounded block: inset from the outline, height, upward share of the normal, colour (sRGB).</summary>
+        private readonly struct BlockRing
+        {
+            public readonly float Inset, Y, Up;
+            public readonly Color Colour;
+
+            public BlockRing(float inset, float y, float up, Color colour)
+            {
+                Inset = inset;
+                Y = y;
+                Up = up;
+                Colour = colour;
+            }
+        }
+
+        /// <summary>
+        /// Rounded box with smooth normals: a rounded-square outline (half size, corner radius, segments per corner) swept through
+        /// <paramref name="rings"/> (bottom → top; the last ring closes with a fan at the top). Corner arcs are multiplied by
+        /// <paramref name="cornerShade"/> (crate posts). Vertex alpha = <paramref name="topGloss"/> on the top fan and the upper rings.
+        /// </summary>
+        private static void AddRoundedBlock(MeshData m, float half, float cornerRadius, int cornerSegments, BlockRing[] rings, float cornerShade,
+            Color topColour, float topGloss)
+        {
+            int perCorner = cornerSegments + 1, count = perCorner * 4;
+            var dirs = new Vector2[count];
+            var centres = new Vector2[count];
+            var shade = new float[count];
+            float inner = half - cornerRadius;
+            for (int q = 0; q < 4; q++)
+            {
+                var cc = new Vector2(q == 0 || q == 3 ? inner : -inner, q < 2 ? inner : -inner);
+                for (int k = 0; k <= cornerSegments; k++)
+                {
+                    float a = (q * 90f + k * 90f / cornerSegments) * Mathf.Deg2Rad;
+                    int i = q * perCorner + k;
+                    dirs[i] = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    centres[i] = cc;
+                    shade[i] = k > 0 && k < cornerSegments ? cornerShade : 1f;
+                }
+            }
+            int first = m.Verts.Count;
+            for (int r = 0; r < rings.Length; r++)
+            {
+                BlockRing ring = rings[r];
+                for (int i = 0; i < count; i++)
+                {
+                    Vector2 p = centres[i] + dirs[i] * (cornerRadius - ring.Inset);
+                    float up = ring.Up, horizontal = Mathf.Sqrt(Mathf.Max(0f, 1f - up * up));
+                    var n = new Vector3(dirs[i].x * horizontal, up, dirs[i].y * horizontal);
+                    Color c = ring.Colour * shade[i];
+                    c = c.linear;
+                    c.a = ring.Up > 0.8f ? topGloss : 0f;
+                    m.Add(new Vector3(p.x, ring.Y, p.y), n.normalized, c);
+                }
+            }
+            for (int r = 0; r + 1 < rings.Length; r++)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    int j = (i + 1) % count;
+                    int a = first + r * count + i, b = first + r * count + j, c = a + count, d = b + count;
+                    m.Tri(a, b, d);
+                    m.Tri(a, d, c);
+                }
+            }
+            Color topLinear = topColour.linear;
+            topLinear.a = topGloss;
+            int centre = m.Add(new Vector3(0f, rings[rings.Length - 1].Y, 0f), Vector3.up, topLinear);
+            int last = first + (rings.Length - 1) * count;
+            for (int i = 0; i < count; i++) m.Tri(centre, last + i, last + (i + 1) % count);
         }
 
         public static Mesh BuildBasket()

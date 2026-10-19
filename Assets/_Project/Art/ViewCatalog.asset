@@ -69,6 +69,11 @@ MonoBehaviour:
   - {fileID: 4300000, guid: e76d2d73fdf2c28478504751c688ab30, type: 2}
   - {fileID: 4300000, guid: 0ebb81f9e2d7fae46a60d6b687614676, type: 2}
   ObstacleProp: {fileID: 2100000, guid: e6d114ebfcfac5a4cb0453db79ffb424, type: 2}
+  WallBlockVariants:
+  - {fileID: 4300000, guid: 684e5377a8bad6d47a8e276bdb13ff4b, type: 2}
+  - {fileID: 4300000, guid: 36d3393365cbd3e4da0cf924d4502d4f, type: 2}
+  - {fileID: 4300000, guid: 9e3df3207da643e418ade4829782d2e2, type: 2}
+  - {fileID: 4300000, guid: 50149f7b0dbbc564fbbb91e86a994e74, type: 2}
   ObstaclePropMaxCells: 3
   ObstacleStoneEvery: 4
   AcornPrefab: {fileID: 5887361116785313830, guid: 1abf562ef1acaf546b65554f5215ee40, type: 3}
@@ -88,7 +93,7 @@ MonoBehaviour:
   FogFollowSharpness: 6
   ProjectilePoolPrewarm: 64
   ProjectileHeight: 0.8
-  WallHeight: 1.2
+  WallHeight: 0.9
   WaterHeight: -0.1
   BankOverlap: 0.03
   BushSeeThroughRadius: 2.5
@@ -118,6 +123,16 @@ MonoBehaviour:
     WaterShoreWidth: 0.42
     BankTop: {r: 0.7254902, g: 0.5411765, b: 0.36862746, a: 1}
     BankFoot: {r: 0.43137255, g: 0.30588236, b: 0.20392157, a: 1}
+    PondRimWidth: 0.15
+    PondRimHeight: 0.07
+    PondCornerRadius: 0.9
+    PondPlankLength: 0.17
+    PondPlankLight: {r: 0.78431374, g: 0.50980395, b: 0.28235295, a: 1}
+    PondPlankDark: {r: 0.6901961, g: 0.42352942, b: 0.22745098, a: 1}
+    PondPlankSeam: {r: 0.41568628, g: 0.2509804, b: 0.13333334, a: 1}
+    PondRimSide: {r: 0.6039216, g: 0.36862746, b: 0.19607843, a: 1}
+    PondShoreMax: 0.6
+    WallBlocksSeparate: 1
     ShadowTexelsPerCell: 8
     ShadowStrength: 0.9
     ShadowSoftness: 0.15
