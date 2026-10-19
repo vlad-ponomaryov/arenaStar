@@ -9,15 +9,17 @@
 Сторонних ассетов нет. Временный арт — примитивы Unity (капсулы, кубы, сферы, цилиндры, плоскости), материалы и префабы
 генерируются кодом (`Arena.Editor.Art.ViewAssetBuilder`). Звуки этапа 2 генерируются процедурно в коде (D-028).
 
-## Проверенные источники (ещё не используются, A0, 2026-10-19; подробно — `Docs/Art-Spec.md` §5–6)
+## Проверенные источники (ещё не используются; A0 и проверка R0, 2026-10-19; решения человека Q-019…Q-021; подробно — `Docs/Art-Spec.md` §5–6)
 
 | Источник | Лицензия / условия | Можно ли в игру | Условие |
 | --- | --- | --- | --- |
-| Google Flow (изображения Nano Banana/Imagen) | Условия Google, ред. 30.07.2026 (https://policies.google.com/terms) + Generative AI Prohibited Use Policy, ред. 17.12.2024 | Коммерция не запрещена, владение Google не заявляет; авторское право на ИИ-картинки не гарантировано; 18+ | Q-019; исходник и промпт — `Art/Source/Flow/…`, строка в таблице на каждый файл |
-| Шрифт Nunito | SIL OFL 1.1 | Да | скачивание вне реестра Unity — Q-020 |
-| Kenney (kenney.nl) | CC0 | Да, атрибуция не нужна | скачивание — Q-021 |
-| Quaternius, Universal Animation Library (бесплатная часть) | CC0 | Да | скачивание — Q-021 |
-| TRELLIS.2 (Microsoft), модель image-to-3D | MIT | Да (результат генерации) | онлайн-демо/скачивание — Q-021 |
+| Google Flow (изображения Nano Banana/Imagen) | Условия Google, действуют с 30.07.2026 (https://policies.google.com/terms) + Generative AI Prohibited Use Policy, ред. 17.12.2024; справка Flow (https://support.google.com/labs/answer/16353333): 18+, подписка Google AI Plus/Pro/Ultra или Workspace | **Да — решение человека Q-019 (19.10).** Коммерция не запрещена, владение Google не заявляет; авторское право на ИИ-картинки не гарантировано | аккаунт пользователя, агент ничего не покупает; видимый водяной знак выключен; исходник и промпт — `Art/Source/Flow/…`; строка в таблице на каждый файл; портреты и иконки бойцов — не из Flow |
+| Шрифт Nunito | SIL OFL 1.1, «Copyright 2014 The Nunito Project Authors», без зарезервированного имени; https://github.com/google/fonts/tree/main/ofl/nunito | **Да — Q-020** | статические TTF (Bold/ExtraBold), `OFL.txt` рядом со шрифтом; перед релизом — текст лицензий в игре |
+| Kenney (kenney.nl) | CC0 (https://kenney.nl/support), атрибуция не нужна, логотип Kenney не использовать | Да — по критерию ТЗ §6.4 (Q-021): окружение и декор, не бойцы | строка на набор: версия/дата, URL, какие файлы; файл лицензии из архива — рядом |
+| Quaternius, Universal Animation Library (Standard, бесплатно) | CC0 (https://quaternius.com/packs/universalanimationlibrary.html) | Да — по критерию ТЗ §6.4 (Q-021): анимации, если процедурные хуже | то же |
+| Blender (инструмент, не ассет) | GPL; результат работы — наш | Да — как инструмент в фоне (Q-021, ТЗ §6.4) | официальный сайт blender.org; скрипты — `Art/Source/Blender/` |
+| fontTools (инструмент, если нужен для статических начертаний Nunito) | MIT | Да — как инструмент | только чтобы получить начертания из `Nunito[wght].ttf` (OFL это разрешает) |
+| TRELLIS.2 (Microsoft), модель image-to-3D | MIT (https://huggingface.co/microsoft/TRELLIS.2-4B) | Не в этапе A: GPU ≥ 24 ГБ + Linux, онлайн-демо — отправка картинок в интернет, PBR-стиль не совпадает с toon | пересмотреть по ТЗ §6.4 |
 | Hunyuan3D 2.x (Tencent) | Tencent Hunyuan Community License — не действует в ЕС, Великобритании, Южной Корее | **Нет** (рынок — весь мир) | — |
 | Poly Pizza | смесь CC0 и CC-BY | Только после проверки каждой модели | — |
 
