@@ -1,0 +1,31 @@
+{
+  "id": "pix",
+  "comment": "Spike image-to-3D (Docs/Spike-ImageTo3D.md). Pixel coordinates refer to the reference images; joints are given in the front reference and pushed into the mesh by ray casts along +Y ('front' = first solid hit, 'back' = last solid hit).",
+  "frontAxis": "-Y",
+  "voxelSize": 0.006,
+  "minIslandFraction": 0.002,
+  "views": {
+    "front": { "image": "Art/Source/Flow/2026-10-19_pix-3dref/001.png", "bbox": [141, 64, 832, 982] },
+    "back":  { "image": "Art/Source/Flow/2026-10-19_pix-3dref/004.png", "bbox": [1000, 89, 1372, 676], "weight": 0.7 },
+    "left":  { "image": "Art/Source/Flow/2026-10-19_pix-3dref/004.png", "bbox": [701, 88, 1002, 676], "weight": 0.35 }
+  },
+  "palette": ["#F07A2A", "#FFF3E0", "#4A2A1A", "#FFD23F", "#2E2A2A", "#E89A8C", "#6B3A2A", "#FFFFFF"],
+  "bones": [
+    { "name": "Root", "parent": null,   "head": [512, 982, "front"], "tail": [512, 800, "front"] },
+    { "name": "Body", "parent": "Root", "head": [512, 800, "front"], "tail": [512, 520, "front"] },
+    { "name": "Head", "parent": "Body", "head": [512, 520, "front"], "tail": [512, 160, "front"] },
+    { "name": "ArmR", "parent": "Body", "head": [430, 545, "front"], "tail": [265, 690, "front"] },
+    { "name": "ArmL", "parent": "Body", "head": [595, 545, "front"], "tail": [775, 690, "front"] },
+    { "name": "LegR", "parent": "Root", "head": [465, 800, "front"], "tail": [450, 960, "front"] },
+    { "name": "LegL", "parent": "Root", "head": [560, 800, "front"], "tail": [575, 960, "front"] },
+    { "name": "Tail", "parent": "Body", "head": [420, 830, "back"],  "tail": [200, 520, "back"] }
+  ],
+  "testPose": {
+    "ArmL": [0, -55, 0],
+    "ArmR": [0, 0, 0],
+    "Head": [12, 0, 15],
+    "Tail": [0, 0, 35],
+    "LegL": [-25, 0, 0],
+    "LegR": [25, 0, 0]
+  }
+}

@@ -1406,3 +1406,13 @@ EventSystem, раннер со ссылками на SO). Карта, бойцы
   вокруг карты (`FloorPrefab` = MeshFilter + рендерер, меш `BuildMeadow` в `MapView`), у края арены темнее (0,6), последние 6 клеток
   тают к цвету фона; фон камеры Match — `#4F7A45`. Параметры — `MapMeshStyle` в `ViewCatalog.MapStyle` (сид — `ViewAssetBuilder`).
   Тень-кружок — `#22301E` α 0,4. Кусты, вода, ящики — пока URP Lit (A.3b).
+- D-124 (спайк image-to-3D, 19.10) — **TRELLIS.2 → Blender как кандидат на основной путь тел бойцов; Blender — инструмент конвейера.**
+  Сравнение на Пиксе (`Docs/Spike-ImageTo3D.md`, `Docs/Art/spike-image-to-3d.png`): TRELLIS.2 (MIT) — объёмная форма, как на
+  концепте; Stable Fast 3D — плоский рельеф и регистрация у Stability для коммерции (нет); TripoSG/Hi3DGen/Step1X/Direct3D-S2/TripoSR
+  не запущены (лимиты ZeroGPU ≈ 3 запуска/сутки без входа, паузы и ошибки Spaces); Hunyuan3D — нет (лицензия). Генераторам
+  отдаём RGBA (свой ключ по белому) — их NC-удаление фона (RMBG-2.0) не работает; у TRELLIS.2 берём только форму, цвет делаем сами
+  (снижает зависимость от NC-кода `nvdiffrast` в их запекании PBR). Blender 5.2.2 LTS (GPL, portable zip blender.org, SHA-256
+  сверен) — `C:\Tools\Blender\`, только в фоне через `Tools/blender.ps1`; скрипты `Tools/Blender/prepare_fighter.py` (ремеш 0,006 →
+  цвет из видов Flow с маской контура и палитрой → децимация → арматура FighterBone из `fighters/<id>.json` → автовеса → FBX/GLB)
+  и `render_preview.py`. Сборщики Unity Blender не требуют: в проект попадёт только FBX. Рекомендация — путь (а); переход — после
+  импорта FBX в Unity и скриншотов ArtCapture; вопросы человеку — Q-024. Процедурный A.1b остаётся запасным.
