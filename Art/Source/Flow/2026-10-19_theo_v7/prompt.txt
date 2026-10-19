@@ -1,0 +1,40 @@
+Theo (Тео) v7 — v5 в красно-золотой расцветке, 4 варианта. Google Flow, проект «Arena», Nano Banana 2.1; условия — как в
+../2026-10-19_tex-grass/prompt.md (Q-019, D-111). База — ../2026-10-19_theo_v5/theo_v5.png. В игру не идёт. Решение — D-137.
+
+РЕШЕНИЕ ПОЛЬЗОВАТЕЛЯ (19.10): v6 хуже, берём v5 — костюм, детализация и пушка как в v5; меняем только расцветку на
+красно-золотую, «больше красного», с серыми частями брони, с той же подсветкой. Красный выбран сознательно, хотя совпадает с
+цветом команды (D-115): читаемость команды — кольца и полоски HP, проверить в бою. Только палитра: без круглого светильника в
+груди, без шлема-маски/лицевой пластины; силуэт v5, эмблема-комета на орбите, визор-монокль, гарнитура сохранены.
+
+СПОСОБ: редактирование изображения v5 в редакторе Flow (в истории правок выбран v5, «Что вы хотите изменить?»), каждый вариант —
+отдельная правка v5, по 1 генерации, без перегенераций. Сгенерировано 19.10 ≈18:20–18:23; скачано 1K (JPEG 896×1200), сохранено
+в PNG без изменения пикселей (Tools/art_theo_v7_sheet.py, лист — Tools/out/art/theo_v7/sheet.png). Водяного знака не видно, SynthID — есть.
+
+ОЦЕНКА: во всех 4 лицо, поза, бластер, костюм и детали v5 сохранены 1:1, свечение тёплое оранжевое, нагрудного «реактора» и
+маски нет.
+1 — красный основной, золотые канты, графитовый поддоспешник/суставы; самый «красный», чистый.
+2 — красный + золото поровну: золотые наплечники, наручи, перчатки, наколенники; поддоспешник ног тоже стал красным (серого меньше).
+3 — вишня/малина + золото + сталь; оттенок уходит в розово-малиновый, меньше «героический».
+4 — сталь основной, красные грудь/наплечники/наколенники, золото; бластер стальной без красных панелей (модель не добавила).
+Риск: 1–3 почти целиком красные — в бою сливаются с цветом красной команды сильнее, чем 4.
+
+ОБЩИЙ ХВОСТ ВСЕХ ЗАПРОСОВ (дописан после текста варианта):
+
+Keep the same bright warm orange-gold glow on all energy cells, light strips, the visor and the boot soles. Keep everything else exactly the same: same boy, face, hair, pose, the same blaster shape and size, the same armor design and all its details, orange monocle visor, headset with microphone, gold comet on orange orbit ring emblem, belt, boots, background and 3D style. No cape, no helmet, no face plate, no round glowing light on the chest.
+
+ЗАПРОС 1 (точно, как отправлен, к v5; + общий хвост):
+
+Change only the color scheme of the armor and the blaster: main armor plates and the blaster body in glossy rich red, all trim, edges and small details in polished gold, joints, knees, gloves and the undersuit in dark graphite grey. Much more red than before.
+
+ЗАПРОС 2 (точно, как отправлен, к v5; + общий хвост):
+
+Change only the color scheme of the armor and the blaster: an equal mix of glossy red and polished gold. Chest plate, belly, thighs and boots in glossy red; shoulder pads, forearm gauntlets, knee pads and trim in polished gold; small grey metal inserts on the joints and the undersuit in medium grey. The blaster in red with gold parts and grey details.
+
+ЗАПРОС 3 (точно, как отправлен, к v5; + общий хвост):
+
+Change only the color scheme of the armor and the blaster: main armor plates and the blaster body in deep glossy cherry crimson (dark raspberry red), trim and details in polished gold, joints, inserts and the undersuit in cool steel grey.
+
+ЗАПРОС 4 (точно, как отправлен, к v5; + общий хвост):
+
+Change only the color scheme of the armor and the blaster: main armor plates in polished steel grey metal, with bold glossy red panels on the chest, shoulders, forearms and shins, and polished gold accents on the edges and trim; dark grey undersuit. The blaster in steel grey with red panels and gold trim.
+
