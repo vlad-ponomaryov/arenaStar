@@ -55,5 +55,40 @@ namespace Arena.Gameplay.View
 
         [Tooltip("Width of the darker border of the meadow along the arena edge, world units.")]
         [Min(0f)] public float MeadowInnerWidth;
+
+        [Header("Water (A.3b)")]
+        [Tooltip("Water sheet vertices per cell side (≥ 1): finer = smoother shore foam.")]
+        [Min(1)] public int WaterSubdivisions;
+
+        [Tooltip("Distance from the shore over which the shore factor (water vertex alpha: foam, shallow colour) fades out, world units.")]
+        [Min(0.01f)] public float WaterShoreWidth;
+
+        [Tooltip("Bank of the sunken pond (walls material: planks) at the ground line.")]
+        public Color BankTop;
+
+        [Tooltip("Bank colour at the water line (wet, darker).")]
+        public Color BankFoot;
+
+        [Header("Wall shadows on the ground (A.3b, MapShadowMask)")]
+        [Tooltip("Shadow mask texels per cell side (bilinear: more = sharper shadow edges).")]
+        [Min(1)] public int ShadowTexelsPerCell;
+
+        [Tooltip("Strength of the soft wall shadows on the floor, meadow and water (0 = off).")]
+        [Range(0f, 1f)] public float ShadowStrength;
+
+        [Tooltip("Softness of the shadow's height test (fraction of the caster height).")]
+        [Range(0.02f, 0.5f)] public float ShadowSoftness;
+
+        [Tooltip("Shadow fall per unit of caster height in the camera frame: x = to the screen right, y = towards the viewer (MatchLightRig).")]
+        public Vector2 ShadowFall;
+
+        [Tooltip("Relative height of a bush as a shadow caster (0 = casts nothing, 1 = like a wall).")]
+        [Range(0f, 1f)] public float BushShadowHeight;
+
+        [Tooltip("Relative height of a breakable crate as a shadow caster.")]
+        [Range(0f, 1f)] public float CrateShadowHeight;
+
+        [Tooltip("Relative height of a berry box (round basket) as a shadow caster; 0 = only its own foot shade.")]
+        [Range(0f, 1f)] public float BoxShadowHeight;
     }
 }

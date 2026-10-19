@@ -30,6 +30,10 @@ MonoBehaviour:
   DomePrefab: {fileID: 4360825284377998748, guid: e5f2b3ddae2469f4bb74a4081a16a266, type: 3}
   BreakableWallPrefab: {fileID: 5423689921568914059, guid: b8d5c855740b6cc4690f7fb09b3865b2, type: 3}
   BushPrefab: {fileID: 3101755314425890175, guid: 0fc88e0671fc8fe4e8580a307ec14816, type: 3}
+  BushVariants:
+  - {fileID: 4300000, guid: c43d3d39d932bc64f8d886b59a0aa53e, type: 2}
+  - {fileID: 4300000, guid: 416f9f5718dd8d549a91df73e0e4aa11, type: 2}
+  - {fileID: 4300000, guid: f433d0e0a47870b4888a719a70fb356d, type: 2}
   AcornPrefab: {fileID: 5887361116785313830, guid: 1abf562ef1acaf546b65554f5215ee40, type: 3}
   AcornGoldenPrefab: {fileID: 2117828572120719844, guid: 0d01c01937945b34a97395fa4ba43e46, type: 3}
   HollowPrefab: {fileID: 8922491895689300978, guid: 0d0120281a1417341837354039b6d408, type: 3}
@@ -48,7 +52,8 @@ MonoBehaviour:
   ProjectilePoolPrewarm: 64
   ProjectileHeight: 0.8
   WallHeight: 1.2
-  WaterHeight: 0.02
+  WaterHeight: -0.1
+  BankOverlap: 0.03
   BushSeeThroughRadius: 2.5
   MapStyle:
     WallBevel: 0.08
@@ -66,6 +71,17 @@ MonoBehaviour:
     MeadowEdge: {r: 0.7372549, g: 0.76862746, b: 0.8, a: 1}
     MeadowInner: {r: 0.78431374, g: 0.8235294, b: 0.78431374, a: 1}
     MeadowInnerWidth: 0.6
+    WaterSubdivisions: 4
+    WaterShoreWidth: 0.42
+    BankTop: {r: 0.7254902, g: 0.5411765, b: 0.36862746, a: 1}
+    BankFoot: {r: 0.43137255, g: 0.30588236, b: 0.20392157, a: 1}
+    ShadowTexelsPerCell: 4
+    ShadowStrength: 0.6
+    ShadowSoftness: 0.12
+    ShadowFall: {x: 0.55, y: 0.4}
+    BushShadowHeight: 0
+    CrateShadowHeight: 0.8
+    BoxShadowHeight: 0
   TeamAlly: {fileID: 2100000, guid: 89d46a19bb4786245b570381bc47fa54, type: 2}
   TeamEnemy: {fileID: 2100000, guid: c8caa291b8137274eae2ca5c5297b215, type: 2}
   TeamEnemyAlt: {fileID: 2100000, guid: 992c1e09d9da09343a18aef4d9697214, type: 2}

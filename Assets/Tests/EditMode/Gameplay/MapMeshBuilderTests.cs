@@ -6,7 +6,8 @@ using UnityEngine;
 
 namespace Arena.Tests.EditMode.Gameplay
 {
-    /// <summary>Map meshes (A.3a, Art-Spec §2.1): chamfered walls with top/side colours, floor occlusion near walls, meadow frame.</summary>
+    /// <summary>Map meshes (A.3a, A.3b, Art-Spec §2.1): chamfered walls with top/side colours, floor occlusion near walls, meadow frame,
+    /// water with a shore factor, pond banks, the wall shadow mask.</summary>
     public sealed class MapMeshBuilderTests
     {
         private const float Height = 1.2f;
@@ -28,7 +29,18 @@ namespace Arena.Tests.EditMode.Gameplay
             MeadowFade = 4f,
             MeadowEdge = new Color(0.7f, 0.75f, 0.8f, 1f),
             MeadowInner = new Color(0.8f, 0.85f, 0.8f, 1f),
-            MeadowInnerWidth = 0.5f
+            MeadowInnerWidth = 0.5f,
+            WaterSubdivisions = 4,
+            WaterShoreWidth = 0.4f,
+            BankTop = new Color(0.7f, 0.55f, 0.4f, 1f),
+            BankFoot = new Color(0.4f, 0.3f, 0.2f, 1f),
+            ShadowTexelsPerCell = 4,
+            ShadowStrength = 0.6f,
+            ShadowSoftness = 0.1f,
+            ShadowFall = new Vector2(0.5f, 0.4f),
+            BushShadowHeight = 0.5f,
+            CrateShadowHeight = 0.8f,
+            BoxShadowHeight = 0.4f
         };
 
         private static TileGrid Grid(params string[] rows) => MapConverter.FromRows("m", rows).InitialGrid;
@@ -150,7 +162,8 @@ namespace Arena.Tests.EditMode.Gameplay
             // Two walls along the south-west map edge: the shared side between them has no face; the map edge has sides
             // (the meadow is visible around the arena).
             Mesh mesh = Walls(Grid("...", "...", "##."));
-            Mesh water = MapMeshBuilder.BuildSheet(Grid("...", "...", "##."), TileType.Water, 0.02f, "water");
+            MapMeshStyle style = Style();
+            Mesh water = MapMeshBuilder.BuildSheet(Grid("...", "...", "##."), TileType.Water, 0.02f, in style, "water");
             try
             {
                 Vector3[] v = mesh.vertices;
@@ -266,7 +279,8 @@ namespace Arena.Tests.EditMode.Gameplay
         [Test]
         public void TopFaces_PointUp()
         {
-            Mesh mesh = MapMeshBuilder.BuildSheet(Grid("~"), TileType.Water, 0.02f, "water");
+            MapMeshStyle style = Style();
+            Mesh mesh = MapMeshBuilder.BuildSheet(Grid("~"), TileType.Water, 0.02f, in style, "water");
             try
             {
                 Vector3[] v = mesh.vertices;
@@ -279,6 +293,103 @@ namespace Arena.Tests.EditMode.Gameplay
             {
                 Object.DestroyImmediate(mesh);
             }
+        }
+
+        [Test]
+        public void WaterSheet_ShoreFactor_IsOneAtTheShore_ZeroInTheMiddle()
+        {
+            MapMeshStyle style = Style();
+            Mesh mesh = MapMeshBuilder.BuildSheet(Grid(".....", ".~~~.", ".~~~.", ".~~~.", "....."), TileType.Water, -0.1f, in style, "water");
+            try
+            {
+                Vector3[] v = mesh.vertices;
+                Color[] c = mesh.colors;
+                Assert.AreEqual(9f, UpArea(mesh), 1e-4f, "nine water cells");
+                bool shore = false, middle = false;
+                for (int i = 0; i < v.Length; i++)
+                {
+                    Assert.AreEqual(-0.1f, v[i].y, 1e-6f);
+                    Assert.AreEqual(1f, c[i].r, 1e-6f, "rgb white");
+                    if (Mathf.Abs(v[i].x - 1f) < 1e-5f && Mathf.Abs(v[i].z - 2.5f) < 1e-5f) { Assert.AreEqual(1f, c[i].a, 1e-5f, "shore"); shore = true; }
+                    if (Mathf.Abs(v[i].x - 2.5f) < 1e-5f && Mathf.Abs(v[i].z - 2.5f) < 1e-5f) { Assert.AreEqual(0f, c[i].a, 1e-5f, "middle"); middle = true; }
+                }
+                Assert.IsTrue(shore && middle);
+            }
+            finally
+            {
+                Object.DestroyImmediate(mesh);
+            }
+        }
+
+        [Test]
+        public void SunkenPond_HasNoFloor_AndBanksFaceTheWater()
+        {
+            MapMeshStyle style = Style();
+            TileGrid grid = Grid("....", ".~~.", "....");
+            Mesh floor = MapMeshBuilder.BuildFloor(in grid, TileType.Wall, TileType.Water, in style, "floor");
+            Mesh banks = MapMeshBuilder.BuildBanks(in grid, TileType.Water, -0.13f, in style, "banks");
+            Mesh none = MapMeshBuilder.BuildBanks(in grid, TileType.Water, 0.02f, in style, "none");
+            try
+            {
+                Assert.AreEqual(10f, UpArea(floor), 1e-4f, "12 cells minus 2 water cells");
+                Assert.AreEqual(0, none.vertexCount, "water on top of the floor needs no banks");
+                Vector3[] v = banks.vertices;
+                Vector3[] n = banks.normals;
+                int[] t = banks.triangles;
+                Assert.AreEqual(6 * 2 * 3, t.Length, "six open sides around two cells, two triangles each");
+                for (int i = 0; i < t.Length; i += 3)
+                {
+                    Vector3 a = v[t[i]], b = v[t[i + 1]], c = v[t[i + 2]];
+                    Vector3 face = Vector3.Cross(b - a, c - a).normalized;
+                    Assert.AreEqual(1f, Vector3.Dot(face, n[t[i]]), 1e-4f, "winding matches the normal");
+                    Vector3 centre = (a + b + c) / 3f;
+                    var water = new Vector3(2f, centre.y, 1.5f);
+                    Assert.Greater(Vector3.Dot(water - centre, face), 0f, "faces into the pond");
+                    Assert.LessOrEqual(Mathf.Max(a.y, Mathf.Max(b.y, c.y)), 1e-6f);
+                    Assert.GreaterOrEqual(Mathf.Min(a.y, Mathf.Min(b.y, c.y)), -0.13f - 1e-6f);
+                }
+                Color[] col = banks.colors;
+                for (int i = 0; i < v.Length; i++)
+                    AssertColor(v[i].y > -0.01f ? style.BankTop.linear : style.BankFoot.linear, col[i], "bank");
+            }
+            finally
+            {
+                Object.DestroyImmediate(floor);
+                Object.DestroyImmediate(banks);
+                Object.DestroyImmediate(none);
+            }
+        }
+
+        [Test]
+        public void ShadowMask_WallsFull_LowCastersLower_PaddingEmpty()
+        {
+            MapMeshStyle style = Style();
+            TileGrid grid = Grid("#\"", "%.");
+            byte[] mask = MapShadowMask.Build(in grid, in style, out int w, out int h);
+            int k = style.ShadowTexelsPerCell, pad = MapShadowMask.PaddingCells;
+            Assert.AreEqual((2 + 2 * pad) * k, w);
+            Assert.AreEqual((2 + 2 * pad) * k, h);
+            byte At(int c, int r) => mask[((r + pad) * k + k / 2) * w + (c + pad) * k + k / 2];
+            // Rows read from the top: wall + bush is row 1, crate + floor is row 0.
+            Assert.AreEqual(255, At(0, 1), "wall");
+            Assert.AreEqual(MapShadowMask.CasterValue(TileType.Bush, in style), At(1, 1), "bush");
+            Assert.AreEqual(MapShadowMask.CasterValue(TileType.BreakableWall, in style), At(0, 0), "crate");
+            Assert.AreEqual(0, At(1, 0), "floor");
+            Assert.Less(At(1, 1), At(0, 0), "a bush is lower than a crate");
+            Assert.Greater(At(1, 1), 0);
+            for (int x = 0; x < w; x++) Assert.AreEqual(0, mask[x], "padding row");
+        }
+
+        [Test]
+        public void ShadowReach_TurnsWithTheCamera_ShadowsFallRightAndTowardsTheViewer()
+        {
+            // Team 0 looks along +Z: screen right = +X, the viewer is at −Z. The reach points from the shadow to its caster.
+            Vector2 r0 = MatchLightRig.ShadowReach(0f, new Vector2(0.5f, 0.4f), 2f);
+            Assert.AreEqual(-1f, r0.x, 1e-5f, "caster to the left of its shadow");
+            Assert.AreEqual(0.8f, r0.y, 1e-5f, "caster farther from the viewer than its shadow");
+            Vector2 r1 = MatchLightRig.ShadowReach(180f, new Vector2(0.5f, 0.4f), 2f);
+            Assert.AreEqual(-r0.x, r1.x, 1e-5f, "team 1 looks from the other side");
+            Assert.AreEqual(-r0.y, r1.y, 1e-5f);
         }
 
         private static void AssertColor(Color expected, Color actual, string what)

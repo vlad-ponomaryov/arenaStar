@@ -46,11 +46,14 @@ namespace Arena.Gameplay.View
         [Tooltip("Dome of a field area: sphere of diameter 1 (half under the ground); scaled to the area diameter. Its renderer gets the team's zone material.")]
         public GameObject DomePrefab;
 
-        [Tooltip("Breakable wall cube of 1 cell, pivot at the bottom centre.")]
+        [Tooltip("Breakable wall: a wooden crate of 1 cell (A.3b), pivot at the bottom centre.")]
         public GameObject BreakableWallPrefab;
 
-        [Tooltip("Low bush cube of 1 cell, pivot at the bottom centre (its renderer gets Bush / BushSeeThrough).")]
+        [Tooltip("Bush of 1 cell, pivot at the bottom centre: one MeshFilter + renderer (gets Bush / BushSeeThrough, D-024).")]
         public GameObject BushPrefab;
+
+        [Tooltip("Bush mesh variants (A.3b): MapView gives each bush cell one of them and a quarter turn (deterministic per cell).")]
+        public Mesh[] BushVariants;
 
         [Header("Acorns mode (Arena.Modes.AcornsModeView)")]
         [Tooltip("Normal acorn view, pivot at the centre.")]
@@ -108,8 +111,11 @@ namespace Arena.Gameplay.View
         [Tooltip("Height of the combined wall mesh, world units (match the breakable wall prefab).")]
         [Min(0f)] public float WallHeight;
 
-        [Tooltip("Height of the water sheet above the floor, world units.")]
-        [Min(0f)] public float WaterHeight;
+        [Tooltip("Height of the water sheet relative to the floor, world units; below 0 = a sunken pond with banks (A.3b).")]
+        public float WaterHeight;
+
+        [Tooltip("Banks of a sunken pond reach this far below the water sheet, world units (no gap at the waterline).")]
+        [Min(0f)] public float BankOverlap;
 
         [Tooltip("While the local fighter is in a bush, bushes within this radius (cells) turn see-through.")]
         [Min(0f)] public float BushSeeThroughRadius;

@@ -8,7 +8,7 @@ namespace Arena.Gameplay.View
     /// <summary>
     /// Builds combined meshes of the static map parts at match start (one mesh per material, D-014; Art-Spec §2.1, A.3a):
     /// walls as chamfered blocks with top/side vertex colours, the floor as a grid of cells with soft occlusion near walls, the
-    /// meadow frame around the arena, water cells as one flat sheet. Every mesh has vertex colours (linear; alpha = gloss 0) —
+    /// meadow frame around the arena, water cells as one sunken sheet with a shore factor and its banks (A.3b). Every mesh has vertex colours (linear; alpha = gloss 0) —
     /// meshes under <c>Arena/*</c> shaders need them. Coordinates per D-009: cell (c, r) spans world x ∈ [c, c+1], z ∈ [r, r+1].
     /// Allocates only here (load time), never per frame.
     /// </summary>
@@ -99,7 +99,14 @@ namespace Arena.Gameplay.View
         /// <paramref name="covered"/> (walls stand there), at height 0, normals up. Vertex colour darkens towards
         /// <see cref="MapMeshStyle.FloorOcclusionColor"/> near covered cells (soft contact shade, D-110: occlusion in vertices).
         /// </summary>
-        public static Mesh BuildFloor(in TileGrid grid, TileType covered, in MapMeshStyle style, string name)
+        public static Mesh BuildFloor(in TileGrid grid, TileType covered, in MapMeshStyle style, string name) =>
+            BuildFloor(in grid, covered, covered, in style, name);
+
+        /// <summary>
+        /// The floor as above, also without cells of <paramref name="hole"/> (A.3b: the sunken pond — the water sheet lies lower and
+        /// <see cref="BuildBanks"/> closes its sides). Occlusion comes only from <paramref name="covered"/>.
+        /// </summary>
+        public static Mesh BuildFloor(in TileGrid grid, TileType covered, TileType hole, in MapMeshStyle style, string name)
         {
             int sub = Mathf.Max(1, style.FloorSubdivisions);
             int vw = grid.Width * sub + 1, vh = grid.Height * sub + 1;
@@ -130,7 +137,8 @@ namespace Arena.Gameplay.View
             {
                 for (int c = 0; c < grid.Width; c++)
                 {
-                    if (grid.Get(c, r) == covered) continue;
+                    TileType tile = grid.Get(c, r);
+                    if (tile == covered || tile == hole) continue;
                     for (int sj = 0; sj < sub; sj++)
                     {
                         for (int si = 0; si < sub; si++)
@@ -184,22 +192,97 @@ namespace Arena.Gameplay.View
             return b.Create(name);
         }
 
-        /// <summary>One upward quad per cell of <paramref name="type"/> at <paramref name="height"/> (water sheet), white vertices.</summary>
-        public static Mesh BuildSheet(in TileGrid grid, TileType type, float height, string name)
+        /// <summary>
+        /// Water sheet (A.3b): <see cref="MapMeshStyle.WaterSubdivisions"/>² upward quads per cell of <paramref name="type"/> at
+        /// <paramref name="height"/>. Vertex rgb white; vertex alpha = shore factor for <c>Arena/Water</c>: 1 at a cell that is not
+        /// <paramref name="type"/> (or the map edge), fading smoothly to 0 at <see cref="MapMeshStyle.WaterShoreWidth"/>.
+        /// </summary>
+        public static Mesh BuildSheet(in TileGrid grid, TileType type, float height, in MapMeshStyle style, string name)
+        {
+            int sub = Mathf.Max(1, style.WaterSubdivisions);
+            float step = 1f / sub;
+            float width = Mathf.Max(0.01f, style.WaterShoreWidth);
+            int reach = Mathf.CeilToInt(width) + 1;
+            var verts = new List<Vector3>();
+            var colors = new List<Color>();
+            var tris = new List<int>();
+            for (int r = 0; r < grid.Height; r++)
+            {
+                for (int c = 0; c < grid.Width; c++)
+                {
+                    if (grid.Get(c, r) != type) continue;
+                    int first = verts.Count;
+                    for (int j = 0; j <= sub; j++)
+                    {
+                        for (int i = 0; i <= sub; i++)
+                        {
+                            float x = c + i * step, z = r + j * step;
+                            float d = DistanceToOther(in grid, x, z, type, reach);
+                            float t = 1f - Mathf.Clamp01(d / width);
+                            verts.Add(new Vector3(x, height, z));
+                            colors.Add(new Color(1f, 1f, 1f, t * t * (3f - 2f * t)));
+                        }
+                    }
+                    for (int j = 0; j < sub; j++)
+                    {
+                        for (int i = 0; i < sub; i++)
+                        {
+                            int v00 = first + j * (sub + 1) + i, v10 = v00 + 1, v01 = v00 + sub + 1, v11 = v01 + 1;
+                            // Clockwise seen from above (Unity front face up).
+                            tris.Add(v00); tris.Add(v01); tris.Add(v11);
+                            tris.Add(v00); tris.Add(v11); tris.Add(v10);
+                        }
+                    }
+                }
+            }
+            var normals = new List<Vector3>(verts.Count);
+            for (int k = 0; k < verts.Count; k++) normals.Add(Vector3.up);
+            return Create(name, verts, normals, colors, tris);
+        }
+
+        /// <summary>
+        /// Banks of a sunken pond (A.3b): along every side of a <paramref name="type"/> cell whose neighbour is not
+        /// <paramref name="type"/> (or the map edge), a vertical face from the ground (y = 0) down to <paramref name="bottom"/>, facing
+        /// into the water. Colours <see cref="MapMeshStyle.BankTop"/> → <see cref="MapMeshStyle.BankFoot"/> (linear, matte); drawn with
+        /// the wall material (planks on side faces). Empty if <paramref name="bottom"/> ≥ 0 (water on top of the floor).
+        /// </summary>
+        public static Mesh BuildBanks(in TileGrid grid, TileType type, float bottom, in MapMeshStyle style, string name)
         {
             var b = new Buffers();
-            var white = new Color(1f, 1f, 1f, 0f);
+            if (bottom >= 0f) return b.Create(name);
+            Color top = style.BankTop.linear, foot = style.BankFoot.linear;
             for (int r = 0; r < grid.Height; r++)
             {
                 for (int c = 0; c < grid.Width; c++)
                 {
                     if (grid.Get(c, r) != type) continue;
                     float x0 = c, x1 = c + 1f, z0 = r, z1 = r + 1f;
-                    b.AddTriangle(new Vector3(x0, height, z0), new Vector3(x0, height, z1), new Vector3(x1, height, z1), Vector3.up, white, white, white);
-                    b.AddTriangle(new Vector3(x0, height, z0), new Vector3(x1, height, z1), new Vector3(x1, height, z0), Vector3.up, white, white, white);
+                    if (!IsType(in grid, c, r - 1, type)) b.AddBank(new Vector3(x0, 0f, z0), new Vector3(x1, 0f, z0), bottom, Vector3.forward, top, foot);
+                    if (!IsType(in grid, c, r + 1, type)) b.AddBank(new Vector3(x0, 0f, z1), new Vector3(x1, 0f, z1), bottom, Vector3.back, top, foot);
+                    if (!IsType(in grid, c - 1, r, type)) b.AddBank(new Vector3(x0, 0f, z0), new Vector3(x0, 0f, z1), bottom, Vector3.right, top, foot);
+                    if (!IsType(in grid, c + 1, r, type)) b.AddBank(new Vector3(x1, 0f, z0), new Vector3(x1, 0f, z1), bottom, Vector3.left, top, foot);
                 }
             }
             return b.Create(name);
+        }
+
+        /// <summary>Distance in the XZ plane from (x, z) to the nearest cell that is not <paramref name="type"/> (out of the map counts).</summary>
+        private static float DistanceToOther(in TileGrid grid, float x, float z, TileType type, int reach)
+        {
+            int cx = Mathf.FloorToInt(x), cz = Mathf.FloorToInt(z);
+            float best = float.MaxValue;
+            for (int r = cz - reach; r <= cz + reach; r++)
+            {
+                for (int c = cx - reach; c <= cx + reach; c++)
+                {
+                    if (IsType(in grid, c, r, type)) continue;
+                    float dx = Mathf.Max(c - x, 0f, x - (c + 1f));
+                    float dz = Mathf.Max(r - z, 0f, z - (r + 1f));
+                    float d = Mathf.Sqrt(dx * dx + dz * dz);
+                    if (d < best) best = d;
+                }
+            }
+            return best;
         }
 
         /// <summary>Distance in the XZ plane from (x, z) to the nearest cell of <paramref name="type"/> within <paramref name="reach"/> cells.</summary>
@@ -292,6 +375,15 @@ namespace Arena.Gameplay.View
             {
                 AddTriangle(a, b, c, normal, ca, cb, cc);
                 AddTriangle(a, c, d, normal, ca, cc, cd);
+            }
+
+            /// <summary>Vertical face from the ground line a–b down to <paramref name="bottom"/>, facing <paramref name="inward"/>.</summary>
+            public void AddBank(Vector3 a, Vector3 b, float bottom, Vector3 inward, Color top, Color foot)
+            {
+                var ab = new Vector3(a.x, bottom, a.z);
+                var bb = new Vector3(b.x, bottom, b.z);
+                AddTriangle(a, b, bb, inward, top, top, foot);
+                AddTriangle(a, bb, ab, inward, top, foot, foot);
             }
 
             /// <summary>Vertical side from <paramref name="a"/> to <paramref name="b"/> on the ground up to <paramref name="top"/>.</summary>

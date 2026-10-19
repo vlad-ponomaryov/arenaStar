@@ -27,16 +27,26 @@ Material:
         m_Texture: {fileID: 2800000, guid: 088ca5dfc14593a4ba667f6815821fad, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _SideMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _AmbientStrength: 0.25
+    - _BaseNormalize: 0
     - _MacroStrength: 0.3
     - _MacroTiling: 23
     - _MapContrast: 0.5
     - _MapMeanLuminance: 0.48927775
+    - _ReceiveMapShadow: 1
     - _RimPower: 3
     - _RimStrength: 0.12
     - _RimTopBias: 0.6
+    - _SideContrast: 1
+    - _SideMeanLuminance: 1
+    - _SideNormalize: 0
+    - _SideTiling: 2.4
     - _SpecSize: 0.99
     - _SpecSoftness: 0.01
     - _SpecStrength: 0
@@ -45,6 +55,7 @@ Material:
     - _WorldTiling: 7
     m_Colors:
     - _BaseColor: {r: 0.64, g: 0.76, b: 0.62, a: 1}
+    - _MapShadowColor: {r: 0.56, g: 0.56, b: 0.74, a: 1}
     - _RimColor: {r: 1, g: 0.965, b: 0.878, a: 1}
     - _ShadeColor: {r: 0.6119999, g: 0.5759999, b: 0.784, a: 1}
   m_BuildTextureStacks: []

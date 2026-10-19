@@ -96,6 +96,7 @@ namespace Arena.Editor.Art.Capture
                 stage.SetLocalTeam(1);
                 SaveWithColorBlind(RenderGameplay(camera, config, stage, true, 1), dir, "lineup_team1");
                 stage.SetLocalTeam(0);
+                MatchLightRig.Apply(s_light, 0f, s_catalog); // light and wall shadows as for team 0
                 SaveWithColorBlind(RenderMap(camera, stage), dir, "map");
                 SaveSilhouettes(camera, config, stage, dir);
                 SaveModelSheets(camera, config, stage, dir);

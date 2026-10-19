@@ -1,4 +1,5 @@
 using System;
+using Arena.Editor.Art.MapProps;
 using Arena.Editor.Art.Fighters;
 using Arena.Editor.Setup;
 using Arena.Gameplay.View;
@@ -85,17 +86,18 @@ namespace Arena.Editor.Art
 
         // Map (S2.5): walls grey-brown, breakable walls lighter wood, bushes dark green, water blue; translucent variants for
         // hiding (D-014, D-024).
-        private static readonly Color WallBreakableColor = new Color(0.72f, 0.55f, 0.34f, 1f);
-        private static readonly Color BushColor = new Color(0.16f, 0.45f, 0.18f, 1f);
-        private static readonly Color BushSeeThroughColor = new Color(0.16f, 0.45f, 0.18f, 0.35f);
-        private static readonly Color WaterColor = new Color(0.22f, 0.50f, 0.85f, 1f);
+        // A.3b: the crate, the bush and the water carry their palette in vertex colours / shader properties; these tint them.
+        private static readonly Color WallBreakableColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+        private static readonly Color BushColor = new Color(1f, 1f, 1f, 1f);
+        private static readonly Color BushSeeThroughColor = new Color(1f, 1f, 1f, 0.38f);
+        private static readonly Color WaterColor = Color.white;
         private static readonly Color FighterHiddenColor = new Color(1f, 1f, 1f, 0.45f);
 
         // Map geometry (world units, view only, PROTO): wall and breakable wall height, bush height, water sheet height,
         // see-through radius around the local fighter in a bush.
         private const float WallHeight = 1.2f;
-        private const float BushHeight = 0.8f;
-        private const float WaterHeight = 0.02f;
+        private const float WaterHeight = -0.1f;    // A.3b: a sunken pond with plank banks
+        private const float BankOverlap = 0.03f;
         private const float BushSeeThroughRadius = 2.5f;
 
         // URP surface setup for translucent materials (property names of URP Lit/Unlit).
@@ -122,10 +124,9 @@ namespace Arena.Editor.Art
 
         // Last Beast mode (S3.14, view only, PROTO): a crate slightly lower than a wall, a small bobbing red berry, purple fog
         // a little above the ground; the fog edge reaches a new step in ≈ 0.5 s.
-        private static readonly Color BerryBoxColor = new Color(0.62f, 0.45f, 0.25f, 1f);
+        private static readonly Color BerryBoxColor = new Color(0.95f, 0.95f, 0.95f, 1f); // A.3b: palette in the basket vertex colours
         private static readonly Color BerryColor = new Color(0.85f, 0.12f, 0.30f, 1f);
         private static readonly Color FogColor = new Color(0.45f, 0.25f, 0.60f, 0.45f);
-        private const float BerryBoxHeight = 0.9f;
         private const float BerryDiameter = 0.35f;
         private const float BerryHeight = 0.35f;
         private const float BerryBobHeight = 0.06f;
@@ -214,13 +215,72 @@ namespace Arena.Editor.Art
             MeadowFade = 6f,
             MeadowEdge = new Color32(0xBC, 0xC4, 0xCC, 0xFF),
             MeadowInner = new Color32(0xC8, 0xD2, 0xC8, 0xFF),
-            MeadowInnerWidth = 0.6f
+            MeadowInnerWidth = 0.6f,
+            WaterSubdivisions = 4,
+            WaterShoreWidth = 0.42f,
+            BankTop = new Color32(0xB9, 0x8A, 0x5E, 0xFF),
+            BankFoot = new Color32(0x6E, 0x4E, 0x34, 0xFF),
+            ShadowTexelsPerCell = 4,
+            ShadowStrength = 0.6f,
+            ShadowSoftness = 0.12f,
+            ShadowFall = new Vector2(0.55f, 0.4f),
+            BushShadowHeight = 0f,       // blob caps cast square mask shadows — the bush's dark foot is enough
+            CrateShadowHeight = 0.8f,
+            BoxShadowHeight = 0f
         };
+
+        // A.3b environment (D-125). Wall: top = baked stone slabs with moss (2 cells per tile, aligned to the cells), sides = Flow
+        // planks 001 (horizontal boards, 2.4 units per tile = 8 boards); both divided by their mean (the vertex colours keep the
+        // palette). Crate = Flow planks 002, basket = Flow wicker 001. Bush = leaf detail, water = ripple map (EnvTextureBaker).
+        private const string WallSidePlanksSource = FlowImageImporter.SourceRoot + "/2026-10-19_tex-crate-planks/001.png";
+        private const string CratePlanksSource = FlowImageImporter.SourceRoot + "/2026-10-19_tex-crate-planks/002.png";
+        private const string WickerSource = FlowImageImporter.SourceRoot + "/2026-10-19_tex-wicker/001.png";
+        public const string WallPlanksTexturePath = FlowImageImporter.TargetFolder + "/WallPlanks.png";
+        public const string CratePlanksTexturePath = FlowImageImporter.TargetFolder + "/CratePlanks.png";
+        public const string WickerTexturePath = FlowImageImporter.TargetFolder + "/Wicker.png";
+        public const string EnvMeshesFolder = MeshesFolder + "/Env";
+        private const int PropTextureSize = 512;
+        private const int PropSeamFeatherPx = 16;
+        private const float PropMaxGain = 1.1f;
+        private static readonly Color PlanksTargetMean = new Color32(0xD8, 0x9A, 0x58, 0xFF);
+        private static readonly Color WickerTargetMean = new Color32(0xD9, 0xA5, 0x5B, 0xFF);
+        private const float WallTopTiling = EnvTextureBaker.WallTopCellsPerTile;
+        private const float WallSideTiling = 2.4f;
+        private const float WallSideContrast = 0.85f;
+        private const float CrateTopTiling = 1.6f;
+        private const float CrateSideTiling = 1.6f;
+        private const float CrateContrast = 0.9f;
+        private const float BasketTiling = 0.7f;
+        private const float BasketContrast = 0.9f;
+        private const float BasketSpecStrength = 0.6f;
+        private const float BasketSpecSize = 0.95f;
+        private const float LeafTiling = 0.9f;
+        private const float LeafContrast = 0.9f;
+        private const float RippleTiling = 2.2f;
+        private const float SeeThroughSrcBlend = (float)BlendMode.SrcAlpha;
+        private const float SeeThroughDstBlend = (float)BlendMode.OneMinusSrcAlpha;
+        public const string BushShader = "Arena/Bush";
+        public const string WaterShader = "Arena/Water";
         private const string WorldTilingProperty = "_WorldTiling";
         private const string MacroTilingProperty = "_MacroTiling";
         private const string MacroStrengthProperty = "_MacroStrength";
         private const string MapMeanLuminanceProperty = "_MapMeanLuminance";
         private const string MapContrastProperty = "_MapContrast";
+        private const string BaseNormalizeProperty = "_BaseNormalize";
+        private const string SideMapProperty = "_SideMap";
+        private const string SideMeanProperty = "_SideMeanLuminance";
+        private const string SideNormalizeProperty = "_SideNormalize";
+        private const string SideTilingProperty = "_SideTiling";
+        private const string SideContrastProperty = "_SideContrast";
+        private const string ReceiveMapShadowProperty = "_ReceiveMapShadow";
+        private const string SpecStrengthProperty = "_SpecStrength";
+        private const string SpecSizeProperty = "_SpecSize";
+        private const string LeafMapProperty = "_LeafMap";
+        private const string LeafMeanProperty = "_LeafMeanLuminance";
+        private const string LeafTilingProperty = "_LeafTiling";
+        private const string LeafContrastProperty = "_LeafContrast";
+        private const string RippleMapProperty = "_RippleMap";
+        private const string RippleTilingProperty = "_RippleTiling";
 
         // Aim line: 1 unit long along +Z from the pivot (root Z scale = range).
         private const float AimLineWidth = 0.15f;
@@ -242,17 +302,36 @@ namespace Arena.Editor.Art
                 GrassTargetMean, GrassMaxGain, GrassSeamFeatherPx);
             Material floor = SaveEnvMaterial("Floor", FloorTint, grass, grassMean, FloorContrast);
             Material meadow = SaveEnvMaterial("Meadow", MeadowTint, grass, grassMean, MeadowContrast);
+            floor.SetFloat(ReceiveMapShadowProperty, 1f);
+            meadow.SetFloat(ReceiveMapShadowProperty, 1f);
             Material aimLine = SaveMaterial("AimLine", UnlitShader, AimLineColor);
             Material projectile = SaveMaterial("Projectile", UnlitShader, ProjectileColor);
             Material barAlly = SaveMaterial("BarAlly", UnlitShader, AllyColor);
             Material barEnemy = SaveMaterial("BarEnemy", UnlitShader, EnemyColor);
             Material barBackground = SaveMaterial("BarBackground", UnlitShader, BarBackgroundColor);
             Material barCharge = SaveMaterial("BarCharge", UnlitShader, BarChargeColor);
-            Material wall = SaveEnvMaterial("Wall", WallMaterialTint, null, 1f, 1f);
-            Material wallBreakable = SaveMaterial("WallBreakable", LitShader, WallBreakableColor);
-            Material bush = SaveMaterial("Bush", LitShader, BushColor);
-            Material bushSeeThrough = SaveMaterial("BushSeeThrough", LitShader, BushSeeThroughColor, true);
-            Material water = SaveMaterial("Water", LitShader, WaterColor);
+            (Texture2D wallTop, float wallTopMean) = EnvTextureBaker.BakeWallTop();
+            (Texture2D wallPlanks, float wallPlanksMean) = FlowImageImporter.ImportTileable(WallSidePlanksSource, WallPlanksTexturePath,
+                PropTextureSize, PlanksTargetMean, PropMaxGain, PropSeamFeatherPx);
+            (Texture2D cratePlanks, float cratePlanksMean) = FlowImageImporter.ImportTileable(CratePlanksSource, CratePlanksTexturePath,
+                PropTextureSize, PlanksTargetMean, PropMaxGain, PropSeamFeatherPx);
+            (Texture2D wicker, float wickerMean) = FlowImageImporter.ImportTileable(WickerSource, WickerTexturePath, PropTextureSize,
+                WickerTargetMean, PropMaxGain, PropSeamFeatherPx);
+            (Texture2D leaves, float leavesMean) = EnvTextureBaker.BakeLeaves();
+            (Texture2D ripple, _) = EnvTextureBaker.BakeRipple();
+            Material wall = SavePropMaterial("Wall", WallMaterialTint, wallTop, wallTopMean, WallTopTiling, wallPlanks, wallPlanksMean,
+                WallSideTiling, WallSideContrast);
+            Material wallBreakable = SavePropMaterial("WallBreakable", WallBreakableColor, cratePlanks, cratePlanksMean, CrateTopTiling,
+                cratePlanks, cratePlanksMean, CrateSideTiling, CrateContrast);
+            Material bush = SaveBushMaterial("Bush", BushColor, leaves, leavesMean, false);
+            Material bushSeeThrough = SaveBushMaterial("BushSeeThrough", BushSeeThroughColor, leaves, leavesMean, true);
+            Material water = SaveToonMaterial("Water", WaterShader, WaterColor, 0f);
+            water.SetTexture(RippleMapProperty, ripple);
+            water.SetFloat(RippleTilingProperty, RippleTiling);
+            EditorUtility.SetDirty(water);
+            Mesh[] bushMeshes = SaveEnvMeshes();
+            Mesh crateMesh = SaveMesh(EnvMeshBuilder.BuildCrate(), EnvMeshesFolder + "/Crate.asset");
+            Mesh basketMesh = SaveMesh(EnvMeshBuilder.BuildBasket(), EnvMeshesFolder + "/BerryBasket.asset");
             Material fighterHidden = SaveToonMaterial("FighterHidden", ToonCharacterGhostShader, FighterHiddenColor, 0f);
             Material enemyAlt = SaveMaterial("TeamEnemyAlt", UnlitShader, EnemyAltColor);
             Material barEnemyAlt = SaveMaterial("BarEnemyAlt", UnlitShader, EnemyAltColor);
@@ -276,18 +355,21 @@ namespace Arena.Editor.Art
             GameObject floorPrefab = BuildMeadowPrefab(meadow);
             GameObject projectilePrefab = BuildProjectilePrefab(projectile);
             HealthBarView healthBar = BuildHealthBarPrefab(barAlly, barBackground, barCharge);
-            GameObject breakablePrefab = BuildBlockPrefab("BreakableWall", BreakableWallPrefabPath, wallBreakable, WallHeight);
-            GameObject bushPrefab = BuildBlockPrefab("Bush", BushPrefabPath, bush, BushHeight);
+            GameObject breakablePrefab = BuildMeshPrefab("BreakableWall", BreakableWallPrefabPath, crateMesh, wallBreakable);
+            GameObject bushPrefab = BuildMeshPrefab("Bush", BushPrefabPath, bushMeshes[0], bush);
             Material acorn = SaveMaterial("Acorn", LitShader, AcornColor);
             Material acornGolden = SaveMaterial("AcornGolden", UnlitShader, AcornGoldenColor);
             Material hollow = SaveMaterial("Hollow", LitShader, HollowColor);
             GameObject acornPrefab = BuildSpherePrefab("Acorn", AcornPrefabPath, acorn, AcornDiameter);
             GameObject acornGoldenPrefab = BuildSpherePrefab("AcornGolden", AcornGoldenPrefabPath, acornGolden, AcornGoldenDiameter);
             GameObject hollowPrefab = BuildHollowPrefab(hollow);
-            Material berryBox = SaveMaterial("BerryBox", LitShader, BerryBoxColor);
+            Material berryBox = SavePropMaterial("BerryBox", BerryBoxColor, wicker, wickerMean, BasketTiling, wicker, wickerMean,
+                BasketTiling, BasketContrast);
+            berryBox.SetFloat(SpecStrengthProperty, BasketSpecStrength);
+            berryBox.SetFloat(SpecSizeProperty, BasketSpecSize);
             Material berry = SaveMaterial("Berry", UnlitShader, BerryColor);
             Material fog = SaveMaterial("Fog", UnlitShader, FogColor, true);
-            GameObject berryBoxPrefab = BuildBlockPrefab("BerryBox", BerryBoxPrefabPath, berryBox, BerryBoxHeight);
+            GameObject berryBoxPrefab = BuildMeshPrefab("BerryBox", BerryBoxPrefabPath, basketMesh, berryBox);
             GameObject berryPrefab = BuildSpherePrefab("Berry", BerryPrefabPath, berry, BerryDiameter);
             GameObject fogPrefab = BuildQuadPrefab("Fog", FogPrefabPath, fog);
             Material log = SaveMaterial("Log", LitShader, LogColor);
@@ -310,6 +392,8 @@ namespace Arena.Editor.Art
             catalog.HealthBarPrefab = healthBar;
             catalog.BreakableWallPrefab = breakablePrefab;
             catalog.BushPrefab = bushPrefab;
+            catalog.BushVariants = bushMeshes;
+            catalog.BankOverlap = BankOverlap;
             catalog.AcornPrefab = acornPrefab;
             catalog.AcornGoldenPrefab = acornGoldenPrefab;
             catalog.HollowPrefab = hollowPrefab;
@@ -675,14 +759,90 @@ namespace Arena.Editor.Art
             return mat;
         }
 
-        /// <summary>Quad of 1×1 cell on the XZ plane facing up, centred (floor, fog strips).</summary>
-        private static GameObject BuildQuadPrefab(string name, string path, Material material)
+        /// <summary>
+        /// <c>Arena/ToonEnv</c> material of a textured prop (A.3b): top map in world XZ (<paramref name="topTiling"/> units per tile)
+        /// and side map along the faces, both divided by their mean luminance (detail only, the vertex colours keep the palette).
+        /// </summary>
+        private static Material SavePropMaterial(string name, Color tint, Texture2D top, float topMean, float topTiling, Texture2D side,
+            float sideMean, float sideTiling, float sideContrast)
+        {
+            Material mat = SaveToonMaterial(name, ToonEnvShader, tint, 0f);
+            mat.SetTexture(BaseMapProperty, top);
+            mat.SetFloat(MapMeanLuminanceProperty, Mathf.Max(0.05f, topMean));
+            mat.SetFloat(BaseNormalizeProperty, 1f);
+            mat.SetFloat(WorldTilingProperty, topTiling);
+            mat.SetFloat(MacroStrengthProperty, 0f);
+            mat.SetFloat(MapContrastProperty, 1f);
+            mat.SetTexture(SideMapProperty, side);
+            mat.SetFloat(SideMeanProperty, Mathf.Max(0.05f, sideMean));
+            mat.SetFloat(SideNormalizeProperty, 1f);
+            mat.SetFloat(SideTilingProperty, sideTiling);
+            mat.SetFloat(SideContrastProperty, sideContrast);
+            mat.SetFloat(ReceiveMapShadowProperty, 0f);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary><c>Arena/Bush</c>: opaque, or the see-through variant (alpha blended, no depth write, Transparent queue, D-024).</summary>
+        private static Material SaveBushMaterial(string name, Color color, Texture2D leaves, float leavesMean, bool seeThrough)
+        {
+            Material mat = SaveToonMaterial(name, BushShader, color, 0f);
+            mat.SetTexture(LeafMapProperty, leaves);
+            mat.SetFloat(LeafMeanProperty, Mathf.Max(0.05f, leavesMean));
+            mat.SetFloat(LeafTilingProperty, LeafTiling);
+            mat.SetFloat(LeafContrastProperty, LeafContrast);
+            if (seeThrough)
+            {
+                mat.SetFloat(SrcBlendProperty, SeeThroughSrcBlend);
+                mat.SetFloat(DstBlendProperty, SeeThroughDstBlend);
+                mat.SetFloat(ZWriteProperty, 0f);
+                mat.SetOverrideTag("RenderType", "Transparent");
+                mat.renderQueue = (int)RenderQueue.Transparent;
+            }
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>Bush variants (A.3b) as mesh assets; MapView picks one per cell.</summary>
+        private static Mesh[] SaveEnvMeshes()
+        {
+            var meshes = new Mesh[EnvMeshBuilder.BushVariantCount];
+            for (int i = 0; i < meshes.Length; i++)
+                meshes[i] = SaveMesh(EnvMeshBuilder.BuildBush(i), EnvMeshesFolder + "/Bush_" + i + ".asset");
+            return meshes;
+        }
+
+        /// <summary>Saves a generated mesh as an asset (overwrites in place: references and the GUID stay).</summary>
+        private static Mesh SaveMesh(Mesh mesh, string path)
+        {
+            ProjectConfigurator.EnsureFolder(EnvMeshesFolder);
+            Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(mesh, path);
+                return mesh;
+            }
+            string name = existing.name;
+            EditorUtility.CopySerialized(mesh, existing);
+            existing.name = name;
+            Object.DestroyImmediate(mesh);
+            EditorUtility.SetDirty(existing);
+            return existing;
+        }
+
+        /// <summary>A prop of one mesh (pivot at the bottom centre): root + "Mesh" child with a filter and a renderer, no shadows.</summary>
+        private static GameObject BuildMeshPrefab(string name, string path, Mesh mesh, Material material)
         {
             var root = new GameObject(name);
             try
             {
-                GameObject quad = CreatePart(PrimitiveType.Quad, "Quad", root.transform, material);
-                quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                var child = new GameObject("Mesh");
+                child.transform.SetParent(root.transform, false);
+                child.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var renderer = child.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
                 return SavePrefab(root, path);
             }
             finally
@@ -691,15 +851,14 @@ namespace Arena.Editor.Art
             }
         }
 
-        /// <summary>Cube of 1 × <paramref name="height"/> × 1 cells with the pivot at the bottom centre (map blocks).</summary>
-        private static GameObject BuildBlockPrefab(string name, string path, Material material, float height)
+        /// <summary>Quad of 1×1 cell on the XZ plane facing up, centred (floor, fog strips).</summary>
+        private static GameObject BuildQuadPrefab(string name, string path, Material material)
         {
             var root = new GameObject(name);
             try
             {
-                GameObject cube = CreatePart(PrimitiveType.Cube, "Cube", root.transform, material);
-                cube.transform.localScale = new Vector3(1f, height, 1f);
-                cube.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
+                GameObject quad = CreatePart(PrimitiveType.Quad, "Quad", root.transform, material);
+                quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 return SavePrefab(root, path);
             }
             finally

@@ -50,4 +50,11 @@
 - (A.3a) Ловушка стенда: в `lineup.png` (1×) материалы URP Lit (куст, вода) иногда рисуются коричневыми, в `lineup_zoom2`/`map` — верно;
   у `Arena/*` такого нет. A.3b переводит их на `Arena/*` — проблема уйдёт; сравнивай по zoom2.
 - (A.3a) Луг — 14 клеток вокруг карты (`FloorPrefab` теперь луг, меш в `MapView`); декор A.4 ставь на нём, вне поля. Край карты у стен —
-  открытые боковины (тест `SharedSides_AreSkipped_MapEdgeSides_AreBuilt`).
+  открытые боковины (тест `SharedSides_AreSkipped_MapEdgeSides_AreBuilt`).- (A.3b) Пропсы карты — `Editor/Art/MapProps`: `EnvMeshBuilder` (куст 3 варианта ≤ 250, ящик, корзина; `uv0.x = 1` — вершина без
+  рисунка в `Arena/ToonEnv`), `EnvTextureBaker` (плиты верха стен, листва, рябь — **GLSL-smoothstep свой**: `Mathf.SmoothStep`
+  интерполирует значения, а не порог). Меши — ассеты `Art/Meshes/Env`, пересоздаются `ViewAssetBuilder.BuildAll`.
+- (A.3b) Тени стен — `MapShadowMask` (глобал) + `ArenaEnv.hlsl`; материал получает их через `_ReceiveMapShadow` (пол, луг; вода — всегда).
+  Направление — `MapMeshStyle.ShadowFall` в кадре камеры (`MatchLightRig.Apply`), не от света. Декор A.4 на луге получит тени, если
+  поставить его в маску (`MapShadowMask.CasterValue`) — иначе только тень-кружок.
+- (A.3b) Вода утоплена (`ViewCatalog.WaterHeight` < 0): пола под водой нет, берега — `BuildBanks` материалом стены. Пространство имён
+  `Arena.Editor.Art.Environment` нельзя: ломает `System.Environment` в соседних файлах. До/после — `Tools/out/art/A.3b/compare_*.png`.

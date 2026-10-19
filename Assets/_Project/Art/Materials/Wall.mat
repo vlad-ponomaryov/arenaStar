@@ -24,27 +24,38 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 855d76b98d758bb4bbe35d627977bd8c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SideMap:
+        m_Texture: {fileID: 2800000, guid: 650d305f79532d844b32d8e9fd6f8621, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _AmbientStrength: 0.25
+    - _BaseNormalize: 1
     - _MacroStrength: 0
     - _MacroTiling: 23
     - _MapContrast: 1
-    - _MapMeanLuminance: 1
+    - _MapMeanLuminance: 0.71053034
+    - _ReceiveMapShadow: 0
     - _RimPower: 3
     - _RimStrength: 0.12
     - _RimTopBias: 0.6
+    - _SideContrast: 0.85
+    - _SideMeanLuminance: 0.408247
+    - _SideNormalize: 1
+    - _SideTiling: 2.4
     - _SpecSize: 0.99
     - _SpecSoftness: 0.01
     - _SpecStrength: 0
     - _StepCenter: 0.1
     - _StepSoftness: 0.12
-    - _WorldTiling: 7
+    - _WorldTiling: 2
     m_Colors:
     - _BaseColor: {r: 0.93, g: 0.93, b: 0.93, a: 1}
+    - _MapShadowColor: {r: 0.56, g: 0.56, b: 0.74, a: 1}
     - _RimColor: {r: 1, g: 0.965, b: 0.878, a: 1}
     - _ShadeColor: {r: 0.6119999, g: 0.5759999, b: 0.784, a: 1}
   m_BuildTextureStacks: []
