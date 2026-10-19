@@ -74,6 +74,18 @@ namespace Arena.Tests.EditMode.Setup
         }
 
         [Test]
+        public void InputSettings_KeyboardReachesTheGame_WithoutClickingTheGameView()
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputSettings>(ProjectConfigurator.InputSettingsPath);
+            Assert.IsNotNull(asset, "the settings asset exists (ProjectConfigurator)");
+            Assert.AreEqual(UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView,
+                asset.editorInputBehaviorInPlayMode, "F1: WASD in the editor");
+            Assert.IsTrue(EditorBuildSettings.TryGetConfigObject(ProjectConfigurator.InputSettingsConfigKey,
+                out UnityEngine.InputSystem.InputSettings active), "registered as the project's input settings");
+            Assert.AreSame(asset, active);
+        }
+
+        [Test]
         public void CoreAssembly_DoesNotReferenceUnityEngine()
         {
             foreach (AssemblyName reference in typeof(SimLimits).Assembly.GetReferencedAssemblies())

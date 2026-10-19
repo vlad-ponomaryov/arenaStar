@@ -3,6 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -21,6 +22,8 @@ namespace Arena.Editor.Setup
         public const int InputSystemOnly = 1;
         private const string ProjectSettingsPath = "ProjectSettings/ProjectSettings.asset";
         private const string ActiveInputHandlerProperty = "activeInputHandler";
+        public const string InputSettingsPath = "Assets/_Project/Settings/Arena.inputsettings.asset";
+        public const string InputSettingsConfigKey = "com.unity.input.settings";
 
         public static void Apply()
         {
@@ -28,6 +31,7 @@ namespace Arena.Editor.Setup
             ApplyAndroidSettings();
             ApplyRenderPipeline();
             ApplyInputHandler();
+            ApplyInputSettings();
             AssetDatabase.SaveAssets();
             Debug.Log("ARENA_CONFIG_APPLIED");
         }
@@ -104,6 +108,26 @@ namespace Arena.Editor.Setup
             var settings = LoadProjectSettings();
             SetInt(settings, ActiveInputHandlerProperty, InputSystemOnly);
             settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Input System settings asset (F1, D-107): in the editor all device input goes to the game in Play mode, whatever window
+        /// has the focus — by default the keyboard is ignored until the Game view (or Simulator) is clicked, so WASD "did not work".
+        /// Players are not affected (the option is editor-only).
+        /// </summary>
+        private static void ApplyInputSettings()
+        {
+            EnsureFolder(Path.GetDirectoryName(InputSettingsPath).Replace('\\', '/'));
+            var settings = AssetDatabase.LoadAssetAtPath<InputSettings>(InputSettingsPath);
+            if (settings == null)
+            {
+                settings = ScriptableObject.CreateInstance<InputSettings>();
+                AssetDatabase.CreateAsset(settings, InputSettingsPath);
+            }
+            settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            EditorUtility.SetDirty(settings);
+            EditorBuildSettings.AddConfigObject(InputSettingsConfigKey, settings, true);
+            InputSystem.settings = settings;
         }
 
         /// <summary>Reads PlayerSettings.activeInputHandler (0 old, 1 Input System, 2 both).</summary>
