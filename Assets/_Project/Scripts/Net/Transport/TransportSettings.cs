@@ -40,7 +40,10 @@ namespace Arena.Net.Transport
         /// <summary>An explicit <c>Disconnect</c> is sent this many times, unreliably (§3.2).</summary>
         public int DisconnectRepeats;
 
-        /// <summary>Handshake and ping packets per IP per minute (§13; generous because of CGNAT).</summary>
+        /// <summary>
+        /// Verified handshakes per IP per minute, and separately pings + discovery per IP per minute (§13; generous because of
+        /// CGNAT). Unverified traffic does not count (D-117).
+        /// </summary>
         public int HandshakesPerIpPerMinute;
 
         /// <summary>Incoming packets per second per connection; over the limit — silent drop (§13).</summary>

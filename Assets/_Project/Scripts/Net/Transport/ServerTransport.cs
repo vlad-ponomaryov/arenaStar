@@ -25,7 +25,11 @@ namespace Arena.Net.Transport
         private readonly IServerTransportHandler _handler;
         private readonly ConnectionTable _table;
         private readonly Handshake _handshake;
+        // Per IP (F2, D-117): only handshakes with a verified cookie — the sender owns the address, so a spoofed source cannot
+        // spend a victim's (or a whole CGNAT's) budget; pings and discovery have their own buckets; ConnectRequest is not limited
+        // per IP (it costs one equal-size challenge and keeps no state).
         private readonly RateLimiter _ipLimiter = new RateLimiter();
+        private readonly RateLimiter _probeLimiter = new RateLimiter();
         private readonly byte[] _recv = new byte[NetLimits.ReceiveBufferBytes];
         private readonly byte[] _send = new byte[NetLimits.MaxPacketBytes];
         private readonly BitWriter _writer = new BitWriter();
@@ -56,7 +60,11 @@ namespace Arena.Net.Transport
         /// <summary>Shown in <c>DiscoverReply</c>; the lobby refuses new players itself (S3.8).</summary>
         public bool Maintenance { get; set; }
 
+        /// <summary>Verified handshakes (<c>ConnectResponse</c> with a good cookie) dropped by the per-IP limit.</summary>
         public long RateLimitedHandshakes => _ipLimiter.RejectedCount;
+
+        /// <summary>Pings and discovery requests dropped by their per-IP limit.</summary>
+        public long RateLimitedProbes => _probeLimiter.RejectedCount;
 
         public NetConnection GetConnection(int index) => _table.Get(index);
 
@@ -216,11 +224,6 @@ namespace Arena.Net.Transport
                 Counters.DroppedMalformed++;
                 return;
             }
-            if (!_ipLimiter.Allow(from, now, _settings.HandshakesPerIpPerMinute))
-            {
-                Counters.DroppedRateLimited++;
-                return;
-            }
             _reader.Reset(_recv, NetProtocol.HeaderBytes, length - NetProtocol.HeaderBytes);
             if (!ConnectRequestMessage.Read(_reader, out ConnectRequestMessage request) || request.ProtocolId != NetProtocol.Id)
             {
@@ -251,11 +254,6 @@ namespace Arena.Net.Transport
                 Counters.DroppedMalformed++;
                 return;
             }
-            if (!_ipLimiter.Allow(from, now, _settings.HandshakesPerIpPerMinute))
-            {
-                Counters.DroppedRateLimited++;
-                return;
-            }
             _reader.Reset(_recv, NetProtocol.HeaderBytes, length - NetProtocol.HeaderBytes);
             if (!ConnectResponseMessage.Read(_reader, out ConnectResponseMessage response) || response.ProtocolId != NetProtocol.Id)
             {
@@ -265,6 +263,11 @@ namespace Arena.Net.Transport
             if (!_handshake.Verify(from, response.Nonce, response.Cookie, now, _settings.CookieSliceMs))
             {
                 Counters.BadCookies++;
+                return;
+            }
+            if (!_ipLimiter.Allow(from, now, _settings.HandshakesPerIpPerMinute))
+            {
+                Counters.DroppedRateLimited++;
                 return;
             }
             RejectReason versions = CheckVersions(response.ProtocolVersion, response.ContentHash);
@@ -311,7 +314,7 @@ namespace Arena.Net.Transport
         private void OnPing(in PacketHeader header, int length, in NetAddress from, long now)
         {
             if (length != NetProtocol.PingPacketBytes || !IsConnectionless(header)) return;
-            if (!_ipLimiter.Allow(from, now, _settings.HandshakesPerIpPerMinute))
+            if (!_probeLimiter.Allow(from, now, _settings.HandshakesPerIpPerMinute))
             {
                 Counters.DroppedRateLimited++;
                 return;
@@ -328,7 +331,7 @@ namespace Arena.Net.Transport
         {
             if (!_settings.LanDiscovery || !from.IsPrivate) return;
             if (length != NetProtocol.DiscoverPacketBytes || !IsConnectionless(header)) return;
-            if (!_ipLimiter.Allow(from, now, _settings.HandshakesPerIpPerMinute))
+            if (!_probeLimiter.Allow(from, now, _settings.HandshakesPerIpPerMinute))
             {
                 Counters.DroppedRateLimited++;
                 return;

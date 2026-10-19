@@ -296,8 +296,9 @@ namespace Arena.Tests.EditMode.Net.Client
             rig.RunSeconds(8f);
             rig.Paused[Own] = false;
             session.OnResumed(rig.Now);
-            Assert.IsTrue(rig.RunUntil(() => client.Reconnects == 1 && session.Latest != null && session.Predictor.Ready, 10f),
-                "the dead connection returns by itself");
+            // Old packets in the socket must not revive the dead connection (it would time out again ~5 s later).
+            Assert.IsTrue(rig.RunUntil(() => client.Reconnects == 1 && session.Latest != null && session.Predictor.Ready, 2f),
+                "the dead connection returns by itself, soon after the return");
             AssertPlayerDrives(rig, Own, session, "after an 8 s pause");
         }
 

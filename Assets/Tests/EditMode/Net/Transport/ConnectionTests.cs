@@ -217,7 +217,7 @@ namespace Arena.Tests.EditMode.Net.Transport
         }
 
         [Test]
-        public void HandshakesPerIp_AreLimited()
+        public void VerifiedHandshakesPerIp_AreLimited_RequestsAreNot()
         {
             TransportSettings settings = TransportSettings.CreateDefault();
             settings.HandshakesPerIpPerMinute = 5;
@@ -227,9 +227,46 @@ namespace Arena.Tests.EditMode.Net.Transport
             {
                 raw.Send(_buffer, 0, RawPackets.ConnectRequest(_buffer, NetProtocol.Version, TransportRig.ContentHash, (ulong)i));
                 rig.Step();
+                rig.Step();
+                Assert.IsTrue(raw.TryReceive(_buffer, out int answer), "every request gets its challenge");
+                Assert.IsTrue(ConnectChallengeMessage.Read(RawPackets.Body(_buffer, answer), out ConnectChallengeMessage challenge));
+                raw.Send(_buffer, 0, RawPackets.ConnectResponse(_buffer, (ulong)i, challenge.Cookie));
+                rig.Step();
+                rig.Step();
+                while (raw.TryReceive(_buffer, out _)) { }
             }
-            Assert.AreEqual(5, rig.Server.Counters.Challenges);
+            Assert.AreEqual(12, rig.Server.Counters.Challenges);
+            Assert.AreEqual(5, rig.Server.Counters.Accepted, "verified handshakes over the limit are dropped");
             Assert.AreEqual(7, rig.Server.RateLimitedHandshakes);
+        }
+
+        /// <summary>
+        /// Traffic with a spoofed source address (no cookie round trip possible) must not spend the per-IP budget of the real owner
+        /// of that address — e.g. a whole operator CGNAT (F2, D-117).
+        /// </summary>
+        [Test]
+        public void SpoofedTrafficFromAnIp_DoesNotLockTheRealClientsOut()
+        {
+            TransportSettings settings = TransportSettings.CreateDefault();
+            settings.HandshakesPerIpPerMinute = 5;
+            var rig = new TransportRig(settings: settings);
+            // Same host as client 9, another port: the attacker never sees the server's answers.
+            NetAddress victim = TransportRig.ClientAddress(9);
+            InMemoryClientSocket spoofed = rig.Network.CreateClientSocket(new NetAddress(victim.High, victim.Low, 6000),
+                TransportRig.ServerAddress);
+            for (int i = 0; i < 50; i++)
+            {
+                spoofed.Send(_buffer, 0, RawPackets.ConnectRequest(_buffer, NetProtocol.Version, TransportRig.ContentHash, (ulong)i));
+                spoofed.Send(_buffer, 0, RawPackets.ConnectResponse(_buffer, (ulong)i, 12345ul + (ulong)i));
+                spoofed.Send(_buffer, 0, RawPackets.Ping(_buffer, (ulong)i));
+                rig.Step();
+            }
+            Assert.Greater(rig.Server.RateLimitedProbes, 0, "pings are still limited");
+            Assert.AreEqual(0, rig.Server.RateLimitedHandshakes, "unverified handshakes spend nothing");
+
+            ClientTransport client = rig.AddClient(9, out _, out _);
+            Assert.IsTrue(rig.RunUntilConnected());
+            Assert.AreEqual(ClientState.Connected, client.State, "the real client of that IP still connects");
         }
 
         [Test]

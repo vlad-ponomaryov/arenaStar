@@ -97,6 +97,10 @@ namespace Arena.Net.Transport
         public void Update(long nowMicros)
         {
             if (_socket == null) return;
+            // Nothing sent for the whole timeout (the app was paused): the server has dropped the connection already, so old
+            // packets waiting in the socket must not revive it — end now and let the reconnect start at once.
+            if (State == ClientState.Connected && nowMicros - _connection.LastSendMicros >= _connection.TimeoutMicros)
+                End(DisconnectReason.Timeout);
             while (State != ClientState.Idle && _socket.TryReceive(_recv, out int length)) HandleDatagram(length, nowMicros);
             switch (State)
             {

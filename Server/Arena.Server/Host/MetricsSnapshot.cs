@@ -135,7 +135,7 @@ namespace Arena.Server.Host
             Leaves = m.Leaves;
             Rejoins = m.Rejoins;
             RejectedConnections = t.Rejected + m.RejectedConnections + l.RejectedJoins;
-            RateLimited = t.DroppedRateLimited + t.RateLimitDisconnects + node.Transport.RateLimitedHandshakes;
+            RateLimited = t.DroppedRateLimited + t.RateLimitDisconnects + node.Transport.RateLimitedHandshakes + node.Transport.RateLimitedProbes;
             Timeouts = t.Timeouts;
             Malformed = t.DroppedMalformed + m.MalformedMessages + l.MalformedMessages;
             SocketResets = socket == null ? 0 : socket.ResetCount;
