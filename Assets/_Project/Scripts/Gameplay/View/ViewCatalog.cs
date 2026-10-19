@@ -52,8 +52,26 @@ namespace Arena.Gameplay.View
         [Tooltip("Bush of 1 cell, pivot at the bottom centre: one MeshFilter + renderer (gets Bush / BushSeeThrough, D-024).")]
         public GameObject BushPrefab;
 
-        [Tooltip("Bush mesh variants (A.3b): MapView gives each bush cell one of them and a quarter turn (deterministic per cell).")]
+        [Tooltip("Tall-grass bush meshes (A.3c): index = neighbour mask (W 1, E 2, S 4, N 8) × BushVariantsPerMask + variant. Sides " +
+                 "towards a bush neighbour run to the cell edge at a shared height, so neighbouring cells merge into one mass.")]
         public Mesh[] BushVariants;
+
+        [Tooltip("Variants per neighbour mask in BushVariants (MapView picks one per cell, deterministic).")]
+        [Min(1)] public int BushVariantsPerMask = 1;
+
+        [Header("Obstacle looks (A.3c, view only)")]
+        [Tooltip("Prop meshes a small wall group may be drawn as instead of stone blocks (barrel, stump, boulder…); pivot at the " +
+                 "bottom centre of the cell, drawn with ObstacleProp. One type per connected wall group, chosen by a symmetric hash.")]
+        public Mesh[] ObstacleProps;
+
+        [Tooltip("Arena/ToonEnv material of the obstacle props (vertex colours).")]
+        public Material ObstacleProp;
+
+        [Tooltip("Wall groups larger than this (cells) always stay stone blocks; smaller ones may become props.")]
+        [Min(0)] public int ObstaclePropMaxCells;
+
+        [Tooltip("Every N-th small wall group (counting mirrored twins as one) stays stone blocks; 0 = none.")]
+        [Min(0)] public int ObstacleStoneEvery;
 
         [Header("Acorns mode (Arena.Modes.AcornsModeView)")]
         [Tooltip("Normal acorn view, pivot at the centre.")]

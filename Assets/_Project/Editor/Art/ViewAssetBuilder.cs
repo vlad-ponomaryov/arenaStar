@@ -194,9 +194,28 @@ namespace Arena.Editor.Art
         private const float FloorWorldTiling = 7f;    // cells per grass tile: soft patches every ≈ 3–4 cells
         private const float FloorMacroTiling = 23f;   // the larger turned sample that breaks the repetition
         private const float FloorMacroStrength = 0.3f;
-        private static readonly Color FloorTint = new Color(1.02f, 0.93f, 0.72f, 1f);   // A.3b: warm sunny meadow (complements the teal bushes); light + ambient compensated
+        // A.3c (D-126): the arena floor is warm sand with clusters of cream pebbles (Flow arena-target floor_001); grass only in
+        // soft patches (uv0.y of the floor mesh, MapMeshStyle.FloorPatch*) drawn with the grass map × PatchTint.
+        private const string FloorSandSource = FlowImageImporter.SourceRoot + "/2026-10-19_arena-target/floor_001.png";
+        public const string FloorSandTexturePath = FlowImageImporter.TargetFolder + "/FloorSand.png";
+        private static readonly Color FloorSandTargetMean = new Color32(0xE4, 0xC4, 0x8C, 0xFF);
+        private const float FloorSandTiling = 8f;
+        private const float FloorSandContrast = 0.3f;
+        private static readonly Color FloorTint = new Color(1f, 0.97f, 0.92f, 1f);
+        private static readonly Color PatchTint = new Color(0.86f, 0.95f, 0.62f, 1f);
+        private const float PatchTiling = 4f;
+        private const float PatchEdge = 0.05f;
+        private const float PatchTexBreakup = 1.2f;
+        private static readonly Color ObstaclePropTint = new Color(0.97f, 0.97f, 0.97f, 1f);
+        private const int ObstaclePropMaxCells = 3;
+        private const int ObstacleStoneEvery = 4;
+        private const string PatchMapProperty = "_PatchMap";
+        private const string PatchMeanProperty = "_PatchMeanLuminance";
+        private const string PatchTilingProperty = "_PatchTiling";
+        private const string PatchTintProperty = "_PatchTint";
+        private const string PatchEdgeProperty = "_PatchEdge";
+        private const string PatchBreakupProperty = "_PatchBreakup";
         private static readonly Color MeadowTint = new Color(0.64f, 0.76f, 0.62f, 1f);  // grass × this ≈ #6E9E58 (darker meadow)
-        private const float FloorContrast = 1f;
         private const float MeadowContrast = 0.5f;   // the meadow is calmer than the arena floor: the eye stays on the play field
         private static readonly Color WallMaterialTint = new Color(0.93f, 0.93f, 0.93f, 1f); // light + ambient brighten the cream top
         private static readonly MapMeshStyle MapStyle = new MapMeshStyle
@@ -210,7 +229,13 @@ namespace Arena.Editor.Art
             FloorSubdivisions = 2,
             FloorWallOcclusion = 0.5f,
             FloorOcclusionRadius = 0.75f,
-            FloorOcclusionColor = new Color32(0x6A, 0x80, 0x7A, 0xFF),
+            FloorOcclusionColor = new Color32(0x8A, 0x70, 0x7A, 0xFF),   // A.3c: warm-lavender contact shade on sand
+            FloorBushOcclusion = 0.4f,
+            FloorBushOcclusionRadius = 0.45f,
+            FloorPatchCell = 2.2f,
+            FloorPatchCoverage = 0.13f,
+            FloorPatchNearBush = 0.62f,
+            ObstaclePropRadius = 0.4f,
             MeadowMargin = 14f,
             MeadowFade = 6f,
             MeadowEdge = new Color32(0xBC, 0xC4, 0xCC, 0xFF),
@@ -255,7 +280,7 @@ namespace Arena.Editor.Art
         private const float BasketSpecStrength = 0.6f;
         private const float BasketSpecSize = 0.95f;
         private const float LeafTiling = 0.9f;
-        private const float LeafContrast = 0.9f;
+        private const float LeafContrast = 0.5f;
         private const float RippleTiling = 2.2f;
         private const float SeeThroughSrcBlend = (float)BlendMode.SrcAlpha;
         private const float SeeThroughDstBlend = (float)BlendMode.OneMinusSrcAlpha;
@@ -300,7 +325,16 @@ namespace Arena.Editor.Art
             Material body = SaveToonMaterial("FighterBody", ToonCharacterShader, BodyColor, 0f);
             (Texture2D grass, float grassMean) = FlowImageImporter.ImportTileable(GrassSource, GrassTexturePath, GrassTextureSize,
                 GrassTargetMean, GrassMaxGain, GrassSeamFeatherPx);
-            Material floor = SaveEnvMaterial("Floor", FloorTint, grass, grassMean, FloorContrast);
+            (Texture2D sand, float sandMean) = FlowImageImporter.ImportTileable(FloorSandSource, FloorSandTexturePath, GrassTextureSize,
+                FloorSandTargetMean, GrassMaxGain, GrassSeamFeatherPx);
+            Material floor = SaveEnvMaterial("Floor", FloorTint, sand, sandMean, FloorSandContrast);
+            floor.SetFloat(WorldTilingProperty, FloorSandTiling);
+            floor.SetTexture(PatchMapProperty, grass);
+            floor.SetFloat(PatchMeanProperty, Mathf.Max(0.05f, grassMean));
+            floor.SetFloat(PatchTilingProperty, PatchTiling);
+            floor.SetColor(PatchTintProperty, PatchTint);
+            floor.SetFloat(PatchEdgeProperty, PatchEdge);
+            floor.SetFloat(PatchBreakupProperty, PatchTexBreakup);
             Material meadow = SaveEnvMaterial("Meadow", MeadowTint, grass, grassMean, MeadowContrast);
             floor.SetFloat(ReceiveMapShadowProperty, 1f);
             meadow.SetFloat(ReceiveMapShadowProperty, 1f);
@@ -332,6 +366,13 @@ namespace Arena.Editor.Art
             Mesh[] bushMeshes = SaveEnvMeshes();
             Mesh crateMesh = SaveMesh(EnvMeshBuilder.BuildCrate(), EnvMeshesFolder + "/Crate.asset");
             Mesh basketMesh = SaveMesh(EnvMeshBuilder.BuildBasket(), EnvMeshesFolder + "/BerryBasket.asset");
+            Mesh[] obstacleProps = EnvMeshBuilder.BuildObstacleProps();
+            for (int i = 0; i < obstacleProps.Length; i++)
+            {
+                string propName = obstacleProps[i].name;
+                obstacleProps[i] = SaveMesh(obstacleProps[i], EnvMeshesFolder + "/" + propName + ".asset");
+            }
+            Material obstacleProp = SaveToonMaterial("ObstacleProp", ToonEnvShader, ObstaclePropTint, 0f);
             Material fighterHidden = SaveToonMaterial("FighterHidden", ToonCharacterGhostShader, FighterHiddenColor, 0f);
             Material enemyAlt = SaveMaterial("TeamEnemyAlt", UnlitShader, EnemyAltColor);
             Material barEnemyAlt = SaveMaterial("BarEnemyAlt", UnlitShader, EnemyAltColor);
@@ -393,6 +434,11 @@ namespace Arena.Editor.Art
             catalog.BreakableWallPrefab = breakablePrefab;
             catalog.BushPrefab = bushPrefab;
             catalog.BushVariants = bushMeshes;
+            catalog.BushVariantsPerMask = EnvMeshBuilder.BushVariantCount;
+            catalog.ObstacleProps = obstacleProps;
+            catalog.ObstacleProp = obstacleProp;
+            catalog.ObstaclePropMaxCells = ObstaclePropMaxCells;
+            catalog.ObstacleStoneEvery = ObstacleStoneEvery;
             catalog.BankOverlap = BankOverlap;
             catalog.AcornPrefab = acornPrefab;
             catalog.AcornGoldenPrefab = acornGoldenPrefab;
@@ -806,9 +852,13 @@ namespace Arena.Editor.Art
         /// <summary>Bush variants (A.3b) as mesh assets; MapView picks one per cell.</summary>
         private static Mesh[] SaveEnvMeshes()
         {
-            var meshes = new Mesh[EnvMeshBuilder.BushVariantCount];
-            for (int i = 0; i < meshes.Length; i++)
-                meshes[i] = SaveMesh(EnvMeshBuilder.BuildBush(i), EnvMeshesFolder + "/Bush_" + i + ".asset");
+            // A.3b blob bushes (Bush_0..2) are replaced by tall-grass clumps per neighbour mask (A.3c).
+            for (int i = 0; i < 3; i++) AssetDatabase.DeleteAsset(EnvMeshesFolder + "/Bush_" + i + ".asset");
+            var meshes = new Mesh[EnvMeshBuilder.BushMaskCount * EnvMeshBuilder.BushVariantCount];
+            for (int mask = 0; mask < EnvMeshBuilder.BushMaskCount; mask++)
+                for (int v = 0; v < EnvMeshBuilder.BushVariantCount; v++)
+                    meshes[mask * EnvMeshBuilder.BushVariantCount + v] = SaveMesh(EnvMeshBuilder.BuildBush(mask, v),
+                        EnvMeshesFolder + "/Bush_m" + mask + "_v" + v + ".asset");
             return meshes;
         }
 

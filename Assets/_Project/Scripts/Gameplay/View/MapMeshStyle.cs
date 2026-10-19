@@ -41,6 +41,25 @@ namespace Arena.Gameplay.View
         [Tooltip("Colour the floor occlusion tends to (cool green, not black: shadows are coloured, Art-Spec §1.1).")]
         public Color FloorOcclusionColor;
 
+        [Header("Floor patches and contact shade (A.3c)")]
+        [Tooltip("Floor darkening right at a tall-grass bush (contact shade; 0 = none).")]
+        [Range(0f, 1f)] public float FloorBushOcclusion;
+
+        [Tooltip("Distance from a bush over which its contact shade fades out, world units.")]
+        [Min(0.01f)] public float FloorBushOcclusionRadius;
+
+        [Tooltip("Size of the noise cells that place the grass patches on the floor, world units (patches ≈ this size).")]
+        [Min(0.1f)] public float FloorPatchCell;
+
+        [Tooltip("Share of the floor covered by grass patches (0 = sand only).")]
+        [Range(0f, 1f)] public float FloorPatchCoverage;
+
+        [Tooltip("Extra patch weight right next to a bush (grass grows around tall grass), fading over FloorBushOcclusionRadius.")]
+        [Range(0f, 1f)] public float FloorPatchNearBush;
+
+        [Tooltip("Footprint radius of a round obstacle prop (barrel, stump, boulder) for its contact shade on the floor, world units.")]
+        [Min(0f)] public float ObstaclePropRadius;
+
         [Tooltip("Meadow frame around the arena: width beyond the map edge, world units.")]
         [Min(0f)] public float MeadowMargin;
 

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Arena.Core.Map;
 using Arena.Data;
+using Arena.Data.Conversion;
 using Arena.Editor.Art.Fighters;
 using Arena.Editor.Build;
 using Arena.Editor.Data;
@@ -98,6 +100,7 @@ namespace Arena.Editor.Art.Capture
                 stage.SetLocalTeam(0);
                 MatchLightRig.Apply(s_light, 0f, s_catalog); // light and wall shadows as for team 0
                 SaveWithColorBlind(RenderMap(camera, stage), dir, "map");
+                SaveArena(camera, config, stage, database, dir);
                 SaveSilhouettes(camera, config, stage, dir);
                 SaveModelSheets(camera, config, stage, dir);
                 SaveHeroShots(camera, config, stage, dir);
@@ -143,6 +146,49 @@ namespace Arena.Editor.Art.Capture
             PlaceGameplay(camera, config, stage, rotated);
             return Render(camera, ShotWidth * scale, ShotHeight * scale);
         }
+
+        /// <summary>
+        /// A.3c: the real default map (no fighters) through <see cref="MapView"/> from the gameplay camera of team 0 — <c>arena.png</c>
+        /// looking at the map centre and <c>arena_base.png</c> at the team 0 spawn side, both 2× supersampled. The stage is hidden.
+        /// </summary>
+        private static void SaveArena(Camera camera, CameraConfig config, CaptureStage stage, GameDatabase database, string dir)
+        {
+            if (database.DefaultMap == null) return;
+            MapDef def = MapConverter.ToMapDef(database.DefaultMap);
+            TileGrid grid = def.InitialGrid;
+            stage.Root.SetActive(false);
+            var root = new GameObject("CaptureArena");
+            try
+            {
+                MapView.Create(root.transform, s_catalog, in grid);
+                var size = new Vector2(grid.Width, grid.Height);
+                float[] focusZ = { grid.Height * 0.5f, grid.Height * ArenaBaseFocus };
+                string[] names = { "arena", "arena_base" };
+                for (int s = 0; s < names.Length; s++)
+                {
+                    Quaternion rotation = CameraMath.Rotation(config.PitchDegrees, false);
+                    Vector3 focus = CameraMath.Focus(new Vector3(grid.Width * 0.5f, 0f, focusZ[s]), size, false, config.ForwardOffset, 0f);
+                    camera.orthographic = false;
+                    camera.fieldOfView = config.FieldOfView;
+                    camera.transform.SetPositionAndRotation(CameraMath.Position(focus, rotation, config.Distance), rotation);
+                    MatchLightRig.Apply(s_light, 0f, s_catalog);
+                    Texture2D big = Render(camera, ShotWidth * 2, ShotHeight * 2);
+                    Texture2D shot = Downscale(big, 2);
+                    Object.DestroyImmediate(big);
+                    Save(shot, dir, names[s]);
+                    Object.DestroyImmediate(shot);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                MapShadowMask.Clear();
+                stage.Root.SetActive(true);
+            }
+        }
+
+        /// <summary>Focus of <c>arena_base.png</c> as a fraction of the map height (team 0 spawns at the bottom).</summary>
+        private const float ArenaBaseFocus = 0.2f;
 
         /// <summary>The team 0 view rendered at 2× and cropped to 1920×1080 around the fighter row: real perspective, more detail.</summary>
         private static void SaveZoom(Camera camera, CameraConfig config, CaptureStage stage, string dir, string name)

@@ -25,6 +25,12 @@ Shader "Arena/ToonEnv"
         _SideMeanLuminance ("Mean Luminance Of The Side Map", Range(0.05, 1)) = 1
         _SideNormalize ("Divide Side Map By Its Mean", Range(0, 1)) = 0
         _SideContrast ("Side Map Contrast", Range(0, 1.5)) = 1
+        _PatchMap ("Patch Map (grass, world XZ)", 2D) = "white" {}
+        _PatchTiling ("Cells Per Patch Tile", Float) = 4
+        _PatchMeanLuminance ("Mean Luminance Of The Patch Map", Range(0.05, 1)) = 1
+        _PatchTint ("Patch Tint", Color) = (1, 1, 1, 1)
+        _PatchEdge ("Patch Edge Softness", Range(0.01, 0.5)) = 0.12
+        _PatchBreakup ("Patch Edge Breakup By The Map", Range(0, 2)) = 0.6
         _ReceiveMapShadow ("Receive Wall Shadows (map mask)", Range(0, 1)) = 0
         _MapShadowColor ("Wall Shadow Multiplier", Color) = (0.56, 0.56, 0.74, 1)
         _ShadeColor ("Shade Multiplier", Color) = (0.612, 0.576, 0.784, 1)
@@ -62,6 +68,11 @@ Shader "Arena/ToonEnv"
             half _SideMeanLuminance;
             half _SideNormalize;
             half _SideContrast;
+            float _PatchTiling;
+            half _PatchMeanLuminance;
+            half4 _PatchTint;
+            half _PatchEdge;
+            half _PatchBreakup;
             half _ReceiveMapShadow;
             half4 _MapShadowColor;
             half4 _ShadeColor;
@@ -81,13 +92,15 @@ Shader "Arena/ToonEnv"
         SAMPLER(sampler_BaseMap);
         TEXTURE2D(_SideMap);
         SAMPLER(sampler_SideMap);
+        TEXTURE2D(_PatchMap);
+        SAMPLER(sampler_PatchMap);
 
         struct Attributes
         {
             float4 positionOS : POSITION;
             float3 normalOS : NORMAL;
             half4 color : COLOR;
-            float2 uv0 : TEXCOORD0;   // x = 1: no texture detail (berries, leaves); meshes without UVs read 0
+            float2 uv0 : TEXCOORD0;   // x = 1: no texture detail (berries, leaves); y = grass patch weight (floor); no UVs read 0
         };
         ENDHLSL
 
@@ -109,7 +122,7 @@ Shader "Arena/ToonEnv"
                 float3 positionWS : TEXCOORD1;
                 float4 uv : TEXCOORD2; // xy: detail tile, zw: macro tile (turned ≈ 37°)
                 half4 color : COLOR;
-                half plain : TEXCOORD3;
+                half2 plainPatch : TEXCOORD3; // x: no texture detail, y: grass patch weight
             };
 
             Varyings Vert(Attributes v)
@@ -119,7 +132,7 @@ Shader "Arena/ToonEnv"
                 o.positionCS = TransformWorldToHClip(o.positionWS);
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.color = v.color;
-                o.plain = saturate(v.uv0.x);
+                o.plainPatch = half2(saturate(v.uv0.x), saturate(v.uv0.y));
                 float2 xz = o.positionWS.xz;
                 o.uv.xy = xz / max(_WorldTiling, 0.001) + _BaseMap_ST.zw;
                 float2 turned = float2(xz.x * 0.8 - xz.y * 0.6, xz.x * 0.6 + xz.y * 0.8);
@@ -146,7 +159,13 @@ Shader "Arena/ToonEnv"
                 side /= lerp(1.0h, max(_SideMeanLuminance, 0.05h), _SideNormalize);
                 side = lerp(half3(1.0h, 1.0h, 1.0h), side, _SideContrast);
                 half isSide = step(an.y, 0.5);
-                tex = lerp(lerp(tex * variation, side, isSide), half3(1.0h, 1.0h, 1.0h), i.plain);
+                tex *= variation;
+                // A.3c: grass patches on the floor (uv0.y weight); the patch map's own brightness breaks the edge up.
+                half3 patch = SAMPLE_TEXTURE2D(_PatchMap, sampler_PatchMap, i.positionWS.xz / max(_PatchTiling, 0.001)).rgb;
+                half patchLum = dot(patch, half3(0.3h, 0.59h, 0.11h)) / max(_PatchMeanLuminance, 0.05h);
+                half patchW = smoothstep(0.5h - _PatchEdge, 0.5h + _PatchEdge, i.plainPatch.y + (patchLum - 1.0h) * _PatchBreakup * i.plainPatch.y);
+                tex = lerp(tex, patch * _PatchTint.rgb, patchW * step(0.001h, i.plainPatch.y));
+                tex = lerp(lerp(tex, side, isSide), half3(1.0h, 1.0h, 1.0h), i.plainPatch.x);
 
                 ArenaToonSurface s;
                 s.albedo = _BaseColor.rgb * i.color.rgb * tex;

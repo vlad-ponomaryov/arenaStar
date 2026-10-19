@@ -21,6 +21,7 @@ namespace Arena.Gameplay.View
         private Renderer[] _bushes;
         private Vec2[] _bushCentres;
         private bool[] _bushSeeThrough;
+        private int[] _bushMasks;
         private int _bushCount;
         private MapShadowMask _shadowMask;
         private int _gridWidth;
@@ -30,6 +31,9 @@ namespace Arena.Gameplay.View
         /// <summary>Berry box cubes built (Last Beast tiles).</summary>
         public int BoxCount { get; private set; }
         public int BushCount => _bushCount;
+
+        /// <summary>Wall cells drawn as obstacle props instead of stone blocks (A.3c).</summary>
+        public int ObstaclePropCount { get; private set; }
 
         /// <summary>True if the bush and breakable cubes are static-batched (tests).</summary>
         public bool IsStaticBatched { get; private set; }
@@ -42,6 +46,9 @@ namespace Arena.Gameplay.View
             view.Build(catalog, in grid);
             return view;
         }
+
+        /// <summary>Bush-neighbour mask (W 1, E 2, S 4, N 8) whose tall-grass mesh bush <paramref name="index"/> got (tests, A.3c).</summary>
+        public int BushMask(int index) => _bushMasks[index];
 
         /// <summary>Current material of bush <paramref name="index"/> (tests: see-through swap, D-024).</summary>
         public Material BushMaterial(int index) => _bushes[index].sharedMaterial;
@@ -110,8 +117,9 @@ namespace Arena.Gameplay.View
             // A sunken pond (WaterHeight < 0): no floor under the water, banks (wall material) close its sides.
             bool sunken = catalog.WaterHeight < 0f;
             TileType hole = sunken ? TileType.Water : TileType.Wall;
-            CreateMeshObject("Floor", root, MapMeshBuilder.BuildFloor(in grid, TileType.Wall, hole, in style, "Floor"), catalog.Floor);
-            CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, in style, "Walls"), catalog.Wall);
+            bool[] propCells = PlaceObstacleProps(catalog, in grid, root);
+            CreateMeshObject("Floor", root, MapMeshBuilder.BuildFloor(in grid, TileType.Wall, hole, in style, "Floor", propCells), catalog.Floor);
+            CreateMeshObject("Walls", root, MapMeshBuilder.BuildBlocks(in grid, TileType.Wall, catalog.WallHeight, in style, "Walls", propCells), catalog.Wall);
             CreateMeshObject("Water", root, MapMeshBuilder.BuildSheet(in grid, TileType.Water, catalog.WaterHeight, in style, "Water"), catalog.Water);
             if (sunken)
                 CreateMeshObject("Banks", root, MapMeshBuilder.BuildBanks(in grid, TileType.Water, catalog.WaterHeight - catalog.BankOverlap, in style, "Banks"), catalog.Wall);
@@ -125,6 +133,7 @@ namespace Arena.Gameplay.View
             _bushes = new Renderer[bushCount];
             _bushCentres = new Vec2[bushCount];
             _bushSeeThrough = new bool[bushCount];
+            _bushMasks = new int[bushCount];
 
             for (int r = 0; r < grid.Height; r++)
             {
@@ -150,14 +159,20 @@ namespace Arena.Gameplay.View
                     }
                     else if (t == TileType.Bush && catalog.BushPrefab != null)
                     {
-                        // A variant and a quarter turn per cell (deterministic, view only): rows of bushes do not repeat.
+                        // A.3c: the tall-grass mesh of this cell's bush-neighbour mask (sides towards neighbours join into one
+                        // mass), a variant per cell (deterministic, view only). No turn: the mask is in map axes.
                         int hash = CellHash(c, r);
-                        GameObject go = Instantiate(catalog.BushPrefab, centre, Quaternion.Euler(0f, (hash & 3) * 90f, 0f), root);
+                        GameObject go = Instantiate(catalog.BushPrefab, centre, Quaternion.identity, root);
                         go.name = "Bush_" + c + "_" + r;
                         Mesh[] variants = catalog.BushVariants;
+                        int mask = (Is(in grid, c - 1, r, TileType.Bush) ? 1 : 0) | (Is(in grid, c + 1, r, TileType.Bush) ? 2 : 0) |
+                                   (Is(in grid, c, r - 1, TileType.Bush) ? 4 : 0) | (Is(in grid, c, r + 1, TileType.Bush) ? 8 : 0);
+                        _bushMasks[_bushCount] = mask;
                         if (variants != null && variants.Length > 0)
                         {
-                            Mesh mesh = variants[(hash >> 2) % variants.Length];
+                            int perMask = Mathf.Max(1, catalog.BushVariantsPerMask);
+                            int index = mask * perMask + hash % perMask;
+                            Mesh mesh = variants[index % variants.Length];
                             var filter = go.GetComponentInChildren<MeshFilter>();
                             if (mesh != null && filter != null) filter.sharedMesh = mesh;
                         }
@@ -170,6 +185,109 @@ namespace Arena.Gameplay.View
 
             StaticBatchingUtility.Combine(staticRoot);
             IsStaticBatched = _bushCount > 0 ? _bushes[0].isPartOfStaticBatch : BreakableCount > 0;
+        }
+
+        private static bool Is(in TileGrid grid, int c, int r, TileType type) => grid.InBounds(c, r) && grid.Get(c, r) == type;
+
+        /// <summary>
+        /// A.3c (D-126): small connected wall groups (≤ <see cref="ViewCatalog.ObstaclePropMaxCells"/> cells) may be drawn as one prop
+        /// type (barrels, stumps, boulders…) instead of stone blocks; types cycle over the groups keyed so that a group and its
+        /// mirrored twins (maps are symmetric) look alike. View only: the cells still block fully.
+        /// Returns the cells drawn as props (the stone block mesh skips them), or null.
+        /// </summary>
+        private bool[] PlaceObstacleProps(ViewCatalog catalog, in TileGrid grid, Transform root)
+        {
+            Mesh[] props = catalog.ObstacleProps;
+            if (props == null || props.Length == 0 || catalog.ObstacleProp == null || catalog.ObstaclePropMaxCells <= 0) return null;
+            int cells = grid.Width * grid.Height;
+            var group = new int[cells];
+            for (int i = 0; i < cells; i++) group[i] = -1;
+            var propCells = new bool[cells];
+            var members = new System.Collections.Generic.List<int>();
+            var stack = new System.Collections.Generic.Stack<int>();
+            // Small groups: (key, first member index in the flat list, count). The key is the same for a group and its mirrored twin.
+            var small = new System.Collections.Generic.List<(int key, int first, int count)>();
+            var flat = new System.Collections.Generic.List<int>();
+            var keys = new System.Collections.Generic.List<int>();
+            int groups = 0;
+            for (int start = 0; start < cells; start++)
+            {
+                if (grid.Tiles[start] != TileType.Wall || group[start] >= 0) continue;
+                members.Clear();
+                stack.Push(start);
+                group[start] = groups;
+                while (stack.Count > 0)
+                {
+                    int k = stack.Pop();
+                    members.Add(k);
+                    int c = k % grid.Width, r = k / grid.Width;
+                    for (int d = 0; d < 4; d++)
+                    {
+                        int nc = c + (d == 0 ? -1 : d == 1 ? 1 : 0), nr = r + (d == 2 ? -1 : d == 3 ? 1 : 0);
+                        if (!Is(in grid, nc, nr, TileType.Wall)) continue;
+                        int ni = grid.IndexOf(nc, nr);
+                        if (group[ni] >= 0) continue;
+                        group[ni] = groups;
+                        stack.Push(ni);
+                    }
+                }
+                groups++;
+                if (members.Count > catalog.ObstaclePropMaxCells) continue;
+                int key = SymmetricKey(members, grid.Width, grid.Height);
+                small.Add((key, flat.Count, members.Count));
+                flat.AddRange(members);
+                if (!keys.Contains(key)) keys.Add(key);
+            }
+
+            // Types cycle over the twin pairs in map order (every type shows up), every ObstacleStoneEvery-th pair stays stone.
+            keys.Sort();
+            int every = catalog.ObstacleStoneEvery;
+            var typeOfKey = new int[keys.Count];
+            int next = CellHash(keys.Count, cells) % props.Length;
+            for (int i = 0; i < keys.Count; i++)
+                typeOfKey[i] = every > 0 && i % every == every - 1 ? -1 : next++ % props.Length;
+            for (int g = 0; g < small.Count; g++)
+            {
+                int type = typeOfKey[keys.IndexOf(small[g].key)];
+                if (type < 0) continue;
+                Mesh mesh = props[type];
+                for (int m = small[g].first; m < small[g].first + small[g].count; m++)
+                {
+                    int k = flat[m];
+                    propCells[k] = true;
+                    int c = k % grid.Width, r = k / grid.Width;
+                    Vector3 centre = WorldCoords.ToWorld(new GridCell(c, r).Center);
+                    var go = new GameObject("Obstacle_" + c + "_" + r);
+                    go.transform.SetParent(root, false);
+                    go.transform.SetPositionAndRotation(centre, Quaternion.Euler(0f, (CellHash(c, r) & 3) * 90f, 0f));
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    var renderer = go.AddComponent<MeshRenderer>();
+                    renderer.sharedMaterial = catalog.ObstacleProp;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.receiveShadows = false;
+                    ObstaclePropCount++;
+                }
+            }            return propCells;
+        }
+
+        /// <summary>
+        /// Smallest cell index of the group over the four mirror images of the map (identity, left-right, top-bottom, central):
+        /// a group and its mirrored twins share the key, whichever symmetry the map has.
+        /// </summary>
+        private static int SymmetricKey(System.Collections.Generic.List<int> members, int width, int height)
+        {
+            int key = int.MaxValue;
+            for (int s = 0; s < 4; s++)
+            {
+                for (int m = 0; m < members.Count; m++)
+                {
+                    int c = members[m] % width, r = members[m] / width;
+                    if ((s & 1) != 0) c = width - 1 - c;
+                    if ((s & 2) != 0) r = height - 1 - r;
+                    key = Mathf.Min(key, r * width + c);
+                }
+            }
+            return key;
         }
 
         private static int CellHash(int c, int r)

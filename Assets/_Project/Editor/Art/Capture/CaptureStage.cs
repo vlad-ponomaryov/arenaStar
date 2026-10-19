@@ -41,6 +41,9 @@ namespace Arena.Editor.Art.Capture
         public int Width { get; }
         public int Height { get; }
         public GameObject MapRoot { get; }
+
+        /// <summary>Root of the whole stage (map and fighters).</summary>
+        public GameObject Root => _root;
         public int FighterCount => _views.Count;
 
         private CaptureStage(GameObject root, ViewCatalog catalog, int width, int height, GameObject mapRoot)

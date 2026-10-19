@@ -32,7 +32,7 @@ Material:
     m_Floats:
     - _AmbientStrength: 0.3
     - _DstBlend: 10
-    - _LeafContrast: 0.9
+    - _LeafContrast: 0.5
     - _LeafMeanLuminance: 0.8953643
     - _LeafTiling: 0.9
     - _RimPower: 2.5

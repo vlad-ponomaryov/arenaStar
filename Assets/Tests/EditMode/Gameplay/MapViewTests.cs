@@ -52,5 +52,41 @@ namespace Arena.Tests.EditMode.Gameplay
                 MapShadowMask.Clear();
             }
         }
+        [Test]
+        public void SmallWallGroups_MayBecomeProps_LongWallsStayBlocks_AndBushesUseTheirNeighbourMask()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
+            Assert.IsNotNull(catalog);
+            // A long wall (5 cells, always stone), many single walls (some become props), two bushes side by side.
+            TileGrid grid = MapConverter.FromRows("m", new[]
+            {
+                "#####....",
+                ".........",
+                "#.#.#.#.#",
+                ".........",
+                "#.#.#.#.#",
+                "....\"\"..."
+            }).InitialGrid;
+            var root = new GameObject("MapViewTests");
+            try
+            {
+                MapView view = MapView.Create(root.transform, catalog, in grid);
+                Assert.Greater(view.ObstaclePropCount, 0, "some small groups are props");
+                Assert.Less(view.ObstaclePropCount, 10, "not all: the long wall and a share of the small groups stay stone");
+                foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+                {
+                    if (!t.name.StartsWith("Obstacle_")) continue;
+                    Assert.AreNotEqual("5", t.name.Split('_')[2], "the long wall on the top row is never a prop");
+                }
+                Assert.AreEqual(2, view.BushCount);
+                Assert.AreEqual(2, view.BushMask(0), "left bush: east neighbour");
+                Assert.AreEqual(1, view.BushMask(1), "right bush: west neighbour");
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                MapShadowMask.Clear();
+            }
+        }
     }
 }

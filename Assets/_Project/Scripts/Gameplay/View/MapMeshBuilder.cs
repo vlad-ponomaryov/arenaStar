@@ -20,7 +20,14 @@ namespace Arena.Gameplay.View
         /// a top is split into 3×3 parts (inset, edge strips, corners) so neighbouring blocks share their edges without gaps.
         /// Sides are built only where the neighbour is not a wall; the map edge counts as open (the meadow is seen around the arena).
         /// </summary>
-        public static Mesh BuildBlocks(in TileGrid grid, TileType type, float height, in MapMeshStyle style, string name)
+        public static Mesh BuildBlocks(in TileGrid grid, TileType type, float height, in MapMeshStyle style, string name) =>
+            BuildBlocks(in grid, type, height, in style, name, null);
+
+        /// <summary>
+        /// Blocks as above, without the cells where <paramref name="skip"/> is true (A.3c: wall groups drawn as props); skipped cells
+        /// still count as walls for their neighbours' chamfers and sides.
+        /// </summary>
+        public static Mesh BuildBlocks(in TileGrid grid, TileType type, float height, in MapMeshStyle style, string name, bool[] skip)
         {
             var b = new Buffers();
             float bevel = Mathf.Clamp(style.WallBevel, 0f, height * 0.5f);
@@ -32,6 +39,7 @@ namespace Arena.Gameplay.View
                 for (int c = 0; c < grid.Width; c++)
                 {
                     if (grid.Get(c, r) != type) continue;
+                    if (skip != null && skip[grid.IndexOf(c, r)]) continue;
                     float tint = 1f + CellNoise(c, r) * style.WallCellVariation;
                     Color topSrgb = Scale(style.WallTop, tint);
                     Color top = topSrgb.linear;
@@ -106,7 +114,14 @@ namespace Arena.Gameplay.View
         /// The floor as above, also without cells of <paramref name="hole"/> (A.3b: the sunken pond — the water sheet lies lower and
         /// <see cref="BuildBanks"/> closes its sides). Occlusion comes only from <paramref name="covered"/>.
         /// </summary>
-        public static Mesh BuildFloor(in TileGrid grid, TileType covered, TileType hole, in MapMeshStyle style, string name)
+        public static Mesh BuildFloor(in TileGrid grid, TileType covered, TileType hole, in MapMeshStyle style, string name) =>
+            BuildFloor(in grid, covered, hole, in style, name, null);
+
+        /// <summary>
+        /// The floor as above; cells where <paramref name="props"/> is true (A.3c: walls drawn as round props) get floor too, with a
+        /// round contact shade of <see cref="MapMeshStyle.ObstaclePropRadius"/> instead of the square wall occlusion.
+        /// </summary>
+        public static Mesh BuildFloor(in TileGrid grid, TileType covered, TileType hole, in MapMeshStyle style, string name, bool[] props)
         {
             int sub = Mathf.Max(1, style.FloorSubdivisions);
             int vw = grid.Width * sub + 1, vh = grid.Height * sub + 1;
@@ -114,21 +129,36 @@ namespace Arena.Gameplay.View
             float radius = Mathf.Max(0.01f, style.FloorOcclusionRadius);
             int reach = Mathf.CeilToInt(radius) + 1;
             Color occluded = style.FloorOcclusionColor.linear;
+            float bushRadius = Mathf.Max(0.01f, style.FloorBushOcclusionRadius);
+            int bushReach = Mathf.CeilToInt(bushRadius) + 1;
+            float patchCell = Mathf.Max(0.1f, style.FloorPatchCell);
 
             var verts = new List<Vector3>(vw * vh);
             var colors = new List<Color>(vw * vh);
+            var uvs = new List<Vector2>(vw * vh);
             for (int j = 0; j < vh; j++)
             {
                 for (int i = 0; i < vw; i++)
                 {
                     float x = i * step, z = j * step;
-                    float d = DistanceToType(in grid, x, z, covered, reach);
+                    float d = Mathf.Min(DistanceToType(in grid, x, z, covered, reach, props), DistanceToProp(in grid, x, z, props, style.ObstaclePropRadius));
                     float t = 1f - Mathf.Clamp01(d / radius);
                     float occlusion = style.FloorWallOcclusion * t * t * (3f - 2f * t);
+                    // A.3c: contact shade and a grass fringe around tall-grass bushes.
+                    float db = DistanceToType(in grid, x, z, TileType.Bush, bushReach);
+                    float tb = 1f - Mathf.Clamp01(db / bushRadius);
+                    float nearBush = tb * tb * (3f - 2f * tb);
+                    occlusion = Mathf.Max(occlusion, style.FloorBushOcclusion * nearBush);
                     Color col = Color.Lerp(Color.white, occluded, occlusion);
                     col.a = 0f;
                     verts.Add(new Vector3(x, 0f, z));
                     colors.Add(col);
+                    // Patch weight: value noise thresholded around 1 − coverage (0.5 = the patch edge in the shader).
+                    float noise = ValueNoise(x / patchCell, z / patchCell);
+                    float patch = Mathf.Clamp01(0.5f + (noise - (1f - style.FloorPatchCoverage)) * PatchNoiseGain);
+                    if (style.FloorPatchCoverage <= 0f) patch = 0f;
+                    patch = Mathf.Max(patch, style.FloorPatchNearBush * nearBush);
+                    uvs.Add(new Vector2(0f, patch));
                 }
             }
 
@@ -138,7 +168,8 @@ namespace Arena.Gameplay.View
                 for (int c = 0; c < grid.Width; c++)
                 {
                     TileType tile = grid.Get(c, r);
-                    if (tile == covered || tile == hole) continue;
+                    bool prop = props != null && props[grid.IndexOf(c, r)];
+                    if ((tile == covered && !prop) || tile == hole) continue;
                     for (int sj = 0; sj < sub; sj++)
                     {
                         for (int si = 0; si < sub; si++)
@@ -155,7 +186,9 @@ namespace Arena.Gameplay.View
 
             var normals = new List<Vector3>(verts.Count);
             for (int k = 0; k < verts.Count; k++) normals.Add(Vector3.up);
-            return Create(name, verts, normals, colors, tris);
+            Mesh mesh = Create(name, verts, normals, colors, tris);
+            mesh.SetUVs(0, uvs);
+            return mesh;
         }
 
         /// <summary>
@@ -285,8 +318,30 @@ namespace Arena.Gameplay.View
             return best;
         }
 
-        /// <summary>Distance in the XZ plane from (x, z) to the nearest cell of <paramref name="type"/> within <paramref name="reach"/> cells.</summary>
-        private static float DistanceToType(in TileGrid grid, float x, float z, TileType type, int reach)
+        /// <summary>Distance in the XZ plane from (x, z) to the edge of the nearest prop (a disc of <paramref name="propRadius"/> in its cell).</summary>
+        private static float DistanceToProp(in TileGrid grid, float x, float z, bool[] props, float propRadius)
+        {
+            if (props == null) return float.MaxValue;
+            int cx = Mathf.FloorToInt(x), cz = Mathf.FloorToInt(z);
+            float best = float.MaxValue;
+            for (int r = cz - 1; r <= cz + 1; r++)
+            {
+                for (int c = cx - 1; c <= cx + 1; c++)
+                {
+                    if (!grid.InBounds(c, r) || !props[grid.IndexOf(c, r)]) continue;
+                    float dx = x - (c + 0.5f), dz = z - (r + 0.5f);
+                    float d = Mathf.Max(0f, Mathf.Sqrt(dx * dx + dz * dz) - propRadius);
+                    if (d < best) best = d;
+                }
+            }
+            return best;
+        }
+
+        private static float DistanceToType(in TileGrid grid, float x, float z, TileType type, int reach) =>
+            DistanceToType(in grid, x, z, type, reach, null);
+
+        /// <summary>Distance in the XZ plane from (x, z) to the nearest cell of <paramref name="type"/> within <paramref name="reach"/> cells (cells in <paramref name="except"/> skipped).</summary>
+        private static float DistanceToType(in TileGrid grid, float x, float z, TileType type, int reach, bool[] except)
         {
             int cx = Mathf.FloorToInt(x), cz = Mathf.FloorToInt(z);
             float best = float.MaxValue;
@@ -295,6 +350,7 @@ namespace Arena.Gameplay.View
                 for (int c = cx - reach; c <= cx + reach; c++)
                 {
                     if (!IsType(in grid, c, r, type)) continue;
+                    if (except != null && except[grid.IndexOf(c, r)]) continue;
                     float dx = Mathf.Max(c - x, 0f, x - (c + 1f));
                     float dz = Mathf.Max(r - z, 0f, z - (r + 1f));
                     float d = Mathf.Sqrt(dx * dx + dz * dz);
@@ -313,6 +369,22 @@ namespace Arena.Gameplay.View
         }
 
         private static bool IsType(in TileGrid grid, int c, int r, TileType type) => grid.InBounds(c, r) && grid.Get(c, r) == type;
+
+        /// <summary>Slope of the patch weight around the coverage threshold (noise units → weight).</summary>
+        private const float PatchNoiseGain = 2.5f;
+
+        /// <summary>Smooth value noise in [0, 1] (bilinear over hashed lattice points, smoothstep weights); view only.</summary>
+        private static float ValueNoise(float x, float z)
+        {
+            int ix = Mathf.FloorToInt(x), iz = Mathf.FloorToInt(z);
+            float fx = x - ix, fz = z - iz;
+            fx = fx * fx * (3f - 2f * fx);
+            fz = fz * fz * (3f - 2f * fz);
+            float a = Lattice(ix, iz), b = Lattice(ix + 1, iz), c = Lattice(ix, iz + 1), d = Lattice(ix + 1, iz + 1);
+            return Mathf.Lerp(Mathf.Lerp(a, b, fx), Mathf.Lerp(c, d, fx), fz);
+        }
+
+        private static float Lattice(int x, int z) => (CellNoise(x * 7 + 3, z * 13 + 5) + 1f) * 0.5f;
 
         /// <summary>Deterministic value in [−1, 1] per cell (view variation only, not the simulation RNG).</summary>
         private static float CellNoise(int c, int r)

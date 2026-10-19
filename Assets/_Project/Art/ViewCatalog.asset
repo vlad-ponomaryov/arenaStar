@@ -31,9 +31,46 @@ MonoBehaviour:
   BreakableWallPrefab: {fileID: 5423689921568914059, guid: b8d5c855740b6cc4690f7fb09b3865b2, type: 3}
   BushPrefab: {fileID: 3101755314425890175, guid: 0fc88e0671fc8fe4e8580a307ec14816, type: 3}
   BushVariants:
-  - {fileID: 4300000, guid: c43d3d39d932bc64f8d886b59a0aa53e, type: 2}
-  - {fileID: 4300000, guid: 416f9f5718dd8d549a91df73e0e4aa11, type: 2}
-  - {fileID: 4300000, guid: f433d0e0a47870b4888a719a70fb356d, type: 2}
+  - {fileID: 4300000, guid: 703e72ee39e4a65418d1d51e25dcdc98, type: 2}
+  - {fileID: 4300000, guid: 90920d27e36caa846921b1973bc9d357, type: 2}
+  - {fileID: 4300000, guid: b285b319a0db89747a4881265d1ee67d, type: 2}
+  - {fileID: 4300000, guid: b4cf5bfa35e6a0740819d9637c32e722, type: 2}
+  - {fileID: 4300000, guid: b7b37ea789764f442961ed342cbbb423, type: 2}
+  - {fileID: 4300000, guid: 9e57012311ce23845afa43e13818c2fb, type: 2}
+  - {fileID: 4300000, guid: a6a9b3a48303b2b498a704540eee9799, type: 2}
+  - {fileID: 4300000, guid: e282110c38cde674d94b91c59eabae14, type: 2}
+  - {fileID: 4300000, guid: bf217e9c97737f14f9613a900d8e74e3, type: 2}
+  - {fileID: 4300000, guid: 46d9842c0603bcc498f46059dd69468c, type: 2}
+  - {fileID: 4300000, guid: 106b5ca83b351cf478cffcad1cc67ecc, type: 2}
+  - {fileID: 4300000, guid: 79bb8181e96672440a909cbf019e11be, type: 2}
+  - {fileID: 4300000, guid: 825939d8c0802a64487ca0cefa91724e, type: 2}
+  - {fileID: 4300000, guid: 79da47bc077d7f644b5c415a1e3e0a8c, type: 2}
+  - {fileID: 4300000, guid: e7362be7c369383409e8d1606dd4137e, type: 2}
+  - {fileID: 4300000, guid: e9abe28defc37be47b2eb5ce083c3459, type: 2}
+  - {fileID: 4300000, guid: d815b3a1656e3bb4c95bd23d7ac6d62f, type: 2}
+  - {fileID: 4300000, guid: c462abbd1d5295d4e8202fbba1cd9926, type: 2}
+  - {fileID: 4300000, guid: a9f1c21fffe55cb49b46a23516d9e589, type: 2}
+  - {fileID: 4300000, guid: a4727166c23bbc247b76917accd58a11, type: 2}
+  - {fileID: 4300000, guid: ac656b50e248e124295f3ccd98ae51bc, type: 2}
+  - {fileID: 4300000, guid: 8b7a541cb989630418895aae4218485e, type: 2}
+  - {fileID: 4300000, guid: 8d71b1bf85956304f8560ebdcbff9bab, type: 2}
+  - {fileID: 4300000, guid: 58708b0a21813d144a5116d5f7721909, type: 2}
+  - {fileID: 4300000, guid: 34b99a4b17971a04fb195e92c64898fe, type: 2}
+  - {fileID: 4300000, guid: 775935625d0ebd54e8ca3ceb1919c47e, type: 2}
+  - {fileID: 4300000, guid: ce9601a07f06ba944a4d243b9fd76952, type: 2}
+  - {fileID: 4300000, guid: e4f259c14a0c6e54dbd18208a9504be3, type: 2}
+  - {fileID: 4300000, guid: 2b5ecae74dfb53f4cb83e60238e3b1e8, type: 2}
+  - {fileID: 4300000, guid: 8184c2351a888e042b8ad9c6fed259f4, type: 2}
+  - {fileID: 4300000, guid: 183f1be67ffb11e4ba305a650fe152c1, type: 2}
+  - {fileID: 4300000, guid: ad3e8fd6469c9834895636bdffff152c, type: 2}
+  BushVariantsPerMask: 2
+  ObstacleProps:
+  - {fileID: 4300000, guid: b5f98f72df378734fb7e977b3c1f8b7d, type: 2}
+  - {fileID: 4300000, guid: e76d2d73fdf2c28478504751c688ab30, type: 2}
+  - {fileID: 4300000, guid: 0ebb81f9e2d7fae46a60d6b687614676, type: 2}
+  ObstacleProp: {fileID: 2100000, guid: e6d114ebfcfac5a4cb0453db79ffb424, type: 2}
+  ObstaclePropMaxCells: 3
+  ObstacleStoneEvery: 4
   AcornPrefab: {fileID: 5887361116785313830, guid: 1abf562ef1acaf546b65554f5215ee40, type: 3}
   AcornGoldenPrefab: {fileID: 2117828572120719844, guid: 0d01c01937945b34a97395fa4ba43e46, type: 3}
   HollowPrefab: {fileID: 8922491895689300978, guid: 0d0120281a1417341837354039b6d408, type: 3}
@@ -65,7 +102,13 @@ MonoBehaviour:
     FloorSubdivisions: 2
     FloorWallOcclusion: 0.5
     FloorOcclusionRadius: 0.75
-    FloorOcclusionColor: {r: 0.41568628, g: 0.5019608, b: 0.47843137, a: 1}
+    FloorOcclusionColor: {r: 0.5411765, g: 0.4392157, b: 0.47843137, a: 1}
+    FloorBushOcclusion: 0.4
+    FloorBushOcclusionRadius: 0.45
+    FloorPatchCell: 2.2
+    FloorPatchCoverage: 0.13
+    FloorPatchNearBush: 0.62
+    ObstaclePropRadius: 0.4
     MeadowMargin: 14
     MeadowFade: 6
     MeadowEdge: {r: 0.7372549, g: 0.76862746, b: 0.8, a: 1}

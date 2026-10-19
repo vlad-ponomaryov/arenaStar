@@ -86,7 +86,12 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(grass, ViewAssetBuilder.GrassTexturePath);
             Assert.LessOrEqual(grass.width, 512, "world textures 256–512 (Art-Spec §7)");
             Assert.AreEqual(TextureWrapMode.Repeat, grass.wrapMode);
-            Assert.AreEqual(grass, catalog.Floor.GetTexture("_BaseMap"));
+            // A.3c: the arena floor is sand with grass patches (_PatchMap); the meadow stays grass.
+            var sand = AssetDatabase.LoadAssetAtPath<Texture2D>(ViewAssetBuilder.FloorSandTexturePath);
+            Assert.IsNotNull(sand, ViewAssetBuilder.FloorSandTexturePath);
+            Assert.LessOrEqual(sand.width, 512, "world textures 256–512 (Art-Spec §7)");
+            Assert.AreEqual(sand, catalog.Floor.GetTexture("_BaseMap"));
+            Assert.AreEqual(grass, catalog.Floor.GetTexture("_PatchMap"));
             Assert.AreEqual(grass, catalog.Meadow.GetTexture("_BaseMap"));
             Assert.Greater(catalog.Floor.GetFloat("_WorldTiling"), 1f);
 
