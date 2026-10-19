@@ -50,3 +50,6 @@ crashlytics-build.properties
 !Server/**/*.csproj
 Server/**/bin/
 Server/**/obj/
+
+# Playwright MCP scratch output (snapshots, console logs)
+.playwright-mcp/
