@@ -1,0 +1,55 @@
+Концепты локаций арены (по одной картинке на локацию). Google Flow (https://flow.google.com), проект «Arena», агент Flow,
+модель изображений Nano Banana 2.1 (по умолчанию проекта), 2026-10-19 ≈ 16:47–17:04 по местному времени. Аккаунт и условия — как в
+../2026-10-19_tex-grass/prompt.md (Условия Google от 30.07.2026, без претензий на владение; Q-019, D-111). Видео и платное (2K/4K)
+не использовались. Скачан исходный файл 1K (WebP 1376×768, 16:9), сохранён в PNG без изменения пикселей. Видимого водяного знака нет.
+Каждая картинка — новый сеанс агента, без референсов; чужие игры, студии, художники и картинки как вход не использовались.
+Списки локаций — Docs/Locations.md (8) и Docs/Location-Hub.md (Ярмарочная площадь, Школьный двор); 02 — лагерь на бору в версии
+«Поляна Большого Пня» (пень-сцена, арка, палатки), 11 — её новогодний слой. Перегенераций не было (все 11 — с первой попытки).
+Ориентир и референс, не в игру. Лист сравнения — Tools/out/art/locations/sheet.png (не коммитится, собирает Tools/art_locations_sheet.py).
+
+Промпт = ОБЩЕЕ НАЧАЛО + «Setting: <локация>» + ОБЩИЙ КОНЕЦ.
+
+ОБЩЕЕ НАЧАЛО:
+Generate 1 still image (image only, no video, do not use any existing images or references from this project, brand-new design), landscape 16:9 aspect ratio. Stylized glossy toy-like 3D game arena for our own family-friendly kids' mobile top-down 3v3 shooter, camera looking down at about 55 degrees, the whole rectangular arena visible with a small margin, the field fills most of the frame, obstacles on the field arranged roughly symmetrically for two teams. Setting: 
+
+ОБЩИЙ КОНЕЦ:
+Bright sunny warm light, soft shadows, rich saturated clean colors, polished stylized 3D render with glossy toy materials, crisp details. No red and no blue as main colors on the field, no characters, no people, no animals, no text, no logos, no watermark, original design, not resembling any existing game.
+
+01_summer_yard.png — Летний двор
+A summer courtyard between apartment blocks during school holidays: light grey asphalt floor with faint pastel chalk hopscotch drawings, a zone of beige and lilac soft rubber playground surface, a square sandbox. Obstacles: low brick flower-bed blocks and concrete rings as walls, a small slide and benches as low cover, stacks of cardboard boxes and wooden crates as breakable cover, plump trimmed emerald-green lilac bushes as hiding spots, a round inflatable kiddie pool and a shallow puddle fountain as water. Frame: low curb, garage walls and soft-colored apartment facades with balconies blurred and muted around the edges.
+
+02_stump_glade.png — Поляна Большого Пня
+A summer camp clearing in a pine forest: warm light sand floor with a few pine needles and cones, low rounded sandstone border around the field. On the field: chunky light-stone blocks with a carved leaf motif, round wooden barrels, honey-colored wooden crates, a round pond with a wooden plank rim, plump emerald-green juniper bushes as the only strong green, flat stepping-stone paths. Outside the border on one long side: a huge old tree stump with visible rings used as an empty stage, a wooden camp entrance arch, short wooden posts with small hooks, two small canvas tents. Ring of simple stylized pines beyond, muted and less saturated than the field.
+
+03_beach_cove.png — Пляж и бухта
+A sunny seaside cove: light beach sand floor, darker wet sand near the water, wooden boardwalk paths. Obstacles: concrete breakwater blocks, small wooden boats pulled up on the sand and beach changing cabins in cream and yellow as walls, deck chairs and barrels as cover, wicker baskets and fish crates as breakable cover, plump wild rose bushes with rich green leaves and tall dune grass as hiding spots, small tidal inlets and shallow lagoons of turquoise-green water (not blue). Frame: dunes with dune grass, a small wooden pier, gentle turquoise sea at one edge, muted colors.
+
+04_backyard_garden.png — Сад на заднем дворе
+A big grandma's backyard garden: floor of light warm gravel paths and wooden decking, narrow strips of grass only at the edges, no lawn on the field. Obstacles: low brick walls, a small garden shed and a compost box as walls, rain barrels and wheelbarrows as cover, crates of yellow apples and clay pots as breakable cover, trimmed hedge bushes shaped as cubes and spheres plus sunflowers as hiding spots, a small garden pond with stones. Frame: a few vegetable beds, apple trees, a small greenhouse and a picket fence, muted and soft.
+
+05_lantern_festival.png — Праздник фонариков
+A summer park festival at golden late afternoon (still daylight): light cream cobblestone and stone tile floor, wooden footbridges. Obstacles: small market stalls with striped awnings in yellow, cream, lilac and mint as walls, stone lanterns as blocks, wooden tables and barrels as cover, prize crates and little carts as breakable cover, rounded trimmed bushes and bamboo clumps as hiding spots, ponds with arched wooden bridges and lily pads. Frame: strings of paper lanterns in warm yellow, mint and lilac only around the frame, park trees. No rides, no carousels, no signs, no mascots, no religious symbols.
+
+06_rooftops.png — Крыши города
+Flat city rooftops connected by wooden walkways on a bright sunny day: floor of light warm concrete and cream tiles. Obstacles: ventilation boxes, rooftop exit huts and a water tank as walls, air conditioner units and crates as cover, cardboard boxes and wooden pallets as breakable cover, rooftop garden planters with plump green shrubs as hiding spots, a small rooftop pool and gaps between buildings as impassable water-like cells. Frame: low parapet, antennas, small pigeon houses, a soft hazy city skyline far below and around, muted.
+
+07_snow_valley.png — Снежная долина
+A winter camp in a snowy pine valley: floor of packed snow in a light warm grey-white with trodden paths, not pure white. Obstacles: snow fort walls and big snowdrifts as walls, boulders with snow caps, wooden sleds and barrels as cover, friendly snowmen and wooden crates as breakable cover, dark green fir bushes with snow only on top as hiding spots, a round frozen pond with icy turquoise surface. Frame: low snowy border, snow-covered fir trees and a log cabin, muted and soft, crisp sunny winter morning.
+
+08_tiny_room.png — Мы маленькие
+A miniature arena on the floor of a kid's playroom, as if the fighters were tiny: warm wide wooden floorboards and a big soft cream rug zone. Obstacles: giant wooden toy building blocks, stacks of books and shoe boxes as walls, cups and thread spools as cover, cookies and small cardboard boxes as breakable cover, potted houseplants and a fluffy long-pile green rug patch as hiding spots, a spilled puddle of orange juice and a water bowl as water. Frame: edges of furniture, a toy chest, pencils and crayons, soft and muted.
+
+09_fair_square.png — Ярмарочная площадь
+The market square of a small cozy town: light beige-grey cobblestone floor. Obstacles: stone flower-bed blocks as walls, wooden market crates and barrels as cover, crates of produce as breakable cover, plump emerald trimmed bushes in planters as hiding spots, a small shallow stone canal and round fountain basins as water. On one long side outside the field: a wide round empty stone bowl pedestal (a former fountain) as a decoration slot. Frame: wooden market pavilions with awnings in yellow, cream, lilac and turquoise, lamp posts with empty hooks for garlands, cute town houses beyond, muted. No rides, no carousels, no signs.
+
+10_school_yard.png — Школьный двор-сквер
+The yard of an old school during summer holidays: light warm paving tiles and pale asphalt with faint pastel chalk drawings, a beige rubber playground zone. Obstacles: concrete ring planters and low brick walls as walls, benches and a small gazebo as cover, stacks of cardboard boxes as breakable cover, plump emerald trimmed bushes as hiding spots, a small round splash fountain and a puddle as water. On one long side outside the field: a round star-shaped empty flower bed as a decoration slot. Frame: a low painted fence with small pennant flags in yellow, mint and lilac, a cozy old school building facade, trees, muted.
+
+11_stump_newyear.png — Поляна Пня: Новый год
+New Year version of a summer camp clearing in a pine forest: warm light sand floor with light snow dusting, low sandstone border, light snow caps on the light-stone blocks, bushes and pines, small snow drifts only near the border. On the huge old tree stump stage outside the field on one long side stands a decorated New Year fir tree with gold, white and orange baubles and a snowflake star on top; warm string lights hang from the wooden camp arch and border posts. On the field: cream gift boxes with gold and lilac ribbons instead of crates, friendly round snowmen instead of barrels, plump emerald juniper bushes still clearly readable, a round frozen-looking pond with a wooden rim. Snow-capped pines beyond, muted. Crisp cold sunny morning light, a few soft snowflakes.
+
+ЗАМЕЧАНИЯ
+- 01 двор: рамка-фасады есть; на асфальте меловые классики. 03 пляж: камера ближе к виду сверху, рамка размыта дюнами;
+  волнорезы-тетраподы. 06 крыши: два дома с провалом посередине, жёлто-чёрные полосы на краях; вода — зелёная.
+- 07 снег: нижний край поля чуть обрезан. 08 детская: синий и красный — только в ящиках с игрушками за краем.
+- 10 школа: в меловых классиках цифры (текст на полу) — в игре не делать. 11 Новый год: шары ёлки — золото/белый/оранжевый, без красного.
