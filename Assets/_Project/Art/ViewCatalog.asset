@@ -143,7 +143,7 @@ MonoBehaviour:
     PropShadowHeight: 0.65
     FootprintInset: 0.06
     FootprintCorner: 0.15
-    ShadowBlur: 0.12
+    ShadowBlur: 0.14
     ContactAoBlur: 0.24
     ContactAoStrength: 0.85
     BushAoWeight: 0.6

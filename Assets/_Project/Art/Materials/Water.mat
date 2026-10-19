@@ -36,9 +36,9 @@ Material:
     - _FoamWobble: 0.9
     - _GlintSoftness: 0.08
     - _GlintStrength: 0.5
-    - _GlintThreshold: 1.4
+    - _GlintThreshold: 1.55
     - _LightInfluence: 0.35
-    - _LineStrength: 0.06
+    - _LineStrength: 0.03
     - _RingStrength: 0.55
     - _RingWidth: 0.045
     - _RippleTiling: 2.2

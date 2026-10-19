@@ -269,7 +269,7 @@ namespace Arena.Editor.Art
             PropShadowHeight = 0.65f,
             FootprintInset = 0.06f,
             FootprintCorner = 0.15f,
-            ShadowBlur = 0.12f,
+            ShadowBlur = 0.14f,          // A.3f: lower separate blocks — a slightly softer edge
             ContactAoBlur = 0.24f,
             ContactAoStrength = 0.85f,
             BushAoWeight = 0.6f,

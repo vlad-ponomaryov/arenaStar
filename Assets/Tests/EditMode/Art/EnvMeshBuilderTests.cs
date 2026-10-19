@@ -150,7 +150,7 @@ namespace Arena.Tests.EditMode.Art
                     Assert.Greater(m.bounds.extents.x, 0.42f, m.name + " fills the blocked cell");
                     Assert.That(m.bounds.size.y, Is.InRange(0.8f, 0.92f), m.name);
                     Assert.LessOrEqual(m.triangles.Length / 3, EnvMeshBuilder.WallBlockTriangleBudget, m.name);
-                    if (m.bounds.max.y > 0.865f) withLeaf++;
+                    if (m.bounds.max.y > 0.864f) withLeaf++;
                 }
                 Assert.AreEqual(EnvMeshBuilder.WallBlockVariantCount - 1, withLeaf, "all variants but one carry the leaf relief, one is plain");
             }
@@ -176,6 +176,7 @@ namespace Arena.Tests.EditMode.Art
                     Assert.LessOrEqual(m.bounds.extents.z, 0.5f, m.name);
                 }
                 Assert.Greater(crate.bounds.size.y, 0.7f, "a crate is a little lower than a stone block (A.3f)");
+                Assert.LessOrEqual(crate.triangles.Length / 3, EnvMeshBuilder.CrateTriangleBudget);
                 bool glossy = false;
                 foreach (Color c in basket.colors) glossy |= c.a > 0.9f;
                 Assert.IsTrue(glossy, "berries are glossy (vertex alpha)");

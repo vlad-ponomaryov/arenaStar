@@ -323,6 +323,7 @@ namespace Arena.Gameplay.View
             var outer = new List<Vector2>();
             var inner = new List<Vector2>();
             var isRim = new List<bool>();
+            var contour = new List<Vector2>();
             Color light = style.PondPlankLight.linear, dark = style.PondPlankDark.linear, seam = style.PondPlankSeam.linear;
             Color side = style.PondRimSide.linear, sideFoot = Scale(side, 0.55f), sand = new Color(1f, 1f, 1f, 0f);
             for (int r = 0; r < grid.Height; r++)
@@ -380,25 +381,39 @@ namespace Arena.Gameplay.View
                         outer.Add(corner); inner.Add(corner); isRim.Add(false);
                     }
 
-                    // Water: a fan from the cell centre over the inner contour.
-                    var centre3 = new Vector3(c + 0.5f, waterHeight, r + 0.5f);
-                    int ic = verts.Count;
-                    verts.Add(centre3);
-                    colors.Add(new Color(1f, 1f, 1f, PondShore(in grid, centre3.x, centre3.z, type, reach, w, shoreWidth, style.PondShoreMax)));
+                    // Water: rings from the cell centre out to the inner contour (long contour segments split), the shore factor
+                    // sampled at every vertex — a plain fan would smear the shore colour along the seams between water cells.
                     int n = inner.Count;
+                    var centre2 = new Vector2(c + 0.5f, r + 0.5f);
+                    contour.Clear();
                     for (int i = 0; i < n; i++)
                     {
-                        verts.Add(To3(inner[i], waterHeight));
-                        colors.Add(new Color(1f, 1f, 1f, PondShore(in grid, inner[i].x, inner[i].y, type, reach, w, shoreWidth, style.PondShoreMax)));
+                        Vector2 p0 = inner[i], p1 = inner[(i + 1) % n];
+                        int parts = Mathf.Max(1, Mathf.CeilToInt((p1 - p0).magnitude / PondWaterStep));
+                        for (int q = 0; q < parts; q++) contour.Add(Vector2.Lerp(p0, p1, (float)q / parts));
                     }
-                    for (int i = 0; i < n; i++)
+                    int m = contour.Count, ic = verts.Count;
+                    verts.Add(To3(centre2, waterHeight));
+                    colors.Add(new Color(1f, 1f, 1f, PondShore(in grid, centre2.x, centre2.y, type, reach, w, shoreWidth, style.PondShoreMax)));
+                    for (int k = 1; k <= PondWaterRings; k++)
                     {
-                        int a = ic + 1 + i, b = ic + 1 + (i + 1) % n;
-                        Vector3 cross = Vector3.Cross(verts[a] - centre3, verts[b] - centre3);
-                        if (Mathf.Abs(cross.y) < 1e-9f) continue;
-                        tris.Add(ic);
-                        if (cross.y > 0f) { tris.Add(a); tris.Add(b); }
-                        else { tris.Add(b); tris.Add(a); }
+                        for (int i = 0; i < m; i++)
+                        {
+                            Vector2 q = Vector2.Lerp(centre2, contour[i], (float)k / PondWaterRings);
+                            verts.Add(To3(q, waterHeight));
+                            colors.Add(new Color(1f, 1f, 1f, PondShore(in grid, q.x, q.y, type, reach, w, shoreWidth, style.PondShoreMax)));
+                        }
+                    }
+                    for (int i = 0; i < m; i++)
+                    {
+                        int j = (i + 1) % m;
+                        AddUpTriangle(verts, tris, ic, ic + 1 + i, ic + 1 + j);
+                        for (int k = 1; k < PondWaterRings; k++)
+                        {
+                            int a0 = ic + 1 + (k - 1) * m + i, a1 = ic + 1 + (k - 1) * m + j, b0 = a0 + m, b1 = a1 + m;
+                            AddUpTriangle(verts, tris, a0, b0, b1);
+                            AddUpTriangle(verts, tris, a0, b1, a1);
+                        }
                     }
 
                     // Rim: planks across the band (seam at each plank start), outer side down to the floor, inner side into the water.
@@ -440,6 +455,18 @@ namespace Arena.Gameplay.View
         private static readonly Vector2[] PondEdgeDir = { new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(-1f, 0f), new Vector2(0f, -1f) };
         private static readonly Vector2[] PondInward = { new Vector2(0f, 1f), new Vector2(-1f, 0f), new Vector2(0f, -1f), new Vector2(1f, 0f) };
         private const float PondSeam = 0.018f;
+        private const float PondWaterStep = 0.2f;   // longest water contour segment, cells (mesh density only)
+        private const int PondWaterRings = 3;
+
+        /// <summary>Upward triangle (Unity winding fixed), skipped if degenerate.</summary>
+        private static void AddUpTriangle(List<Vector3> verts, List<int> tris, int a, int b, int c)
+        {
+            Vector3 cross = Vector3.Cross(verts[b] - verts[a], verts[c] - verts[a]);
+            if (Mathf.Abs(cross.y) < 1e-9f) return;
+            tris.Add(a);
+            if (cross.y > 0f) { tris.Add(b); tris.Add(c); }
+            else { tris.Add(c); tris.Add(b); }
+        }
 
         /// <summary>True if the neighbour across edge <paramref name="edge"/> (S, E, N, W) is not <paramref name="type"/> (or off the map).</summary>
         private static bool IsPondLand(in TileGrid grid, int c, int r, int edge, TileType type)

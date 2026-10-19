@@ -16,9 +16,9 @@ Shader "Arena/Water"
         _RippleMap ("Ripple (R lines, G noise)", 2D) = "black" {}
         _RippleTiling ("Units Per Ripple Tile", Float) = 2.2
         _FlowSpeed ("Flow Speed (units/s)", Range(0, 1)) = 0.12
-        _GlintThreshold ("Glint Threshold (sum of two lines)", Range(0, 2)) = 1.4
+        _GlintThreshold ("Glint Threshold (sum of two lines)", Range(0, 2)) = 1.55
         _GlintSoftness ("Glint Softness", Range(0.001, 0.3)) = 0.08
-        _LineStrength ("Ripple Line Lightening", Range(0, 1)) = 0.06
+        _LineStrength ("Ripple Line Lightening", Range(0, 1)) = 0.03
         _GlintStrength ("Glint Strength", Range(0, 1)) = 0.5
         _FoamEdge ("Foam Edge (shore factor)", Range(0, 1)) = 0.72
         _FoamWobble ("Foam Wobble", Range(0, 1.5)) = 0.9

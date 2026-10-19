@@ -87,32 +87,33 @@ namespace Arena.Editor.Art.MapProps
         private const float PropFootShade = 0.7f;
 
         // Crate (palette: planks #E4A85E, dark edge #9A6232).
-        // A.3f crate: rounded wooden toy in the barrel's palette (boards, grooves, darker corner posts, lighter lid).
-        private static readonly Color CrateBoard = new Color32(0xD8, 0x96, 0x52, 0xFF);
-        private static readonly Color CrateBoardDark = new Color32(0xC4, 0x82, 0x44, 0xFF);
-        private static readonly Color CrateGrooveColour = new Color32(0x7A, 0x4A, 0x26, 0xFF);
-        private static readonly Color CrateLid = new Color32(0xE8, 0xB0, 0x6C, 0xFF);
+        // A.3f crate (env-elements/crate_01): soft orange-brown frame beams, lighter recessed planks, dark seams.
+        private static readonly Color CrateFrame = new Color32(0xC4, 0x62, 0x2E, 0xFF);
+        private static readonly Color CratePlank = new Color32(0xE4, 0x8E, 0x4A, 0xFF);
+        private static readonly Color CrateSeam = new Color32(0x8A, 0x42, 0x1E, 0xFF);
         private const float CrateHalf = 0.42f;
-        private const float CrateHeight = 0.8f;
-        private const float CrateCornerRadius = 0.12f;
-        private const float CrateTopRadius = 0.08f;
-        private const float CrateGroove = 0.02f;
-        private const float CrateCornerShade = 0.72f;
+        private const float CrateHeight = 0.84f;
+        private const float CrateBeamRadius = 0.065f;
+        private const float CratePanelInset = 0.06f;
+        private const float CrateBraceRadius = 0.045f;
+        private const int CrateTubeSides = 8;
         // A.3f stone block (concept 002: cream stone toy with a carved leaf; target top #FBE6B8 in game light).
         private static readonly Color StoneTop = new Color32(0xFF, 0xEE, 0xC8, 0xFF);
         private static readonly Color StoneSide = new Color32(0xE6, 0xC4, 0x8E, 0xFF);
         private static readonly Color StoneSideLow = new Color32(0xC8, 0x9C, 0x68, 0xFF);
         private static readonly Color StoneSeam = new Color32(0xB8, 0x90, 0x60, 0xFF);
-        private static readonly Color LeafBody = new Color32(0xFF, 0xF4, 0xD8, 0xFF);
-        private static readonly Color LeafGroove = new Color32(0xA0, 0x6E, 0x48, 0xFF);
-        private static readonly Color LeafRib = new Color32(0xB4, 0x84, 0x58, 0xFF);
+        private static readonly Color LeafBody = new Color32(0xDC, 0xA4, 0x5E, 0xFF);   // carved caramel (concept block_01)
+        private static readonly Color LeafGroove = new Color32(0xB0, 0x78, 0x44, 0xFF);
+        private static readonly Color LeafRib = new Color32(0xF6, 0xE0, 0xB0, 0xFF);    // light raised veins
         private const float StoneHalf = 0.45f;
         private const float StoneHeight = 0.86f;
         private const float StoneCornerRadius = 0.16f;
         private const float StoneTopRadius = 0.12f;
         private const float StoneFootShade = 0.72f;
         private const float StoneTopGloss = 0.15f;
-        private const float LeafRaise = 0.02f;
+        private const float StonePanelMargin = 0.03f;
+        private const float StonePanelGroove = 0.022f;
+        private const float LeafRaise = 0.005f;
         private const float LeafGrooveWidth = 0.032f;
         private const float LeafRibWidth = 0.024f;
         private const float CrateFootShade = 0.78f;
@@ -466,44 +467,66 @@ namespace Arena.Editor.Art.MapProps
         }
 
         /// <summary>
-        /// Breakable crate (A.3f, user feedback: the square box with an X brace read as "strange"): one chunky wooden toy in the
-        /// style of the barrel — a rounded box (big radii, smooth normals) of three horizontal boards with grooves between them,
-        /// darker rounded corner posts, a plank lid with two seams. Vertex colours only (uv0.x = 1), matte, dark foot.
+        /// Breakable crate (A.3f; user: the old flat box "strange"; element concept env-elements/crate_01): a chunky wooden toy —
+        /// twelve soft rounded frame beams (smooth tubes), recessed plank panels with dark seams (sides horizontal, lid three
+        /// planks), one diagonal brace per side. Vertex colours only (uv0.x = 1), matte, dark foot.
         /// </summary>
         public static Mesh BuildCrate()
         {
             var m = new MeshData { Plain = 1f };
-            float h = CrateHeight, g = CrateGroove;
-            Color a = CrateBoard, b = CrateBoardDark, groove = CrateGrooveColour, lid = CrateLid;
-            float y1 = h * 0.34f, y2 = h * 0.66f, rt = CrateTopRadius;
-            var rings = new[]
+            float half = CrateHalf, r = CrateBeamRadius, h = CrateHeight;
+            float c = half - r;                    // beam centre line, x/z
+            float y0 = r, y1 = h - r;               // bottom and top beam centre heights
+            // Recessed panels (a box without the bottom) and their plank seams.
+            float p = half - CratePanelInset;
+            m.Box(new Vector3(-p, 0f, -p), new Vector3(p, h - CratePanelInset, p), CratePlank, true);
+            float seamW = 0.011f, topY = h - CratePanelInset + 0.002f;
+            for (int s = 1; s <= 2; s++)
             {
-                new BlockRing(0.012f, 0f, -0.2f, b), new BlockRing(0f, 0.05f, 0f, a),
-                new BlockRing(0f, y1 - g, 0f, a), new BlockRing(g * 0.8f, y1, 0f, groove), new BlockRing(0f, y1 + g, 0f, b),
-                new BlockRing(0f, y2 - g, 0f, b), new BlockRing(g * 0.8f, y2, 0f, groove), new BlockRing(0f, y2 + g, 0f, a),
-                new BlockRing(0f, h - rt, 0f, a),
-                new BlockRing(rt * (1f - Mathf.Cos(Mathf.PI / 6f)), h - rt + rt * Mathf.Sin(Mathf.PI / 6f), 0.5f, a),
-                new BlockRing(rt * (1f - Mathf.Cos(Mathf.PI / 3f)), h - rt + rt * Mathf.Sin(Mathf.PI / 3f), 0.87f, lid),
-                new BlockRing(rt, h, 1f, lid)
-            };
-            AddRoundedBlock(m, CrateHalf, CrateCornerRadius, 3, rings, CrateCornerShade, lid, 0f);
-            // Lid seams: two dark strips across the top (three planks).
-            float half = CrateHalf - rt - 0.01f, sw = 0.012f;
-            for (int s = -1; s <= 1; s += 2)
+                float x = -p + 2f * p * s / 3f;
+                m.Quad(new Vector3(x - seamW, topY, -p), new Vector3(x + seamW, topY, -p), new Vector3(x + seamW, topY, p),
+                    new Vector3(x - seamW, topY, p), Vector3.up, CrateSeam);
+            }
+            Vector3[] faces = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+            foreach (Vector3 n in faces)
             {
-                float x = s * half / 3f;
-                m.Quad(new Vector3(x - sw, h + 0.002f, -half), new Vector3(x + sw, h + 0.002f, -half), new Vector3(x + sw, h + 0.002f, half),
-                    new Vector3(x - sw, h + 0.002f, half), Vector3.up, groove);
+                Vector3 side = Vector3.Cross(Vector3.up, n);
+                Vector3 o = n * (p + 0.002f);
+                for (int s = 1; s <= 3; s++)
+                {
+                    float y = y0 + (y1 - y0) * s / 4f;
+                    m.Quad(o + side * p + Vector3.up * (y - seamW), o - side * p + Vector3.up * (y - seamW),
+                        o - side * p + Vector3.up * (y + seamW), o + side * p + Vector3.up * (y + seamW), n, CrateSeam);
+                }
+                // One diagonal brace per side, alternating direction around the box (reads the same from both team cameras).
+                float sign = n.x + n.z > 0f ? 1f : -1f;
+                Vector3 a = o + n * CrateBraceRadius * 0.6f + side * (c - r) * sign + Vector3.up * (y0 + r * 0.7f);
+                Vector3 b = o + n * CrateBraceRadius * 0.6f - side * (c - r) * sign + Vector3.up * (y1 - r * 0.7f);
+                m.Tube(a, b, CrateBraceRadius, CrateTubeSides, CrateFrame, true);
+            }
+            // Frame: four bottom, four top and four vertical beams, each a little longer than the edge so the corners close.
+            for (int sx = -1; sx <= 1; sx += 2)
+            {
+                for (int sz = -1; sz <= 1; sz += 2)
+                    m.Tube(new Vector3(sx * c, y0 - r * 0.6f, sz * c), new Vector3(sx * c, y1 + r * 0.6f, sz * c), r, CrateTubeSides, CrateFrame, true);
+                foreach (float y in new[] { y0, y1 })
+                {
+                    m.Tube(new Vector3(sx * c, y, -c - r * 0.6f), new Vector3(sx * c, y, c + r * 0.6f), r, CrateTubeSides, CrateFrame, true);
+                    m.Tube(new Vector3(-c - r * 0.6f, y, sx * c), new Vector3(c + r * 0.6f, y, sx * c), r, CrateTubeSides, CrateFrame, true);
+                }
             }
             m.ShadeFoot(0.3f, CrateFootShade);
             return m.Create("Crate");
         }
 
+        /// <summary>Triangle budget of the breakable crate (A.3f: soft frame beams; few crates per map).</summary>
+        public const int CrateTriangleBudget = 560;
+
         /// <summary>Stone block variants (A.3f): leaf along the diagonal, a rounder leaf along an axis, a broad leaf on the other diagonal, a plain top.</summary>
         public const int WallBlockVariantCount = 4;
 
         /// <summary>Triangle budget of a stone block (brief §3.3 asks ≈ 360; smooth rounding + the leaf relief).</summary>
-        public const int WallBlockTriangleBudget = 420;
+        public const int WallBlockTriangleBudget = 480;
 
         public static Mesh[] BuildWallBlocks()
         {
@@ -535,11 +558,37 @@ namespace Arena.Editor.Art.MapProps
                 new BlockRing(rt, h, 1f, top)
             };
             AddRoundedBlock(m, StoneHalf, StoneCornerRadius, 3, rings, 1f, top, StoneTopGloss);
-            if (variant == 0) AddLeaf(m, h, 45f, 0.62f, 0.3f);
-            else if (variant == 1) AddLeaf(m, h, 90f, 0.56f, 0.36f);
-            else if (variant == 2) AddLeaf(m, h, -45f, 0.6f, 0.34f);
+            AddPanelGroove(m, h + 0.002f, StoneHalf - rt - StonePanelMargin, StonePanelGroove, 0.07f, StoneSeam);
+            if (variant == 0) AddLeaf(m, h, 45f, 0.54f, 0.26f);
+            else if (variant == 1) AddLeaf(m, h, 90f, 0.46f, 0.3f);
+            else if (variant == 2) AddLeaf(m, h, -45f, 0.52f, 0.29f);
             m.ShadeFoot(0.32f, StoneFootShade);
             return m.Create("StoneBlock" + variant);
+        }
+
+        /// <summary>Rounded-square groove line on a top (the inner plate of the block, concept env-elements/block_01).</summary>
+        private static void AddPanelGroove(MeshData m, float y, float half, float width, float radius, Color colour)
+        {
+            const int Seg = 3;
+            var outerPts = new List<Vector3>();
+            var innerPts = new List<Vector3>();
+            float c = half - radius;
+            for (int q = 0; q < 4; q++)
+            {
+                var cc = new Vector3(q == 0 || q == 3 ? c : -c, 0f, q < 2 ? c : -c);
+                for (int k = 0; k <= Seg; k++)
+                {
+                    float a = (q * 90f + k * 90f / Seg) * Mathf.Deg2Rad;
+                    var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                    outerPts.Add(Y(cc + dir * radius, y));
+                    innerPts.Add(Y(cc + dir * (radius - width), y));
+                }
+            }
+            for (int i = 0; i < outerPts.Count; i++)
+            {
+                int j = (i + 1) % outerPts.Count;
+                m.Quad(outerPts[i], outerPts[j], innerPts[j], innerPts[i], Vector3.up, colour);
+            }
         }
 
         /// <summary>Carved leaf on the block top: groove ring (dark) around a raised body, a midrib and three pairs of veins.</summary>
@@ -853,6 +902,43 @@ namespace Arena.Editor.Art.MapProps
                 Vector3 mid = root + dir * 0.5f + Vector3.up * 0.03f, tip = root + dir;
                 FlatTri(root, mid + side, tip, Vector3.up, srgb);
                 FlatTri(root, tip, mid - side, Vector3.up, srgb);
+            }
+
+            /// <summary>Smooth tube from <paramref name="a"/> to <paramref name="b"/> (soft toy beam), flat caps; matte.</summary>
+            public void Tube(Vector3 a, Vector3 b, float radius, int sides, Color srgb, bool caps)
+            {
+                Vector3 axis = (b - a).normalized;
+                Vector3 u = Vector3.Cross(axis, Mathf.Abs(axis.y) > 0.9f ? Vector3.right : Vector3.up).normalized;
+                Vector3 v = Vector3.Cross(axis, u);
+                Color col = srgb.linear;
+                col.a = 0f;
+                int first = Verts.Count;
+                for (int end = 0; end < 2; end++)
+                {
+                    Vector3 c = end == 0 ? a : b;
+                    for (int k = 0; k < sides; k++)
+                    {
+                        float ang = (k + 0.5f) * Mathf.PI * 2f / sides;
+                        Vector3 n = u * Mathf.Cos(ang) + v * Mathf.Sin(ang);
+                        Add(c + n * radius, n, col);
+                    }
+                }
+                for (int k = 0; k < sides; k++)
+                {
+                    int i0 = first + k, i1 = first + (k + 1) % sides, j0 = i0 + sides, j1 = i1 + sides;
+                    Tri(i0, i1, j1);
+                    Tri(i0, j1, j0);
+                }
+                if (!caps) return;
+                for (int end = 0; end < 2; end++)
+                {
+                    Vector3 c = end == 0 ? a : b, n = end == 0 ? -axis : axis;
+                    for (int k = 1; k + 1 < sides; k++)
+                    {
+                        int s0 = first + end * sides;
+                        FlatTri(Verts[s0], Verts[s0 + k], Verts[s0 + k + 1], n, srgb);
+                    }
+                }
             }
 
             /// <summary>Darkens vertices near the ground: × <paramref name="shade"/> at y = 0 → × 1 at <paramref name="height"/>.</summary>
