@@ -24,6 +24,11 @@ MonoBehaviour:
   TalentUnlockLevel: 8
   BushRevealDistance: 2
   RevealSeconds: 1
+  AutoAimPreferClearShot: 1
+  AutoAimTargetsBoxes: 1
+  AutoAimHealthWeightCells: 1.5
+  AutoAimStickySeconds: 2
+  AutoAimStickyMarginCells: 2
   SlowSpeed: 2.2
   NormalSpeed: 2.5
   FastSpeed: 2.8

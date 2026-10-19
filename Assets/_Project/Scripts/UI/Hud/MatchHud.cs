@@ -11,6 +11,7 @@ using Arena.UI.Controls;
 using Arena.UI.Results;
 using Arena.UI.Style;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Arena.UI.Hud
 {
@@ -28,6 +29,9 @@ namespace Arena.UI.Hud
     /// S3.11: online — the ping badge (<see cref="PingIndicator"/>) and the connection banner (<see cref="ConnectionOverlay"/>);
     /// the results show the own place in Last Beast, also early, when the own fighter is out (<c>Eliminated</c>); "Play again"
     /// queues again (<see cref="OnlineSession.SearchAgain"/>) and goes to the menu, which shows the matchmaking screen.
+    /// D-129: the match menu (<see cref="PauseMenu"/>: pause button, Android Back / Escape; offline it pauses the
+    /// <see cref="OfflineMatchDriver"/>, online the battle goes on; the sticks are hidden while it is open); an aim stick held
+    /// without a drag tells the runner to preview the auto-aim target (<see cref="LocalInputCollector.SetAutoAimPreview"/>).
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class MatchHud : MonoBehaviour
@@ -47,6 +51,8 @@ namespace Arena.UI.Hud
         private OnlineMatchDriver _online;
         private PingIndicator _ping;
         private ConnectionOverlay _connection;
+        private PauseMenu _pause;
+        private bool _controlsHidden;
 
         public MatchRunner Runner => _runner;
         public UiStyle Style => _style;
@@ -66,6 +72,9 @@ namespace Arena.UI.Hud
 
         /// <summary>Connection banner of an online match, or null.</summary>
         public ConnectionOverlay Connection => _connection;
+
+        /// <summary>Match menu (pause button, Back key); created on the first frame with a driver (it needs to know online / offline).</summary>
+        public PauseMenu Pause => _pause;
 
         private void Start()
         {
@@ -94,6 +103,7 @@ namespace Arena.UI.Hud
             _netOverlay?.Tick(Time.unscaledDeltaTime);
             _ping?.Tick(Time.unscaledDeltaTime);
             _connection?.Tick();
+            if (_pause != null && !_results.IsShown && BackPressed() && !ConnectionHandlesBack()) _pause.Back();
             if (driver != null)
             {
                 _scoreBar.Apply(driver.Defs, driver.State, _runner.LocalTeam);
@@ -105,6 +115,8 @@ namespace Arena.UI.Hud
             {
                 if (!_results.IsShown)
                 {
+                    _pause?.Dismiss();
+                    SetPaused(false);
                     SetControlsVisible(false);
                     _results.Show(driver.Defs, driver.State, _runner.LocalTeam, _runner.LocalSlot, eliminatedPlace);
                 }
@@ -112,6 +124,7 @@ namespace Arena.UI.Hud
                 return;
             }
             LocalInputCollector input = _runner.InputCollector;
+            if (_pause != null && _pause.IsOpen) return;
             AbilityHudInfo abilities = driver != null ? AbilityHudInfo.From(driver.Defs, driver.State, _runner.LocalSlot) : default;
             if (driver != null) _abilityView.Apply(in abilities);
             bool ultActive = abilities.UltCharged;
@@ -123,6 +136,10 @@ namespace Arena.UI.Hud
             Vector2 aim = aimingAttack ? _controls.AttackStick.Aim
                 : ultActive && _controls.UltStick.IsHeld ? _controls.UltStick.Aim : Vector2.zero;
             input.SetAim(InputChannel.Touch, ToVec2(aim), !aimingAttack);
+            // Held without a drag: the release will be a tap — show whom the auto-aim picks (D-129).
+            bool previewAttack = aimingAttack && _controls.AttackStick.HeldStill;
+            bool previewUlt = !aimingAttack && ultActive && _controls.UltStick.HeldStill;
+            input.SetAutoAimPreview(InputChannel.Touch, previewAttack || previewUlt, previewUlt);
 
             if (_controls.AttackStick.TryConsumeRelease(out StickGestureResult attack, out Vector2 attackAim))
             {
@@ -154,6 +171,7 @@ namespace Arena.UI.Hud
         {
             _netOverlayChecked = true;
             _online = driver as OnlineMatchDriver;
+            _pause = PauseMenu.Build(_controls.Canvas.transform, transform, _style, _online != null, _feel, SetPaused, SceneFlow.ToMenu);
             var net = _runner.Database != null ? _runner.Database.Net : null;
             if (_online == null || net == null) return;
             Transform canvas = _controls.Canvas.transform;
@@ -175,8 +193,33 @@ namespace Arena.UI.Hud
             SceneFlow.Restart();
         }
 
+        /// <summary>
+        /// Match menu opened / closed: offline the driver stops ticking; both ways the sticks hide (their presses are dropped)
+        /// and the held input is cleared, so the fighter does not keep running while the menu is up.
+        /// </summary>
+        private void SetPaused(bool paused)
+        {
+            if (_runner.Driver is OfflineMatchDriver offline) offline.Paused = paused;
+            if (_controlsHidden == paused) return;
+            _controlsHidden = paused;
+            _runner.InputCollector.Clear();
+            SetControlsVisible(!paused);
+        }
+
+        /// <summary>Android Back (reported as Escape by the Input System) or Escape on a keyboard, this frame.</summary>
+        private static bool BackPressed()
+        {
+            Keyboard kb = Keyboard.current;
+            return kb != null && kb.escapeKey.wasPressedThisFrame;
+        }
+
+        /// <summary>The connection banner shows its "Menu" button: Back leaves through it (D-116), not through the match menu.</summary>
+        private bool ConnectionHandlesBack() =>
+            _connection != null && _connection.IsShown && _connection.MenuButton.gameObject.activeSelf;
+
         private void SetControlsVisible(bool visible)
         {
+            _pause?.SetButtonVisible(visible);
             _controls.MoveStick.gameObject.SetActive(visible);
             _controls.AttackStick.gameObject.SetActive(visible);
             _controls.UltStick.gameObject.SetActive(visible);

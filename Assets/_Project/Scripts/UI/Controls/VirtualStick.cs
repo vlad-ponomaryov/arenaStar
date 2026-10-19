@@ -6,7 +6,8 @@ namespace Arena.UI.Controls
     /// <summary>
     /// Virtual touch stick on uGUI pointer events (D-017; works with InputSystemUIInputModule for touch and mouse).
     /// This component sits on the touch zone (a transparent raycast Image); the base and knob are its children.
-    /// Floating: the base jumps to the touch point and returns home on release. Fixed: the base stays put.
+    /// Floating: the base jumps to the touch point and returns home on release. Fixed: the base stays put. Anchored: the base
+    /// stays put, the offset is measured from the touch point (attack / ult: a tap anywhere on the zone is a tap, D-129).
     /// Gesture classification is in <see cref="StickGesture"/>; the HUD polls <see cref="Value"/>, <see cref="Aim"/> and
     /// <see cref="TryConsumeRelease"/> every frame (no events, no allocations).
     /// </summary>
@@ -22,6 +23,7 @@ namespace Arena.UI.Controls
 
         private RectTransform _zone;
         private Vector2 _home;
+        private Vector2 _origin;
         private int _pointerId = NoPointer;
         private StickGesture _gesture;
         private bool _hasRelease;
@@ -46,6 +48,9 @@ namespace Arena.UI.Controls
 
         /// <summary>Manual aim while dragging (zero before the drag and inside the cancel zone). For the aim line.</summary>
         public Vector2 Aim => _gesture.CurrentAim(_settings);
+
+        /// <summary>Held without a drag: releasing now fires the auto-aim (the HUD previews its target).</summary>
+        public bool HeldStill => _gesture.HeldStill(_settings);
 
         public void Configure(RectTransform stickBase, RectTransform knob, StickMode mode, float radius, StickGestureSettings settings)
         {
@@ -86,8 +91,10 @@ namespace Arena.UI.Controls
         {
             if (_pointerId != NoPointer || _base == null) return;
             _pointerId = eventData.pointerId;
-            if (_mode == StickMode.Floating && ToLocal(eventData, out Vector2 local)) _base.localPosition = local;
-            _gesture.Begin(Time.unscaledTime);
+            bool inside = ToLocal(eventData, out Vector2 local);
+            if (_mode == StickMode.Floating && inside) _base.localPosition = local;
+            _origin = _mode == StickMode.Anchored && inside ? local : (Vector2)_base.localPosition;
+            _gesture.Begin();
             UpdateOffset(eventData);
         }
 
@@ -101,7 +108,7 @@ namespace Arena.UI.Controls
         {
             if (eventData.pointerId != _pointerId) return;
             UpdateOffset(eventData);
-            _releaseResult = _gesture.End(Time.unscaledTime, _settings, out _releaseAim);
+            _releaseResult = _gesture.End(_settings, out _releaseAim);
             _hasRelease = true;
             _pointerId = NoPointer;
             ResetVisuals();
@@ -110,7 +117,7 @@ namespace Arena.UI.Controls
         private void UpdateOffset(PointerEventData eventData)
         {
             if (!ToLocal(eventData, out Vector2 local)) return;
-            Vector2 offset = (local - (Vector2)_base.localPosition) / (_radius > 0f ? _radius : 1f);
+            Vector2 offset = (local - _origin) / (_radius > 0f ? _radius : 1f);
             _gesture.Move(offset);
             if (_knob != null) _knob.localPosition = _gesture.Current * _radius;
         }

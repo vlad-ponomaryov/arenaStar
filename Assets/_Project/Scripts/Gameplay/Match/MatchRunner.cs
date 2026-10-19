@@ -5,6 +5,7 @@ using Arena.Core.Input;
 using Arena.Core.Math;
 using Arena.Core.Sim;
 using Arena.Core.Sim.Events;
+using Arena.Core.Sim.Systems;
 using Arena.Core.State;
 using Arena.Data;
 using Arena.Data.Conversion;
@@ -48,9 +49,13 @@ namespace Arena.Gameplay.Match
         private readonly FighterView[] _fighterViews = new FighterView[SimLimits.MaxFighters];
         private readonly HealthBarView[] _healthBars = new HealthBarView[SimLimits.MaxFighters];
 
+        /// <summary>Half the side of a map cell: the "radius" of a berry box under the auto-aim marker.</summary>
+        private const float HalfCell = 0.5f;
+
         private IMatchDriver _driver;
         private IMatchDriver _pendingDriver;
         private AimIndicatorView _aimIndicator;
+        private TelegraphView _autoAimMarker;
         private ProjectileViewPool _projectileViews;
         private ProjectileViewPool _logViews;
         private AreaViewPool _areaViews;
@@ -158,6 +163,9 @@ namespace Arena.Gameplay.Match
             _aimIndicator = Instantiate(_viewCatalog.AimIndicatorPrefab, transform);
             _aimIndicator.name = "AimIndicator";
             _aimIndicator.Hide();
+            _autoAimMarker = Instantiate(_viewCatalog.TelegraphPrefab, transform);
+            _autoAimMarker.name = "AutoAimMarker";
+            _autoAimMarker.Hide();
             bool[] logs = ProjectileViewMask(defs, ProjectileViewKind.Log, true);
             _projectileViews = new ProjectileViewPool(_viewCatalog.ProjectilePrefab, transform, _viewCatalog.ProjectilePoolPrewarm,
                 _viewCatalog.ProjectileHeight, ProjectileViewMask(defs, ProjectileViewKind.Log, false));
@@ -273,17 +281,62 @@ namespace Arena.Gameplay.Match
             if (_logViews != null) _logViews.Render(alpha);
 
             Vec2 aim = _inputCollector.Aim;
-            if (aim.IsZero || !_viewState.Alive(LocalSlot))
+            if (!_viewState.Alive(LocalSlot) || (aim.IsZero && !_inputCollector.AutoAimPreview))
             {
                 _aimIndicator.Hide();
+                _autoAimMarker.Hide();
                 return;
             }
             FighterDef localDef = _driver.Defs.Fighters[_driver.State.Fighters[LocalSlot].DefIndex];
+            if (aim.IsZero)
+            {
+                RenderAutoAimPreview(localDef, alpha);
+                return;
+            }
+            _autoAimMarker.Hide();
             AbilityDef aimed = _inputCollector.AimIsUlt && localDef.Ult != null ? localDef.Ult : localDef.Attack;
             float range = _inputCollector.AimIsUlt ? UltRange(localDef) : localDef.AttackRange;
             // A lob lands at aim length × range (D-006): the line ends at the landing point.
             if (aimed != null && aimed.Delivery == DeliveryKind.Lob) range *= Mathf.Min(1f, aim.Length);
             _aimIndicator.Show(LocalWorldPosition(alpha), WorldCoords.DirectionToWorld(aim.Normalized), range);
+        }
+
+        /// <summary>
+        /// The attack / ult stick is held without a drag (D-129): the line points at the enemy the tap would hit
+        /// (<see cref="AbilitySystem.AutoAimTarget"/> — the same choice the simulation makes) with a disc under it; no target —
+        /// the line along the facing at full range, where the shot will go.
+        /// </summary>
+        private void RenderAutoAimPreview(FighterDef localDef, float alpha)
+        {
+            bool ult = _inputCollector.AutoAimPreviewIsUlt;
+            AbilityDef ability = ult && localDef.Ult != null ? localDef.Ult : localDef.Attack;
+            if (ability == null || ability.UsesMoveDirection)
+            {
+                _aimIndicator.Hide();
+                _autoAimMarker.Hide();
+                return;
+            }
+            Vec2 own = _viewState.Position(LocalSlot, alpha);
+            int code = AbilitySystem.AutoAimTarget(_driver.State, _driver.Defs.Rules, LocalSlot, ability, out Vec2 point);
+            int target = AimTargetCode.FighterSlot(code);
+            bool box = AimTargetCode.IsBox(code);
+            if ((target >= 0 && IsShown(target)) || box)
+            {
+                // Enemies at their interpolated position; a box stands still at its cell centre (half a cell "radius").
+                Vec2 at = box ? point : _viewState.Position(target, alpha);
+                Vec2 to = at - own;
+                Vec2 dir = to.IsZero ? _viewState.Facing(LocalSlot) : to.Normalized;
+                _aimIndicator.Show(WorldCoords.ToWorld(own), WorldCoords.DirectionToWorld(dir), to.Length);
+                float size = box ? HalfCell : _driver.Defs.Fighters[_driver.State.Fighters[target].DefIndex].Radius;
+                _autoAimMarker.SetMaterials(EnemyTelegraphZone, EnemyTelegraphFill);
+                _autoAimMarker.Show(WorldCoords.ToWorld(at), size * _feel.AutoAimMarkerRadiusScale, _feel.AutoAimMarkerFill);
+                return;
+            }
+            _autoAimMarker.Hide();
+            Vec2 facing = _viewState.Facing(LocalSlot);
+            if (facing.IsZero) facing = Vec2.Up;
+            float range = ult ? UltRange(localDef) : localDef.AttackRange;
+            _aimIndicator.Show(WorldCoords.ToWorld(own), WorldCoords.DirectionToWorld(facing), range);
         }
 
         private void RenderHealthBars(float alpha)

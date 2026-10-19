@@ -572,7 +572,8 @@ namespace Arena.Editor.Art
             s.TrickDotOffset = 105f;
             s.TrickDotOnColor = new Color(0.35f, 0.95f, 0.55f, 0.95f);
             s.TrickDotOffColor = new Color(1f, 1f, 1f, 0.15f);
-            s.Gesture = new StickGestureSettings(0.2f, 0.25f, 0.25f);
+            // D-129: a press that stays within 0.35 of the radius from the touch point is a tap (auto-aim) at any duration.
+            s.Gesture = new StickGestureSettings(0.2f, 0.25f, 0.35f);
             s.AllyColor = AllyColor;
             s.EnemyColor = EnemyColor;
             s.EnemyColorAlt = EnemyAltColor;
@@ -581,6 +582,13 @@ namespace Arena.Editor.Art
             s.FpsMargin = new Vector2(24f, 20f);
             s.FpsBoxSize = new Vector2(220f, 44f);
             s.SettingsPanelColor = new Color(0.10f, 0.12f, 0.07f, 0.72f);
+            // D-129: match menu — pause button in the top-right corner (clear of the sticks), panel buttons.
+            s.PauseButtonMargin = new Vector2(28f, 24f);
+            s.PauseButtonSize = new Vector2(116f, 108f);
+            s.PauseIconBarSize = new Vector2(14f, 44f);
+            s.PauseIconGap = 14f;
+            s.PauseMenuButtonSize = new Vector2(500f, 112f);
+            s.PauseMenuWidth = 620f;
             s.SettingsLabelWidth = 520f;
             s.SettingsChoiceSize = new Vector2(150f, 84f);
 

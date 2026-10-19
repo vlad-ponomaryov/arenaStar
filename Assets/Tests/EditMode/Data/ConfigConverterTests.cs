@@ -259,6 +259,7 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(31, defs.Map.Height);
             Assert.AreEqual(2f, defs.Rules.BushRevealDistance, 1e-6f, "bush reveal distance 2 cells (GDD §5.2)");
             Assert.AreEqual(30, defs.Rules.RevealTicks, "attack reveals for 1 s (GDD §5.2)");
+            Assert.IsTrue(defs.Rules.AutoAimPreferClearShot, "tap auto-aim prefers an enemy in the open (D-129)");
             Assert.AreEqual(5236, defs.Rules.ScaleByLevel(3400, 10), "level 10 = +54 % (GDD §6)");
         }
 

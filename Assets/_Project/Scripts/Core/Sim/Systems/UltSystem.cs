@@ -67,10 +67,10 @@ namespace Arena.Core.Sim.Systems
             if (!AbilitySystem.CanActivate(in f) || !IsCharged(defs, in f)) return;
 
             f.UltCharge = 0;
-            Vec2 dir = AbilitySystem.ResolveDirection(state, slot, in input, ult);
+            Vec2 dir = AbilitySystem.ResolveDirection(state, defs.Rules, slot, in input, ult);
             f.Facing = dir;
             AbilitySystem.Activate(state, defs, events, slot, ult, MatchDefs.MakeAbilityRef(f.DefIndex, AbilitySlot.Ult), dir,
-                AbilitySystem.ResolveDistance(state, slot, in input, ult), EffectContext.FullDamagePercent, input.ViewDelayTicks);
+                AbilitySystem.ResolveDistance(state, defs.Rules, slot, in input, ult), EffectContext.FullDamagePercent, input.ViewDelayTicks);
         }
     }
 }

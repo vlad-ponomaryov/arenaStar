@@ -3,13 +3,13 @@ using UnityEngine;
 namespace Arena.UI.Controls
 {
     /// <summary>
-    /// Pure classification of a stick press (GDD §5.1): tap → auto-aim; drag beyond the dead zone → manual aim, fired on
-    /// release; drag and return into the centre → cancel. Offsets are normalized to the stick radius (length ≤ 1).
+    /// Pure classification of a stick press (GDD §5.1): tap (the finger stayed within <see cref="StickGestureSettings.TapZone"/>,
+    /// any duration — D-129) → auto-aim; drag beyond it → manual aim, fired on release; drag and return into the centre → cancel.
+    /// Offsets are normalized to the stick radius (length ≤ 1).
     /// No Unity callbacks — tested in EditMode; <see cref="VirtualStick"/> feeds it.
     /// </summary>
     public struct StickGesture
     {
-        private float _startTime;
         private float _peakLength;
         private Vector2 _current;
 
@@ -18,13 +18,15 @@ namespace Arena.UI.Controls
         /// <summary>Latest normalized offset of the finger from the stick centre.</summary>
         public Vector2 Current => _current;
 
-        /// <summary>True once the finger has left the dead zone during this press.</summary>
-        public bool Dragged(in StickGestureSettings s) => IsActive && _peakLength >= s.DeadZone;
+        /// <summary>True once the finger has left the tap zone during this press (manual aim).</summary>
+        public bool Dragged(in StickGestureSettings s) => IsActive && _peakLength >= s.TapZone;
 
-        public void Begin(float time)
+        /// <summary>Held without a drag so far: releasing now is a tap (the HUD previews the auto-aim target).</summary>
+        public bool HeldStill(in StickGestureSettings s) => IsActive && _peakLength < s.TapZone;
+
+        public void Begin()
         {
             IsActive = true;
-            _startTime = time;
             _peakLength = 0f;
             _current = Vector2.zero;
         }
@@ -42,14 +44,13 @@ namespace Arena.UI.Controls
             Dragged(s) && _current.magnitude >= s.CancelRadius ? _current : Vector2.zero;
 
         /// <param name="aim">Normalized aim for <see cref="StickGestureResult.Manual"/>, otherwise zero.</param>
-        public StickGestureResult End(float time, in StickGestureSettings s, out Vector2 aim)
+        public StickGestureResult End(in StickGestureSettings s, out Vector2 aim)
         {
             aim = Vector2.zero;
             if (!IsActive) return StickGestureResult.None;
             IsActive = false;
 
-            if (_peakLength < s.DeadZone)
-                return time - _startTime <= s.TapMaxSeconds ? StickGestureResult.Tap : StickGestureResult.None;
+            if (_peakLength < s.TapZone) return StickGestureResult.Tap;
             if (_current.magnitude < s.CancelRadius) return StickGestureResult.Cancel;
             aim = _current;
             return StickGestureResult.Manual;

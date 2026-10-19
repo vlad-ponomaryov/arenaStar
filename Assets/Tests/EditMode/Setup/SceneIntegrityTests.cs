@@ -124,7 +124,7 @@ namespace Arena.Tests.EditMode.Setup
             Assert.IsNotNull(controls.Canvas);
             Assert.IsNotNull(controls.MoveStick);
             Assert.AreEqual(Arena.UI.Controls.StickMode.Floating, controls.MoveStick.Mode);
-            Assert.AreEqual(Arena.UI.Controls.StickMode.Fixed, controls.AttackStick.Mode);
+            Assert.AreEqual(Arena.UI.Controls.StickMode.Anchored, controls.AttackStick.Mode);
             Assert.IsNotNull(controls.UltStick);
             Assert.IsNotNull(controls.TrickButton);
             Assert.AreEqual(Vector2.zero, controls.AttackStick.Aim);

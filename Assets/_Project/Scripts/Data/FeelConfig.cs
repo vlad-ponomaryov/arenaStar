@@ -108,6 +108,13 @@ namespace Arena.Data
         [Tooltip("A manual aim turns to a visible enemy if it is off by at most this many degrees (5).")]
         [Min(0f)] public float AimMagnetDegrees;
 
+        [Header("Auto-aim preview (D-129)")]
+        [Tooltip("While the attack / ult stick is held without a drag: a disc under the target the tap would hit, radius = fighter radius × this.")]
+        [Min(0f)] public float AutoAimMarkerRadiusScale;
+
+        [Tooltip("Inner fill of the target disc, 0–1 of its radius.")]
+        [Range(0f, 1f)] public float AutoAimMarkerFill;
+
         [Header("Settings defaults (first start, GDD §5.1 — D-062)")]
         [Tooltip("Mirrored control layout (movement stick on the right).")]
         public bool DefaultMirroredLayout;

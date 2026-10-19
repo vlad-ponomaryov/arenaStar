@@ -45,7 +45,7 @@ namespace Arena.Core.Sim.Systems
         /// an instant contact delivery (<see cref="IsRewound"/>) looks at the targets rewound by the input's
         /// <c>ViewDelayTicks</c> — the same positions its hit test uses (<see cref="LagCompensation"/>).
         /// </summary>
-        public static Vec2 ResolveDirection(MatchState state, int slot, in PlayerInput input, AbilityDef ability)
+        public static Vec2 ResolveDirection(MatchState state, CombatRules rules, int slot, in PlayerInput input, AbilityDef ability)
         {
             if (ability.UsesMoveDirection)
             {
@@ -54,8 +54,27 @@ namespace Arena.Core.Sim.Systems
                 return facing.IsZero ? Vec2.Up : facing;
             }
             int rewind = IsRewound(ability.Delivery) ? LagCompensation.EffectiveRewind(state, input.ViewDelayTicks) : 0;
-            return TargetingSystem.ResolveAim(state, slot, in input, ability.Range, rewind);
+            return TargetingSystem.ResolveAim(state, rules, slot, in input, ability.Range, NeedsClearLine(ability), rewind);
         }
+
+        /// <summary>
+        /// <see cref="AimTargetCode"/> the auto-aim of <paramref name="ability"/> would pick now (D-007, D-129) and the point it
+        /// aims at: the same choice as <see cref="ResolveDirection"/> (views show it while the attack stick is held still).
+        /// </summary>
+        public static int AutoAimTarget(MatchState state, CombatRules rules, int slot, AbilityDef ability, out Vec2 point,
+            int rewindTicks = 0) =>
+            TargetingSystem.FindAutoAimTarget(state, rules, slot, ability.Range, NeedsClearLine(ability), rewindTicks, out point);
+
+        /// <summary>
+        /// Walls stop this ability on the way to the target (projectile, cone, dash, hook without <see cref="AbilityDef.IgnoresWalls"/>):
+        /// its auto-aim needs a clear line (D-129); a lob, an area around the caster or a placed area does not.
+        /// </summary>
+        public static bool NeedsClearLine(AbilityDef ability) =>
+            ability != null && !ability.IgnoresWalls && IsWallStopped(ability.Delivery);
+
+        public static bool IsWallStopped(DeliveryKind delivery) =>
+            delivery == DeliveryKind.Projectile || delivery == DeliveryKind.MeleeCone || delivery == DeliveryKind.Dash
+            || delivery == DeliveryKind.Hook;
 
         /// <summary>Instant contact deliveries whose targets are rewound for lag compensation (Server-Spec §2.8): cone, self area, dash.</summary>
         public static bool IsRewound(DeliveryKind delivery) =>
@@ -66,14 +85,14 @@ namespace Arena.Core.Sim.Systems
         /// distance to the auto-aim target, manual aim — aim length × range (D-006), no aim — the full range. Other deliveries:
         /// the range.
         /// </summary>
-        public static float ResolveDistance(MatchState state, int slot, in PlayerInput input, AbilityDef ability)
+        public static float ResolveDistance(MatchState state, CombatRules rules, int slot, in PlayerInput input, AbilityDef ability)
         {
             if (ability.Delivery != DeliveryKind.Lob) return ability.Range;
             if (input.Has(InputButtons.AutoAim))
             {
-                int target = TargetingSystem.FindNearestEnemy(state, slot, ability.Range);
-                if (target < 0) return ability.Range;
-                float d = Vec2.Distance(state.Fighters[target].Position, state.Fighters[slot].Position);
+                int target = AutoAimTarget(state, rules, slot, ability, out Vec2 point);
+                if (target == AimTargetCode.None) return ability.Range;
+                float d = Vec2.Distance(point, state.Fighters[slot].Position);
                 return MathUtil.Min(d, ability.Range);
             }
             if (!input.Aim.IsZero) return MathUtil.Min(input.Aim.Length, 1f) * ability.Range;

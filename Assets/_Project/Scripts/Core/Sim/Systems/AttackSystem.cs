@@ -39,7 +39,7 @@ namespace Arena.Core.Sim.Systems
             if (!f.WasPressed(InputButtons.Attack) || f.IsDashing) return;
             if (!ChargeSystem.TryConsumeCharge(ref f)) return;
 
-            Vec2 dir = AbilitySystem.ResolveDirection(state, slot, in input, attack);
+            Vec2 dir = AbilitySystem.ResolveDirection(state, defs.Rules, slot, in input, attack);
             f.Facing = dir;
             f.BurstDir = dir;
             f.BurstShotsLeft = attack.BurstCount - 1;
@@ -51,7 +51,7 @@ namespace Arena.Core.Sim.Systems
                 f.ShotBonusPercent = f.BoostPercent;
             }
             AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, dir,
-                AbilitySystem.ResolveDistance(state, slot, in input, attack), EffectContext.FullDamagePercent + f.ShotBonusPercent,
+                AbilitySystem.ResolveDistance(state, defs.Rules, slot, in input, attack), EffectContext.FullDamagePercent + f.ShotBonusPercent,
                 input.ViewDelayTicks);
         }
     }

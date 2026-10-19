@@ -183,6 +183,30 @@ MonoBehaviour:
   - Key: menu.training_mode
     En: 'Training mode:'
     Ru: "\u0420\u0435\u0436\u0438\u043C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438:"
+  - Key: pause.title
+    En: Pause
+    Ru: "\u041F\u0430\u0443\u0437\u0430"
+  - Key: pause.menu_title
+    En: Menu
+    Ru: "\u041C\u0435\u043D\u044E"
+  - Key: pause.resume
+    En: Resume
+    Ru: "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C"
+  - Key: pause.leave
+    En: Leave match
+    Ru: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u043C\u0430\u0442\u0447\u0430"
+  - Key: pause.online_hint
+    En: The battle goes on
+    Ru: "\u0411\u043E\u0439 \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0430\u0435\u0442\u0441\u044F"
+  - Key: pause.leave_confirm
+    En: Leave the match?
+    Ru: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u043C\u0430\u0442\u0447\u0430?"
+  - Key: pause.leave_yes
+    En: Leave
+    Ru: "\u0412\u044B\u0439\u0442\u0438"
+  - Key: pause.leave_no
+    En: Stay
+    Ru: "\u041E\u0441\u0442\u0430\u0442\u044C\u0441\u044F"
   - Key: menu.region
     En: 'Region:'
     Ru: "\u0420\u0435\u0433\u0438\u043E\u043D:"

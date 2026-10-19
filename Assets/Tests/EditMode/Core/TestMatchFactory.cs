@@ -74,7 +74,8 @@ namespace Arena.Tests.EditMode.Core
                     TrickUnlockLevel = TrickUnlockLevel,
                     TalentUnlockLevel = TalentUnlockLevel,
                     BushRevealDistance = BushRevealDistance,
-                    RevealTicks = RevealTicks
+                    RevealTicks = RevealTicks,
+                    AutoAimPreferClearShot = true
                 },
                 Fighters = new[]
                 {

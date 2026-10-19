@@ -13,7 +13,7 @@ namespace Arena.Net.Protocol
         /// <summary>Wire format version (u16). Bump on any format change. 2 — match messages (<see cref="MessageKind"/>, S3.6);
         /// 3 — lobby messages (S3.8); 4 — <c>ViewDelayTicks</c> per input and the interpolation delay per <c>Input</c> (S3.13);
         /// 5 — <c>ClientStats</c> (S3.15).</summary>
-        public const ushort Version = 5;
+        public const ushort Version = 6;
 
         /// <summary>Transport header size in bytes: kind|flags, connectionId, sequence, ack, ackBits, ackDelay (§3.2).</summary>
         public const int HeaderBytes = 18;

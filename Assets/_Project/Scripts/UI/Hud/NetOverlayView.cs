@@ -48,7 +48,9 @@ namespace Arena.UI.Hud
             rt.anchorMin = Vector2.one;
             rt.anchorMax = Vector2.one;
             rt.pivot = Vector2.one;
-            rt.anchoredPosition = new Vector2(-style.VersionMargin.x, -style.VersionMargin.y);
+            // Below the pause button of the top-right corner (D-129).
+            rt.anchoredPosition = new Vector2(-style.VersionMargin.x,
+                -(style.PauseButtonMargin.y + style.PauseButtonSize.y + style.VersionMargin.y));
             rt.sizeDelta = new Vector2(style.PlayButtonSize.x * 2f, style.PlayButtonSize.y);
             text.raycastTarget = false;
             return new NetOverlayView(text, driver, refreshSeconds);

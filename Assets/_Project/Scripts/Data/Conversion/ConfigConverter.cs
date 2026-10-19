@@ -284,7 +284,12 @@ namespace Arena.Data.Conversion
                 TrickUnlockLevel = c.TrickUnlockLevel,
                 TalentUnlockLevel = c.TalentUnlockLevel,
                 BushRevealDistance = c.BushRevealDistance,
-                RevealTicks = SimTime.SecondsToTicks(c.RevealSeconds)
+                RevealTicks = SimTime.SecondsToTicks(c.RevealSeconds),
+                AutoAimPreferClearShot = c.AutoAimPreferClearShot,
+                AutoAimTargetsBoxes = c.AutoAimTargetsBoxes,
+                AutoAimHealthWeightCells = c.AutoAimHealthWeightCells,
+                AutoAimStickyTicks = SimTime.SecondsToTicks(c.AutoAimStickySeconds),
+                AutoAimStickyMarginCells = c.AutoAimStickyMarginCells
             };
         }
 

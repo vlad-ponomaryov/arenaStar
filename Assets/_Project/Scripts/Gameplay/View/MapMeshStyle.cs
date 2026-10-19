@@ -109,5 +109,30 @@ namespace Arena.Gameplay.View
 
         [Tooltip("Relative height of a berry box (round basket) as a shadow caster; 0 = only its own foot shade.")]
         [Range(0f, 1f)] public float BoxShadowHeight;
+
+        [Header("Soft shadows, contact occlusion and the clay look (A.3e)")]
+        [Tooltip("Relative height of a round obstacle prop (barrel, stump, boulder) as a shadow caster.")]
+        [Range(0f, 1f)] public float PropShadowHeight;
+
+        [Tooltip("Inset of a square footprint (block, crate, bush) from its open cell sides, cells.")]
+        [Range(0f, 0.3f)] public float FootprintInset;
+
+        [Tooltip("Corner radius of a square footprint where two open sides meet, cells.")]
+        [Range(0f, 0.5f)] public float FootprintCorner;
+
+        [Tooltip("Gaussian sigma of the caster heights (soft shadow edges, baked once), cells.")]
+        [Range(0f, 0.5f)] public float ShadowBlur;
+
+        [Tooltip("Gaussian sigma of the contact occlusion around every footprint (mask channel G), cells.")]
+        [Range(0.02f, 0.6f)] public float ContactAoBlur;
+
+        [Tooltip("Strength of the contact occlusion on the ground (0 = off).")]
+        [Range(0f, 1f)] public float ContactAoStrength;
+
+        [Tooltip("Relative weight of a bush's footprint in the contact occlusion (tall grass shades less than a block).")]
+        [Range(0f, 1f)] public float BushAoWeight;
+
+        [Tooltip("Shader-side grade of the environment (_ArenaGrade): x = saturation change, y = warmth (+ red, − blue), z = warm lift of the darks. 0 = none.")]
+        public Vector3 Grade;
     }
 }

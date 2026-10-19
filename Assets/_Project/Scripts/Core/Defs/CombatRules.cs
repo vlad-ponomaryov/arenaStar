@@ -43,6 +43,23 @@ namespace Arena.Core.Defs
         public int RevealTicks;
 
         /// <summary>
+        /// Auto-aim of wall-stopped deliveries prefers an enemy with a clear line over a nearer one behind a wall (D-129).
+        /// </summary>
+        public bool AutoAimPreferClearShot;
+
+        /// <summary>Berry boxes (Last Beast) are auto-aim targets, after enemies with a clear line (D-129).</summary>
+        public bool AutoAimTargetsBoxes;
+
+        /// <summary>Auto-aim score of an enemy: distance + this × health fraction (cells; a wounded enemy is preferred).</summary>
+        public float AutoAimHealthWeightCells;
+
+        /// <summary>Ticks the last auto-aim target is kept (0 — no stickiness).</summary>
+        public int AutoAimStickyTicks;
+
+        /// <summary>The kept target may score this many cells worse than the best one of its tier.</summary>
+        public float AutoAimStickyMarginCells;
+
+        /// <summary>
         /// Applies the level bonus to a level-1 value: <c>round(base × (1 + bonus × (level − 1)))</c>; level below 1 counts as 1.
         /// </summary>
         public int ScaleByLevel(int baseValue, int level)
@@ -65,6 +82,9 @@ namespace Arena.Core.Defs
             if (TalentUnlockLevel < 1) throw new ArgumentException("CombatRules.TalentUnlockLevel must be ≥ 1");
             if (BushRevealDistance < 0f) throw new ArgumentException("CombatRules.BushRevealDistance must be ≥ 0");
             if (RevealTicks < 0) throw new ArgumentException("CombatRules.RevealTicks must be ≥ 0");
+            if (AutoAimHealthWeightCells < 0f) throw new ArgumentException("CombatRules.AutoAimHealthWeightCells must be ≥ 0");
+            if (AutoAimStickyTicks < 0) throw new ArgumentException("CombatRules.AutoAimStickyTicks must be ≥ 0");
+            if (AutoAimStickyMarginCells < 0f) throw new ArgumentException("CombatRules.AutoAimStickyMarginCells must be ≥ 0");
         }
     }
 }

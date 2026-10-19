@@ -51,6 +51,22 @@ namespace Arena.Data
         [Tooltip("Seconds an attack keeps the attacker visible (in a bush, invisible).")]
         [Min(0f)] public float RevealSeconds;
 
+        [Header("Auto-aim (D-007, D-129)")]
+        [Tooltip("Tap auto-aim of projectiles, cones, dashes and hooks prefers an enemy with no wall on the line over a nearer one behind a wall.")]
+        public bool AutoAimPreferClearShot;
+
+        [Tooltip("Berry boxes (Last Beast) are targets too: after enemies with a clear line, before enemies behind walls.")]
+        public bool AutoAimTargetsBoxes;
+
+        [Tooltip("Enemy score = distance + this × health fraction (cells): a wounded enemy a bit farther away is preferred.")]
+        [Min(0f)] public float AutoAimHealthWeightCells;
+
+        [Tooltip("Seconds the last auto-aim target is kept while it stays about as good (no flicking between close targets).")]
+        [Min(0f)] public float AutoAimStickySeconds;
+
+        [Tooltip("How many cells worse than the best target of its tier the kept target may score.")]
+        [Min(0f)] public float AutoAimStickyMarginCells;
+
         [Header("Movement speed by class, cells per second")]
         [Min(0f)] public float SlowSpeed;
         [Min(0f)] public float NormalSpeed;

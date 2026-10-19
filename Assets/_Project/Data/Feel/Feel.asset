@@ -64,6 +64,8 @@ MonoBehaviour:
   UltGlowScale: 0.08
   FpsUpdateSeconds: 0.5
   AimMagnetDegrees: 5
+  AutoAimMarkerRadiusScale: 1.6
+  AutoAimMarkerFill: 0.55
   DefaultMirroredLayout: 0
   DefaultVibrationPercent: 100
   DefaultAimMagnet: 1

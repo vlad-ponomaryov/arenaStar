@@ -55,12 +55,18 @@ MonoBehaviour:
   Gesture:
     DeadZone: 0.2
     CancelRadius: 0.25
-    TapMaxSeconds: 0.25
+    TapZone: 0.35
   AllyColor: {r: 0.2, g: 0.52, b: 1, a: 1}
   EnemyColor: {r: 0.95, g: 0.22, b: 0.18, a: 1}
   EnemyColorAlt: {r: 1, g: 0.6, b: 0.1, a: 1}
   FpsMargin: {x: 24, y: 20}
   FpsBoxSize: {x: 220, y: 44}
+  PauseButtonMargin: {x: 28, y: 24}
+  PauseButtonSize: {x: 116, y: 108}
+  PauseIconBarSize: {x: 14, y: 44}
+  PauseIconGap: 14
+  PauseMenuButtonSize: {x: 500, y: 112}
+  PauseMenuWidth: 620
   SettingsPanelColor: {r: 0.1, g: 0.12, b: 0.07, a: 0.72}
   SettingsLabelWidth: 520
   SettingsChoiceSize: {x: 150, y: 84}

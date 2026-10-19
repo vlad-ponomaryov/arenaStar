@@ -133,6 +133,13 @@ namespace Arena.Core.State
         public InputButtons Buttons;
         public InputButtons PrevButtons;
 
+        /// <summary>
+        /// Target of the last auto-aim activation (D-129, <c>AimTargetCode</c>: 0 — none, fighter slot + 1, or a berry box) and its
+        /// tick: the next auto-aim keeps it for a while if it is still about as good (no flicking between two close targets).
+        /// </summary>
+        public int AimTargetCode;
+        public int AimTargetTick;
+
         /// <summary>True on the tick the button goes from released to pressed.</summary>
         public bool WasPressed(InputButtons button) => (Buttons & button) != 0 && (PrevButtons & button) == 0;
 
@@ -161,7 +168,8 @@ namespace Arena.Core.State
                 && KnockbackVelocity == o.KnockbackVelocity && KnockbackTicks == o.KnockbackTicks
                 && DashVelocity == o.DashVelocity && DashTicksLeft == o.DashTicksLeft
                 && DashAbilityRef == o.DashAbilityRef && DashHitMask == o.DashHitMask
-                && Buttons == o.Buttons && PrevButtons == o.PrevButtons;
+                && Buttons == o.Buttons && PrevButtons == o.PrevButtons
+                && AimTargetCode == o.AimTargetCode && AimTargetTick == o.AimTargetTick;
         }
 
         public override bool Equals(object obj) => obj is FighterState other && Equals(other);

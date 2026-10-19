@@ -137,7 +137,8 @@ namespace Arena.Tests.EditMode.Setup
             Assert.Greater(style.Gesture.DeadZone, 0f);
             Assert.Less(style.Gesture.DeadZone, 1f);
             Assert.Less(style.Gesture.CancelRadius, 1f);
-            Assert.Greater(style.Gesture.TapMaxSeconds, 0f);
+            Assert.Greater(style.Gesture.TapZone, style.Gesture.CancelRadius, "a jitter inside the tap zone never cancels (D-129)");
+            Assert.Less(style.Gesture.TapZone, 1f);
             Assert.Greater(style.MoveStick.Radius, 0f);
             Assert.Greater(style.AttackStick.Radius, 0f);
             Assert.Greater(style.UltStick.Radius, 0f);

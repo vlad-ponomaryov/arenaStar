@@ -73,6 +73,21 @@ namespace Arena.UI.Style
         public Vector2 FpsMargin;
         public Vector2 FpsBoxSize;
 
+        [Header("Match menu (pause / leave, D-129)")]
+        [Tooltip("Pause button of the match HUD: offset from the top-right corner and size.")]
+        public Vector2 PauseButtonMargin;
+        public Vector2 PauseButtonSize;
+
+        [Tooltip("Bars of the pause icon: size of one bar and the gap between them.")]
+        public Vector2 PauseIconBarSize;
+        public float PauseIconGap;
+
+        [Tooltip("Buttons of the match menu panel (Resume, Settings, Leave; Leave / Stay).")]
+        public Vector2 PauseMenuButtonSize;
+
+        [Tooltip("Width of the title plank and the text lines of the match menu panel.")]
+        public float PauseMenuWidth;
+
         [Header("Settings panel")]
         public Color SettingsPanelColor;
 

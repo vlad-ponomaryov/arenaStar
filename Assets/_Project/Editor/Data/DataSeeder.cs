@@ -275,6 +275,14 @@ namespace Arena.Editor.Data
             new[] { LocKeys.HudFogIn, "Fog in", "Туман через" },
             new[] { LocKeys.HudBerries, "Berries", "Ягоды" },
             new[] { LocKeys.MenuTrainingMode, "Training mode:", "Режим тренировки:" },
+            new[] { LocKeys.PauseTitle, "Pause", "Пауза" },
+            new[] { LocKeys.PauseMenuTitle, "Menu", "Меню" },
+            new[] { LocKeys.PauseResume, "Resume", "Продолжить" },
+            new[] { LocKeys.PauseLeave, "Leave match", "Выйти из матча" },
+            new[] { LocKeys.PauseOnlineHint, "The battle goes on", "Бой продолжается" },
+            new[] { LocKeys.PauseLeaveConfirm, "Leave the match?", "Выйти из матча?" },
+            new[] { LocKeys.PauseLeaveYes, "Leave", "Выйти" },
+            new[] { LocKeys.PauseLeaveNo, "Stay", "Остаться" },
             new[] { LocKeys.MenuRegion, "Region:", "Регион:" },
             new[] { LocKeys.ModeLastBeast, "Last Beast", "Последний зверь" },
             new[] { LocKeys.QueueFound, "Found {0} of {1}", "Найдено {0} из {1}" },
@@ -317,6 +325,12 @@ namespace Arena.Editor.Data
 
         // GDD §5.2: a bush hides unless an enemy is closer than 2 cells; an attack reveals for 1 s (D-024).
         private const float BushRevealDistance = 2f;
+        // D-129: tap auto-aim — enemy in the open > berry box in the open > enemy behind a wall; wounded preferred; sticky target.
+        private const bool AutoAimPreferClearShot = true;
+        private const bool AutoAimTargetsBoxes = true;
+        private const float AutoAimHealthWeightCells = 1.5f;
+        private const float AutoAimStickySeconds = 2f;
+        private const float AutoAimStickyMarginCells = 2f;
         private const float RevealSeconds = 1f;
 
         // Acorns map "Glade" (original layout, 21×31, GDD §5.4–5.5): three lanes split by walls and ponds, bushes on the
@@ -542,6 +556,8 @@ namespace Arena.Editor.Data
         private const float FeelUltGlowScale = 0.08f;
         private const float FeelFpsUpdateSeconds = 0.5f;
         private const float FeelAimMagnetDegrees = 5f;
+        private const float FeelAutoAimMarkerRadiusScale = 1.6f; // D-129: disc under the tap target while the stick is held still
+        private const float FeelAutoAimMarkerFill = 0.55f;
 
         // Settings defaults of a first start (GDD §5.1: aim magnet on; full vibration) and frame rate (S2.13, D-062).
         private const bool FeelDefaultMirroredLayout = false;
@@ -652,6 +668,11 @@ namespace Arena.Editor.Data
             c.TalentUnlockLevel = TalentUnlockLevel;
             c.BushRevealDistance = BushRevealDistance;
             c.RevealSeconds = RevealSeconds;
+            c.AutoAimPreferClearShot = AutoAimPreferClearShot;
+            c.AutoAimTargetsBoxes = AutoAimTargetsBoxes;
+            c.AutoAimHealthWeightCells = AutoAimHealthWeightCells;
+            c.AutoAimStickySeconds = AutoAimStickySeconds;
+            c.AutoAimStickyMarginCells = AutoAimStickyMarginCells;
             c.SlowSpeed = SlowSpeed;
             c.NormalSpeed = NormalSpeed;
             c.FastSpeed = FastSpeed;
@@ -784,6 +805,8 @@ namespace Arena.Editor.Data
             c.UltGlowScale = FeelUltGlowScale;
             c.FpsUpdateSeconds = FeelFpsUpdateSeconds;
             c.AimMagnetDegrees = FeelAimMagnetDegrees;
+            c.AutoAimMarkerRadiusScale = FeelAutoAimMarkerRadiusScale;
+            c.AutoAimMarkerFill = FeelAutoAimMarkerFill;
             c.DefaultMirroredLayout = FeelDefaultMirroredLayout;
             c.DefaultVibrationPercent = FeelDefaultVibrationPercent;
             c.DefaultAimMagnet = FeelDefaultAimMagnet;

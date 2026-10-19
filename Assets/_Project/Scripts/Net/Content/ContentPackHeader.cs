@@ -15,7 +15,7 @@ namespace Arena.Net.Content
         public const uint MagicValue = 0x434E5241u;
 
         /// <summary>Format of the pack body; bump on any change of <see cref="ContentPackWriter"/> (D-091).</summary>
-        public const ushort CurrentFormatVersion = 4;
+        public const ushort CurrentFormatVersion = 5;
 
         public const int Size = 18;
 

@@ -37,9 +37,9 @@ namespace Arena.Core.Sim.Systems
             AbilityDef trick = defs.Fighters[f.DefIndex].Trick;
             f.TrickUsesLeft--;
             f.TrickReadyTick = tick + defs.Rules.TrickCooldownTicks;
-            Vec2 dir = AbilitySystem.ResolveDirection(state, slot, in input, trick);
+            Vec2 dir = AbilitySystem.ResolveDirection(state, defs.Rules, slot, in input, trick);
             AbilitySystem.Activate(state, defs, events, slot, trick, MatchDefs.MakeAbilityRef(f.DefIndex, AbilitySlot.Trick), dir,
-                AbilitySystem.ResolveDistance(state, slot, in input, trick), EffectContext.FullDamagePercent, input.ViewDelayTicks);
+                AbilitySystem.ResolveDistance(state, defs.Rules, slot, in input, trick), EffectContext.FullDamagePercent, input.ViewDelayTicks);
         }
     }
 }

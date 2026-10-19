@@ -89,6 +89,16 @@ namespace Arena.Data.Localization
         public const string HudBerries = "hud.berries";
         public const string MenuTrainingMode = "menu.training_mode";
 
+        // D-129: the match menu (pause button in the HUD).
+        public const string PauseTitle = "pause.title";
+        public const string PauseMenuTitle = "pause.menu_title";
+        public const string PauseResume = "pause.resume";
+        public const string PauseLeave = "pause.leave";
+        public const string PauseOnlineHint = "pause.online_hint";
+        public const string PauseLeaveConfirm = "pause.leave_confirm";
+        public const string PauseLeaveYes = "pause.leave_yes";
+        public const string PauseLeaveNo = "pause.leave_no";
+
         public static readonly string[] All =
         {
             MenuPlay, MenuFighter, MenuBots, MenuLanguage, MenuVersion, BotsNovice, BotsEasy, BotsMedium, LanguageEn, LanguageRu, ModeAcorns,
@@ -98,7 +108,8 @@ namespace Arena.Data.Localization
             MenuPlayOnline, RegionLan, QueueSearching, QueueCancel, NetConnecting, ErrorServerUnreachable, ErrorUpdateRequired,
             ErrorMaintenance, DevNetRtt, DevNetJitter, DevNetLoss, DevNetMargin, DevNetInterp, DevNetCorrections, DevNetMs,
             DevNetSimulator, MenuLastBeast, MenuTraining, MenuRegion, ModeLastBeast, QueueFound, NetReconnecting, NetBotPlaying,
-            NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace, HudAliveLeft, HudFogIn, HudBerries, MenuTrainingMode
+            NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace, HudAliveLeft, HudFogIn, HudBerries, MenuTrainingMode,
+            PauseTitle, PauseMenuTitle, PauseResume, PauseLeave, PauseOnlineHint, PauseLeaveConfirm, PauseLeaveYes, PauseLeaveNo
         };
     }
 }

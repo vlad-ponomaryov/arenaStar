@@ -118,6 +118,11 @@ namespace Arena.Net.Content
             w.WriteVarInt(r.TalentUnlockLevel);
             w.WriteFloat(r.BushRevealDistance);
             w.WriteVarInt(r.RevealTicks);
+            w.WriteBool(r.AutoAimPreferClearShot);
+            w.WriteBool(r.AutoAimTargetsBoxes);
+            w.WriteFloat(r.AutoAimHealthWeightCells);
+            w.WriteVarInt(r.AutoAimStickyTicks);
+            w.WriteFloat(r.AutoAimStickyMarginCells);
         }
 
         private static void WriteFighter(BitWriter w, FighterDef f)

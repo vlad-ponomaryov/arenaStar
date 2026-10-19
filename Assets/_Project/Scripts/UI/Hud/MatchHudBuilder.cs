@@ -7,7 +7,8 @@ namespace Arena.UI.Hud
 {
     /// <summary>
     /// Builds the match controls canvas at runtime from <see cref="UiStyle"/> (D-018): the left half of the screen is the
-    /// floating movement stick zone; on the right — the attack stick, the ult stick (with a radial charge ring) and the
+    /// floating movement stick zone; on the right — the attack stick, the ult stick (anchored: the aim is measured from the touch
+    /// point, D-129) (with a radial charge ring) and the
     /// trick button (with dots for the uses left, <see cref="CreateTrickDots"/>). Called once at match start.
     /// </summary>
     public static class MatchHudBuilder
@@ -115,7 +116,7 @@ namespace Arena.UI.Hud
             RectTransform knob = CreateCircle("Knob", stickBase, style, s.KnobSize, s.KnobColor);
 
             var stick = zone.gameObject.AddComponent<VirtualStick>();
-            stick.Configure(stickBase, knob, StickMode.Fixed, s.Radius, style.Gesture);
+            stick.Configure(stickBase, knob, StickMode.Anchored, s.Radius, style.Gesture);
             return stick;
         }
 

@@ -95,6 +95,11 @@ namespace Arena.Net.Content
             c.TalentUnlockLevel = r.ReadVarInt();
             c.BushRevealDistance = r.ReadFloat();
             c.RevealTicks = r.ReadVarInt();
+            c.AutoAimPreferClearShot = r.ReadBool();
+            c.AutoAimTargetsBoxes = r.ReadBool();
+            c.AutoAimHealthWeightCells = r.ReadFloat();
+            c.AutoAimStickyTicks = r.ReadVarInt();
+            c.AutoAimStickyMarginCells = r.ReadFloat();
             return c;
         }
 

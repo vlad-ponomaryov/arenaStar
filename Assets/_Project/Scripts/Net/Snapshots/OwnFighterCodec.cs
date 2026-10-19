@@ -59,6 +59,8 @@ namespace Arena.Net.Snapshots
             DeltaCodec.WriteUInt(w, f.DashHitMask, p.DashHitMask);
             DeltaCodec.WriteUInt(w, (uint)f.Buttons, (uint)p.Buttons);
             DeltaCodec.WriteUInt(w, (uint)f.PrevButtons, (uint)p.PrevButtons);
+            DeltaCodec.WriteInt(w, f.AimTargetCode, p.AimTargetCode);
+            DeltaCodec.WriteTick(w, f.AimTargetTick, p.AimTargetTick, baseTick);
         }
 
         public static FighterState Read(BitReader r, in FighterState p, int baseTick)
@@ -108,6 +110,8 @@ namespace Arena.Net.Snapshots
             f.DashHitMask = DeltaCodec.ReadUInt(r, p.DashHitMask);
             f.Buttons = (InputButtons)(byte)DeltaCodec.ReadUInt(r, (uint)p.Buttons);
             f.PrevButtons = (InputButtons)(byte)DeltaCodec.ReadUInt(r, (uint)p.PrevButtons);
+            f.AimTargetCode = DeltaCodec.ReadInt(r, p.AimTargetCode);
+            f.AimTargetTick = DeltaCodec.ReadTick(r, p.AimTargetTick, baseTick);
             return f;
         }
 

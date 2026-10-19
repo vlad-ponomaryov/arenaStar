@@ -86,8 +86,12 @@ namespace Arena.Gameplay.Match
         public bool IsEnded => _simulation.IsEnded;
         public float Alpha => _accumulator / SimTime.Dt;
 
+        /// <summary>Match menu open (D-129): no ticks, the clock does not run (the views stand still at the same alpha).</summary>
+        public bool Paused { get; set; }
+
         public int BeginFrame(float deltaTime)
         {
+            if (Paused) return 0;
             // Results: the state stands still.
             if (_simulation.IsEnded) _accumulator = 0f;
             else _accumulator += deltaTime;
