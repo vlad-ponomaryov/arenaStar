@@ -1,0 +1,44 @@
+Theo (Тео) v8 — v7_2 (красный + золото) с ТРЕТЬИМ цветом вместо серого, 4 варианта. Google Flow, проект «Arena», Nano Banana 2.1;
+условия — как в ../2026-10-19_tex-grass/prompt.md (Q-019, D-111). База — ../2026-10-19_theo_v7/theo_v7_2.png. В игру не идёт. Решение — D-137.
+
+РЕШЕНИЕ ПОЛЬЗОВАТЕЛЯ (19.10): красно-золотой вариант 2 v7 — «круто». Теперь подобрать третий цвет вместо серого: «поиграться,
+посмотреть готовые палитры, чтобы золото, красный и третий совпали». Костюм, лицо, позу, бластер, свечение не менять — только
+серые части (поддоспешник, перчатки, вставки суставов, пояс и подсумки, серые детали бластера).
+
+ПАЛИТРЫ (красный #B3141C и золото #E0A93A — как в v7_2, третий цвет):
+1 — графит-ганметалл #3D3836 (тёмный сатиновый металл с тёплым подтоном). Нейтраль + металл, приём ливреи гоночного болида
+    (красный/золото/карбон): тёмная нейтраль делает красный глубже, а золото — ярче, не спорит ни с одним из них.
+2 — тёплая слоновая кость #F1E6CF. Триада «красный-золото-светлый» геральдики и коллекционных фигурок: самый светлый и «детский»,
+    поднимает контраст силуэта и связывает с прежней перламутровой гаммой v4-2/v5 (#F7F5EF).
+3 — тёмный шоколад-бронза #4B2E20. Аналоговая тёплая палитра (красный → оранжевый → коричневый): самая гармоничная и «дорогая»,
+    как кожа и бронза; мягче графита, но тёплый фон её чуть поглощает.
+4 — королевская слива/баклажан #4A2148. Геральдика «червлень + золото + пурпур» (королевская триада); фиолетовый почти
+    комплементарен золоту — золото «горит»; соседний к красному по кругу, но не синий (цвет команды) и не зелёный.
+
+СПОСОБ: правка изображения v7_2 в редакторе Flow (в истории правок выбран v7_2, «Что вы хотите изменить?»), каждый вариант —
+отдельная правка v7_2, по 1 генерации, без перегенераций (1 попытка на каждый). Сгенерировано 19.10 ≈18:35–18:39; скачано 1K
+(JPEG 896×1200), сохранено в PNG без изменения пикселей (Tools/art_theo_v8_sheet.py, лист с полосками палитр —
+Tools/out/art/theo_v8/sheet.png). Водяного знака не видно, SynthID — есть.
+
+ОЦЕНКА: во всех 4 лицо, поза, бластер, красные пластины, золото, свечение и детали v7_2 сохранены 1:1; перекрашены поддоспешник,
+перчатки, пояс, подсумки, вставки на коленях.
+1 — графит: самый «боевой» и собранный, красный и золото читаются сильнее всего. Рёбра бластера остались светло-серыми.
+2 — слоновая кость: самый светлый и дружелюбный, силуэт контрастнее; рёбра бластера серые; кость близка к белому — «чище», но
+    менее героично.
+3 — шоколад: тёплый и цельный, но на тёплом фоне тёмные части чуть сливаются; рёбра бластера серые.
+4 — слива: единственный, где модель перекрасила и рёбра/прицел бластера; золото выглядит ярче всего; самый «королевский» и
+    необычный, рискует уйти в «злодейский» оттенок.
+
+ОБЩИЙ ХВОСТ ВСЕХ ЗАПРОСОВ (дописан после текста варианта):
+
+Keep the glossy red armor plates and all the polished gold parts exactly as they are now, same red and same gold. Keep the same bright warm orange-gold glow on all energy cells, light strips, the visor and the boot soles. Keep everything else exactly the same: same boy, face, hair, pose, the same blaster shape and size, the same armor design and all its details, orange monocle visor, headset with microphone, gold comet on orange orbit ring emblem, belt, boots, background and 3D style. No cape, no helmet, no face plate, no round glowing light on the chest.
+
+ОБЩЕЕ НАЧАЛО: Change only the color of the parts that are currently grey: the undersuit on the arms, waist and legs between the armor plates, the gloves, the small joint inserts, the belt and holster pouches, and the grey details and fins of the blaster.
+
+ЗАПРОС 1 (к v7_2; начало + это + хвост): Make all of them a deep warm gunmetal graphite (#3D3836), dark satin metal with a slight warm brown undertone, almost like carbon on a racing car.
+
+ЗАПРОС 2: Make all of them a warm ivory cream (#F1E6CF), smooth satin like a collectible toy figure, soft and clean, not pure white.
+
+ЗАПРОС 3: Make all of them a rich dark chocolate brown with a soft bronze sheen (#4B2E20), like polished dark leather and bronze metal.
+
+ЗАПРОС 4: Make all of them a deep royal plum aubergine (#4A2148), a dark warm purple with a soft satin sheen, not blue.
