@@ -55,6 +55,12 @@ namespace Arena.Bots.Defs
         /// <summary>…and passes closer than its radius + the bot's radius + this margin, cells.</summary>
         public float DodgeMarginCells;
 
+        /// <summary>
+        /// Ticks between two shots of the bot at least (D-131: the main lever of a weak bot — it shoots less often);
+        /// the shared <c>BotBehaviourDef.MinShotIntervalTicks</c> applies when it is larger.
+        /// </summary>
+        public int ShotIntervalTicks;
+
         public void Validate()
         {
             if (AimSpreadDegrees < 0f || AimSpreadDegrees > 180f)
@@ -71,6 +77,7 @@ namespace Arena.Bots.Defs
             if (FocusHealthWeightCells < 0f) throw new ArgumentException("BotDifficultyDef " + Difficulty + ": FocusHealthWeightCells must be ≥ 0");
             if (DodgeLookaheadTicks < 0) throw new ArgumentException("BotDifficultyDef " + Difficulty + ": DodgeLookaheadTicks must be ≥ 0");
             if (DodgeMarginCells < 0f) throw new ArgumentException("BotDifficultyDef " + Difficulty + ": DodgeMarginCells must be ≥ 0");
+            if (ShotIntervalTicks < 0) throw new ArgumentException("BotDifficultyDef " + Difficulty + ": ShotIntervalTicks must be ≥ 0");
         }
 
         private void RequireChance(float value, string name)

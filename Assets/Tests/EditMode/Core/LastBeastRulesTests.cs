@@ -173,6 +173,43 @@ namespace Arena.Tests.EditMode.Core
         }
 
         [Test]
+        public void Berry_Pickup_Heals_ShareOfTheNewMax()
+        {
+            MatchSimulation sim = LastBeastTestFactory.CreateThree();
+            sim.Defs.LastBeast.BerryHealPercent = 10;
+            MatchState state = sim.State;
+            state.Fighters[0].Health = 1000;
+            Place(state, 0, state.Fighters[0].Position);
+            sim.Tick(TestMatchFactory.Inputs());
+
+            ref FighterState f = ref state.Fighters[0];
+            int max = MathUtil.RoundToInt(TestMatchFactory.MaxHealth * 1.08f);
+            Assert.AreEqual(max, f.MaxHealth);
+            Assert.AreEqual(1000 + (max - TestMatchFactory.MaxHealth) + MathUtil.RoundToInt(max * 0.1f), f.Health,
+                "the gain of the max + 10 % of the new max (D-131)");
+
+            f.Health = f.MaxHealth - 1;
+            Place(state, 1, f.Position);
+            sim.Tick(TestMatchFactory.Inputs());
+            Assert.AreEqual(state.Fighters[0].MaxHealth, state.Fighters[0].Health, "never above the max");
+        }
+
+        [Test]
+        public void Berries_AboveTheCap_DoNotAddBonus()
+        {
+            MatchSimulation sim = LastBeastTestFactory.CreateThree();
+            sim.Defs.LastBeast.MaxBonusBerries = 3;
+            sim.State.Fighters[0].Berries = 7;
+            Assert.AreEqual(1f + 0.08f * 3, LastBeastRules.DamageMultiplier(sim.State, sim.Defs, 0), 1e-5f);
+            Assert.AreEqual(MathUtil.RoundToInt(TestMatchFactory.MaxHealth * (1f + 0.08f * 3)),
+                LastBeastRules.MaxHealthWithBerries(sim.Defs, in sim.State.Fighters[0]));
+            Assert.AreEqual(24, LastBeastRules.DamageBonusPercent(sim.Defs.LastBeast, 7));
+            Assert.AreEqual(16, LastBeastRules.DamageBonusPercent(sim.Defs.LastBeast, 2));
+            sim.Defs.LastBeast.MaxBonusBerries = 0;
+            Assert.AreEqual(56, LastBeastRules.DamageBonusPercent(sim.Defs.LastBeast, 7), "0 — no cap");
+        }
+
+        [Test]
         public void Berries_AreIgnoredOutsideTheMode()
         {
             MatchDefs defs = TestMatchFactory.CreateDefs();

@@ -16,7 +16,8 @@ namespace Arena.Core.Modes
     /// <see cref="LastBeastModeDef.FogPulseTicks"/> damage every alive fighter whose centre is outside it (source −1: no ult
     /// charge, no kill credit; per second base + growth × (step − 1)); berries are picked up by touch (slot order) — each adds
     /// <see cref="LastBeastModeDef.BerryDamagePercent"/> damage and <see cref="LastBeastModeDef.BerryHealthPercent"/> max health
-    /// (additive, current health grows by the max health gained); then places and the end.
+    /// (additive, current health grows by the max health gained, plus <see cref="LastBeastModeDef.BerryHealPercent"/> of the max
+    /// health per berry; at most <see cref="LastBeastModeDef.MaxBonusBerries"/> berries count, D-131); then places and the end.
     /// Places: a fighter defeated in a tick gets the number of fighters alive before that tick (<see cref="OnDefeat"/>, called
     /// by DamageSystem; fighters out in the same tick share it). One left → place 1, match over. Nobody left (the last ones fell
     /// together) → of those, the one with more damage dealt, then the lower slot, gets place 1. At
@@ -90,17 +91,29 @@ namespace Arena.Core.Modes
         public static float DamageMultiplier(MatchState state, MatchDefs defs, int source)
         {
             if (defs.Mode != ModeKind.LastBeast || source < 0) return 1f;
-            int berries = state.Fighters[source].Berries;
+            int berries = BonusBerries(defs.LastBeast, state.Fighters[source].Berries);
             if (berries <= 0) return 1f;
             return 1f + defs.LastBeast.BerryDamagePercent * berries / (float)PercentBase;
         }
+
+        /// <summary>Berries counted for the bonuses: capped by <see cref="LastBeastModeDef.MaxBonusBerries"/> (D-131).</summary>
+        public static int BonusBerries(LastBeastModeDef lb, int berries)
+        {
+            if (berries <= 0 || lb == null) return 0;
+            return lb.MaxBonusBerries > 0 && berries > lb.MaxBonusBerries ? lb.MaxBonusBerries : berries;
+        }
+
+        /// <summary>Damage bonus of <paramref name="berries"/> in percent (the HUD and the pickup text, D-131).</summary>
+        public static int DamageBonusPercent(LastBeastModeDef lb, int berries) =>
+            lb == null ? 0 : lb.BerryDamagePercent * BonusBerries(lb, berries);
 
         /// <summary>Max health of the fighter with its berries: level-scaled base × (1 + percent × berries / 100).</summary>
         public static int MaxHealthWithBerries(MatchDefs defs, in FighterState f)
         {
             int baseMax = defs.Rules.ScaleByLevel(defs.Fighters[f.DefIndex].MaxHealth, f.Level);
-            if (f.Berries <= 0 || defs.LastBeast == null) return baseMax;
-            return MathUtil.RoundToInt(baseMax * (1f + defs.LastBeast.BerryHealthPercent * f.Berries / (float)PercentBase));
+            int berries = BonusBerries(defs.LastBeast, f.Berries);
+            if (berries <= 0) return baseMax;
+            return MathUtil.RoundToInt(baseMax * (1f + defs.LastBeast.BerryHealthPercent * berries / (float)PercentBase));
         }
 
         /// <summary>Health one fog pulse removes at fog step <paramref name="step"/> (≥ 1).</summary>
@@ -220,6 +233,14 @@ namespace Arena.Core.Modes
                     f.Berries += item.Value;
                     f.MaxHealth = MaxHealthWithBerries(defs, in f);
                     if (f.MaxHealth > oldMax) f.Health += f.MaxHealth - oldMax;
+                    // D-131: a berry also heals a share of the max health, so the pickup is felt at once.
+                    int heal = MathUtil.RoundToInt(f.MaxHealth * defs.LastBeast.BerryHealPercent * item.Value / (float)PercentBase);
+                    int healed = f.Health + heal < f.MaxHealth ? heal : f.MaxHealth - f.Health;
+                    if (healed > 0)
+                    {
+                        f.Health += healed;
+                        events.Add(new SimEvent(SimEventType.Healed, state.Globals.Tick, i, i, healed, f.Position, Vec2.Zero));
+                    }
                     item.Active = false;
                     events.Add(new SimEvent(SimEventType.PickupCollected, state.Globals.Tick, i, -1, item.Value, item.Position, Vec2.Zero));
                     break;

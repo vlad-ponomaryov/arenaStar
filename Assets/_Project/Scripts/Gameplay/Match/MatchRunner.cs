@@ -9,6 +9,7 @@ using Arena.Core.Sim.Systems;
 using Arena.Core.State;
 using Arena.Data;
 using Arena.Data.Conversion;
+using Arena.Data.Localization;
 using Arena.Gameplay.Cameras;
 using Arena.Gameplay.Feel;
 using Arena.Gameplay.Flow;
@@ -70,6 +71,7 @@ namespace Arena.Gameplay.Match
         private FloatingTextLayer _floatingText;
         private DamageNumberPool _damageNumbers;
         private OwnHealthLabel _ownHealth;
+        private BerryBonusFeedback _berryBonus;
         private HitFeedback _feedback;
         private TelegraphViewPool _telegraphs;
         private int _telegraphTicks;
@@ -223,6 +225,7 @@ namespace Arena.Gameplay.Match
             _damageNumbers.Update(cam, dt);
             ref FighterState me = ref _driver.State.Fighters[LocalSlot];
             _ownHealth.Update(cam, LocalWorldPosition(alpha), me.Health, _viewState.Alive(LocalSlot));
+            _berryBonus.Update(_driver.Defs, me.Berries, LocalWorldPosition(alpha));
         }
 
         private void RunTick()
@@ -302,9 +305,9 @@ namespace Arena.Gameplay.Match
         }
 
         /// <summary>
-        /// The attack / ult stick is held without a drag (D-129): the line points at the enemy the tap would hit
-        /// (<see cref="AbilitySystem.AutoAimTarget"/> — the same choice the simulation makes) with a disc under it; no target —
-        /// the line along the facing at full range, where the shot will go.
+        /// The attack / ult stick is held without a drag (D-129, D-131): only a faint disc under the target the tap would hit
+        /// (<see cref="AbilitySystem.AutoAimTarget"/> — the same choice the simulation makes); no aim line — the line appears
+        /// only when the stick is actually dragged (manual aim). No target — nothing.
         /// </summary>
         private void RenderAutoAimPreview(FighterDef localDef, float alpha)
         {
@@ -316,7 +319,6 @@ namespace Arena.Gameplay.Match
                 _autoAimMarker.Hide();
                 return;
             }
-            Vec2 own = _viewState.Position(LocalSlot, alpha);
             int code = AbilitySystem.AutoAimTarget(_driver.State, _driver.Defs.Rules, LocalSlot, ability, out Vec2 point);
             int target = AimTargetCode.FighterSlot(code);
             bool box = AimTargetCode.IsBox(code);
@@ -324,19 +326,14 @@ namespace Arena.Gameplay.Match
             {
                 // Enemies at their interpolated position; a box stands still at its cell centre (half a cell "radius").
                 Vec2 at = box ? point : _viewState.Position(target, alpha);
-                Vec2 to = at - own;
-                Vec2 dir = to.IsZero ? _viewState.Facing(LocalSlot) : to.Normalized;
-                _aimIndicator.Show(WorldCoords.ToWorld(own), WorldCoords.DirectionToWorld(dir), to.Length);
+                _aimIndicator.Hide();
                 float size = box ? HalfCell : _driver.Defs.Fighters[_driver.State.Fighters[target].DefIndex].Radius;
                 _autoAimMarker.SetMaterials(EnemyTelegraphZone, EnemyTelegraphFill);
                 _autoAimMarker.Show(WorldCoords.ToWorld(at), size * _feel.AutoAimMarkerRadiusScale, _feel.AutoAimMarkerFill);
                 return;
             }
             _autoAimMarker.Hide();
-            Vec2 facing = _viewState.Facing(LocalSlot);
-            if (facing.IsZero) facing = Vec2.Up;
-            float range = ult ? UltRange(localDef) : localDef.AttackRange;
-            _aimIndicator.Show(WorldCoords.ToWorld(own), WorldCoords.DirectionToWorld(facing), range);
+            _aimIndicator.Hide();
         }
 
         private void RenderHealthBars(float alpha)
@@ -371,6 +368,7 @@ namespace Arena.Gameplay.Match
                 _viewCatalog.TextOutlineDistance);
             _damageNumbers = new DamageNumberPool(_floatingText, _feel);
             _ownHealth = new OwnHealthLabel(_floatingText, _feel);
+            _berryBonus = new BerryBonusFeedback(_damageNumbers, _feel, Loc.Get(LocKeys.FeelBerryPower));
             _hitStop.Reset();
             _shake.Reset();
             _feedback = new HitFeedback(_feel, LocalSlot, LocalTeam, _hitStop, _shake, _haptics, _sounds, _damageNumbers);

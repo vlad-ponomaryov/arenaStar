@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Easy
   m_EditorClassIdentifier: Arena.Data::Arena.Data.BotDifficultyConfig
   Difficulty: 1
-  AimSpreadDegrees: 15
-  ReactionSeconds: 0.45
-  UltUseChance: 0.5
+  AimSpreadDegrees: 24
+  ReactionSeconds: 0.7
+  UltUseChance: 0.35
   UltMisuseChance: 0.02
-  TrickUseChance: 0.5
+  TrickUseChance: 0.35
   TrickMisuseChance: 0.01
   EmptyBushShotChance: 0.03
   RetreatThresholdJitter: 0.06
@@ -26,3 +26,4 @@ MonoBehaviour:
   DodgeChance: 0
   DodgeLookaheadSeconds: 0
   DodgeMarginCells: 0
+  ShotIntervalSeconds: 0.6

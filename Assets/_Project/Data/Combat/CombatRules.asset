@@ -29,6 +29,8 @@ MonoBehaviour:
   AutoAimHealthWeightCells: 1.5
   AutoAimStickySeconds: 2
   AutoAimStickyMarginCells: 2
+  AutoAimThreatRangeFraction: 0.5
+  AutoAimBoxBonusCells: 1
   SlowSpeed: 2.2
   NormalSpeed: 2.5
   FastSpeed: 2.8

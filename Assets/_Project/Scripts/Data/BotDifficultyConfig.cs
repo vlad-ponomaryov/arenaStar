@@ -52,5 +52,8 @@ namespace Arena.Data
 
         [Tooltip("…when it passes closer than its radius + the bot radius + this margin (cells).")]
         [Min(0f)] public float DodgeMarginCells;
+
+        [Tooltip("Seconds between two shots of the bot at least (D-131: a weak bot shoots less often); the shared bot behaviour minimum applies when larger.")]
+        [Min(0f)] public float ShotIntervalSeconds;
     }
 }

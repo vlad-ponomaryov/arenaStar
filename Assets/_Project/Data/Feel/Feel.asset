@@ -23,6 +23,7 @@ MonoBehaviour:
   DamageColor: {r: 1, g: 1, b: 1, a: 1}
   DamageTakenColor: {r: 1, g: 0.38, b: 0.32, a: 1}
   HealColor: {r: 0.45, g: 1, b: 0.5, a: 1}
+  BerryBonusColor: {r: 1, g: 0.45, b: 0.7, a: 1}
   TextReferenceResolution: {x: 1920, y: 1080}
   TextMatchWidthOrHeight: 0.5
   OwnHealthHeight: 2.55
@@ -64,8 +65,8 @@ MonoBehaviour:
   UltGlowScale: 0.08
   FpsUpdateSeconds: 0.5
   AimMagnetDegrees: 5
-  AutoAimMarkerRadiusScale: 1.6
-  AutoAimMarkerFill: 0.55
+  AutoAimMarkerRadiusScale: 1.3
+  AutoAimMarkerFill: 0.3
   DefaultMirroredLayout: 0
   DefaultVibrationPercent: 100
   DefaultAimMagnet: 1

@@ -26,3 +26,4 @@ MonoBehaviour:
   DodgeChance: 0.8
   DodgeLookaheadSeconds: 0.5
   DodgeMarginCells: 0.3
+  ShotIntervalSeconds: 0

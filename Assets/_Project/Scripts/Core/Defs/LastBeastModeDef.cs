@@ -36,11 +36,20 @@ namespace Arena.Core.Defs
         /// <summary>Berries that drop from a broken box (PROTO 1).</summary>
         public int BerriesPerBox;
 
-        /// <summary>Damage bonus per berry, percent of the base, additive (GDD: +8 %).</summary>
+        /// <summary>Damage bonus per berry, percent of the base, additive (GDD: +8 %; D-131: 12 %).</summary>
         public int BerryDamagePercent;
 
         /// <summary>Max health bonus per berry, percent of the level-scaled base, additive (GDD: +8 %).</summary>
         public int BerryHealthPercent;
+
+        /// <summary>
+        /// Berries counted for the bonuses (D-131: a cap against a runaway leader; more berries are still carried and dropped);
+        /// 0 — no cap.
+        /// </summary>
+        public int MaxBonusBerries;
+
+        /// <summary>Health restored per picked berry, percent of the new max health (D-131: the pickup is felt at once).</summary>
+        public int BerryHealPercent;
 
         /// <summary>A defeated fighter drops all its berries and this many more (GDD: 1).</summary>
         public int ExtraBerriesOnDefeat;
@@ -70,6 +79,7 @@ namespace Arena.Core.Defs
             if (FogPulseTicks <= 0) throw new ArgumentException("LastBeastModeDef.FogPulseTicks must be > 0");
             if (BoxHealth <= 0) throw new ArgumentException("LastBeastModeDef.BoxHealth must be > 0");
             if (BerriesPerBox < 0 || ExtraBerriesOnDefeat < 0) throw new ArgumentException("LastBeastModeDef: berry counts must be ≥ 0");
+            if (MaxBonusBerries < 0 || BerryHealPercent < 0) throw new ArgumentException("LastBeastModeDef: berry cap and heal must be ≥ 0");
             if (BerryDamagePercent < 0 || BerryHealthPercent < 0) throw new ArgumentException("LastBeastModeDef: berry bonuses must be ≥ 0");
             if (BerryPickupRadius < 0f || BerryDropScatterRadius < 0f) throw new ArgumentException("LastBeastModeDef: berry radii must be ≥ 0");
             if (BerryPickupDelayTicks < 0) throw new ArgumentException("LastBeastModeDef.BerryPickupDelayTicks must be ≥ 0");

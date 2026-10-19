@@ -56,7 +56,9 @@ namespace Arena.Tests.EditMode.Net.Server
                 for (int s = 0; s < room.SlotCount; s++)
                     Assert.AreEqual(room.Result.Slots[s].DamageDealt, c.Ended.Slots[s].DamageDealt, "stats of slot " + s);
                 Assert.AreEqual(0, c.Malformed, "no malformed messages");
-                Assert.Greater(c.SnapshotsDecoded, 4000);
+                // ≥ 100 s of snapshots at 30 Hz: the bots fill the rest of the teams, the match length depends on their skill
+                // (D-131 made Novice weaker: the match ends sooner).
+                Assert.Greater(c.SnapshotsDecoded, 3000);
             }
             Assert.AreEqual(room.Simulation.State.Mode.EndTick, room.Result.EndTick);
 

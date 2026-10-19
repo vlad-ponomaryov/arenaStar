@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Novice
   m_EditorClassIdentifier: Arena.Data::Arena.Data.BotDifficultyConfig
   Difficulty: 0
-  AimSpreadDegrees: 25
-  ReactionSeconds: 0.6
-  UltUseChance: 0.25
+  AimSpreadDegrees: 45
+  ReactionSeconds: 1.2
+  UltUseChance: 0.15
   UltMisuseChance: 0.05
-  TrickUseChance: 0.25
+  TrickUseChance: 0.15
   TrickMisuseChance: 0.02
   EmptyBushShotChance: 0.06
   RetreatThresholdJitter: 0.12
@@ -26,3 +26,4 @@ MonoBehaviour:
   DodgeChance: 0
   DodgeLookaheadSeconds: 0
   DodgeMarginCells: 0
+  ShotIntervalSeconds: 1.6

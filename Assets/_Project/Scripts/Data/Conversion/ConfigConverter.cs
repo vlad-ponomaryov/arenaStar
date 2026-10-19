@@ -134,7 +134,8 @@ namespace Arena.Data.Conversion
                 FocusHealthWeightCells = c.FocusHealthWeightCells,
                 DodgeChance = c.DodgeChance,
                 DodgeLookaheadTicks = SimTime.SecondsToTicks(c.DodgeLookaheadSeconds),
-                DodgeMarginCells = c.DodgeMarginCells
+                DodgeMarginCells = c.DodgeMarginCells,
+                ShotIntervalTicks = SimTime.SecondsToTicks(c.ShotIntervalSeconds)
             };
             def.Validate();
             return def;
@@ -212,6 +213,8 @@ namespace Arena.Data.Conversion
                 BerriesPerBox = c.BerriesPerBox,
                 BerryDamagePercent = c.BerryDamagePercent,
                 BerryHealthPercent = c.BerryHealthPercent,
+                MaxBonusBerries = c.MaxBonusBerries,
+                BerryHealPercent = c.BerryHealPercent,
                 ExtraBerriesOnDefeat = c.ExtraBerriesOnDefeat,
                 BerryPickupRadius = c.BerryPickupRadius,
                 BerryDropScatterRadius = c.BerryDropScatterRadius,
@@ -289,7 +292,9 @@ namespace Arena.Data.Conversion
                 AutoAimTargetsBoxes = c.AutoAimTargetsBoxes,
                 AutoAimHealthWeightCells = c.AutoAimHealthWeightCells,
                 AutoAimStickyTicks = SimTime.SecondsToTicks(c.AutoAimStickySeconds),
-                AutoAimStickyMarginCells = c.AutoAimStickyMarginCells
+                AutoAimStickyMarginCells = c.AutoAimStickyMarginCells,
+                AutoAimThreatRangeFraction = c.AutoAimThreatRangeFraction,
+                AutoAimBoxBonusCells = c.AutoAimBoxBonusCells
             };
         }
 

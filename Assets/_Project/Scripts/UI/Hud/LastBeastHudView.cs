@@ -13,7 +13,8 @@ namespace Arena.UI.Hud
     /// <summary>
     /// Last Beast panel at the top of the match HUD (S3.14, Server-Spec §9.2, §12.4) in place of the Acorns score bar: fighters
     /// left ("Left" + N, <c>ModeState.AliveCount</c>), the time to the next fog step ("Fog in" + clock; hidden once the safe square
-    /// is at its smallest or the match ended) and the own berries. Labels are set once per language, numbers come from
+    /// is at its smallest or the match ended) and the own berry power ("Berry power" + "+N%", D-131: the bonus, not the count —
+    /// <see cref="LastBeastRules.DamageBonusPercent"/>). Labels are set once per language, numbers come from
     /// <see cref="NumberStringCache"/> and change only with the value — no allocations per frame. Hidden in other modes.
     /// </summary>
     public sealed class LastBeastHudView
@@ -26,6 +27,7 @@ namespace Arena.UI.Hud
         private int _shownAlive = -1;
         private int _shownFog = -1;
         private int _shownBerries = -1;
+        private readonly PercentTextCache _percents = new PercentTextCache("+{0}%");
 
         public GameObject Root => _root;
         public Text AliveText => _alive;
@@ -55,7 +57,7 @@ namespace Arena.UI.Hud
             UiFactory.Stretch(row);
             Text alive = CreateBox("Alive", row, style, LocKeys.HudAliveLeft, out _);
             Text fog = CreateBox("Fog", row, style, LocKeys.HudFogIn, out GameObject fogBox);
-            Text berries = CreateBox("Berries", row, style, LocKeys.HudBerries, out _);
+            Text berries = CreateBox("Berries", row, style, LocKeys.HudBerryPower, out _);
             root.gameObject.SetActive(false);
             return new LastBeastHudView(root.gameObject, alive, fogBox, fog, berries);
         }
@@ -86,7 +88,12 @@ namespace Arena.UI.Hud
             }
 
             int berries = (uint)localSlot < (uint)state.Fighters.Length ? state.Fighters[localSlot].Berries : 0;
-            SetNumber(_berries, ref _shownBerries, berries);
+            int percent = LastBeastRules.DamageBonusPercent(defs.LastBeast, berries);
+            if (percent != _shownBerries)
+            {
+                _shownBerries = percent;
+                _berries.text = _percents.Get(percent);
+            }
         }
 
         /// <summary>Ticks to the next fog step; 0 when the match ended or the safe square cannot shrink any more.</summary>

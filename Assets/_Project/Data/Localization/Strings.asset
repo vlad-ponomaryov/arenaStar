@@ -180,6 +180,12 @@ MonoBehaviour:
   - Key: hud.berries
     En: Berries
     Ru: "\u042F\u0433\u043E\u0434\u044B"
+  - Key: hud.berry_power
+    En: Berry power
+    Ru: "\u0421\u0438\u043B\u0430 \u044F\u0433\u043E\u0434"
+  - Key: feel.berry_power
+    En: +{0}% power
+    Ru: "+{0}% \u0441\u0438\u043B\u044B"
   - Key: menu.training_mode
     En: 'Training mode:'
     Ru: "\u0420\u0435\u0436\u0438\u043C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438:"

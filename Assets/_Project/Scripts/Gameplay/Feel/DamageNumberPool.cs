@@ -53,7 +53,11 @@ namespace Arena.Gameplay.Feel
         }
 
         /// <summary>Shows <paramref name="amount"/> at <paramref name="world"/> (the target's feet; the height comes from the config).</summary>
-        public void Spawn(Vector3 world, int amount, Color color, bool large)
+        public void Spawn(Vector3 world, int amount, Color color, bool large) =>
+            SpawnText(world, NumberStringCache.Get(amount), color, large);
+
+        /// <summary>A rising text (a cached string — no allocation), e.g. the berry bonus (D-131).</summary>
+        public void SpawnText(Vector3 world, string text, Color color, bool large)
         {
             Entry e = FindFree();
             // Deterministic sideways scatter (golden-ratio sequence), so numbers of a burst do not overlap.
@@ -63,7 +67,7 @@ namespace Arena.Gameplay.Feel
             e.Age = 0f;
             e.Color = color;
             e.Active = true;
-            e.Text.text = NumberStringCache.Get(amount);
+            e.Text.text = text;
             e.Text.fontSize = large ? _feel.UltNumberFontSize : _feel.NumberFontSize;
             e.Text.color = color;
         }

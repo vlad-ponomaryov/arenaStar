@@ -87,6 +87,9 @@ namespace Arena.Data.Localization
         public const string HudAliveLeft = "hud.alive_left";
         public const string HudFogIn = "hud.fog_in";
         public const string HudBerries = "hud.berries";
+        // D-131: the berry bonus in the Last Beast HUD and over the own fighter on pickup ({0} — percent).
+        public const string HudBerryPower = "hud.berry_power";
+        public const string FeelBerryPower = "feel.berry_power";
         public const string MenuTrainingMode = "menu.training_mode";
 
         // D-129: the match menu (pause button in the HUD).
@@ -108,7 +111,8 @@ namespace Arena.Data.Localization
             MenuPlayOnline, RegionLan, QueueSearching, QueueCancel, NetConnecting, ErrorServerUnreachable, ErrorUpdateRequired,
             ErrorMaintenance, DevNetRtt, DevNetJitter, DevNetLoss, DevNetMargin, DevNetInterp, DevNetCorrections, DevNetMs,
             DevNetSimulator, MenuLastBeast, MenuTraining, MenuRegion, ModeLastBeast, QueueFound, NetReconnecting, NetBotPlaying,
-            NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace, HudAliveLeft, HudFogIn, HudBerries, MenuTrainingMode,
+            NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace, HudAliveLeft, HudFogIn, HudBerries, HudBerryPower, FeelBerryPower,
+            MenuTrainingMode,
             PauseTitle, PauseMenuTitle, PauseResume, PauseLeave, PauseOnlineHint, PauseLeaveConfirm, PauseLeaveYes, PauseLeaveNo
         };
     }

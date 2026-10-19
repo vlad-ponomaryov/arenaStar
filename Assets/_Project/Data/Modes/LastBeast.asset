@@ -20,9 +20,11 @@ MonoBehaviour:
   FogDamageGrowthPerStep: 250
   FogPulseSeconds: 0.5
   BoxHealth: 3600
-  BerriesPerBox: 1
-  BerryDamagePercent: 8
-  BerryHealthPercent: 8
+  BerriesPerBox: 2
+  BerryDamagePercent: 12
+  BerryHealthPercent: 12
+  MaxBonusBerries: 10
+  BerryHealPercent: 10
   ExtraBerriesOnDefeat: 1
   BerryPickupRadius: 0.3
   BerryDropScatterRadius: 1.2

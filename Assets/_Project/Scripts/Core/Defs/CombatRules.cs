@@ -60,6 +60,15 @@ namespace Arena.Core.Defs
         public float AutoAimStickyMarginCells;
 
         /// <summary>
+        /// An enemy with a clear line nearer than this × the ability range is a threat and beats any berry box (D-131); a
+        /// farther one competes with the boxes by score.
+        /// </summary>
+        public float AutoAimThreatRangeFraction;
+
+        /// <summary>A berry box scores this many cells better than its distance when it competes with a far enemy (D-131).</summary>
+        public float AutoAimBoxBonusCells;
+
+        /// <summary>
         /// Applies the level bonus to a level-1 value: <c>round(base × (1 + bonus × (level − 1)))</c>; level below 1 counts as 1.
         /// </summary>
         public int ScaleByLevel(int baseValue, int level)
@@ -85,6 +94,9 @@ namespace Arena.Core.Defs
             if (AutoAimHealthWeightCells < 0f) throw new ArgumentException("CombatRules.AutoAimHealthWeightCells must be ≥ 0");
             if (AutoAimStickyTicks < 0) throw new ArgumentException("CombatRules.AutoAimStickyTicks must be ≥ 0");
             if (AutoAimStickyMarginCells < 0f) throw new ArgumentException("CombatRules.AutoAimStickyMarginCells must be ≥ 0");
+            if (AutoAimThreatRangeFraction < 0f || AutoAimThreatRangeFraction > 1f)
+                throw new ArgumentException("CombatRules.AutoAimThreatRangeFraction must be in [0, 1]");
+            if (AutoAimBoxBonusCells < 0f) throw new ArgumentException("CombatRules.AutoAimBoxBonusCells must be ≥ 0");
         }
     }
 }

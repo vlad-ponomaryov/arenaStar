@@ -37,6 +37,8 @@ namespace Arena.Tests.EditMode.Core
         private const float HealthWeight = 1.5f;
         private const int StickyTicks = 60;
         private const float StickyMargin = 2f;
+        private const float ThreatFraction = 0.5f; // range 8 → an enemy in the open within 4 cells beats boxes (D-131)
+        private const float BoxBonus = 1f;
 
         private static void SetRules(CombatRules r, bool clear, bool boxes, float weight, int sticky)
         {
@@ -45,6 +47,8 @@ namespace Arena.Tests.EditMode.Core
             r.AutoAimHealthWeightCells = weight;
             r.AutoAimStickyTicks = sticky;
             r.AutoAimStickyMarginCells = StickyMargin;
+            r.AutoAimThreatRangeFraction = ThreatFraction;
+            r.AutoAimBoxBonusCells = BoxBonus;
         }
 
         private static MatchSimulation OnWallMap(bool clear, float weight, int sticky, params PlayerSlotSetup[] enemies)
@@ -221,10 +225,32 @@ namespace Arena.Tests.EditMode.Core
         private static readonly Vec2 FarAway = new Vec2(2.5f, 2.5f);
 
         [Test]
-        public void EnemyInTheOpen_BeatsANearerBox()
+        public void FarEnemyInTheOpen_LosesToANearerBox()
         {
-            // Boxes at 4 cells, the enemy at 6 cells straight down.
+            // Boxes at 4 cells, the enemy at 6 cells straight down — beyond the threat radius (4 cells): the box (D-131).
             MatchSimulation sim = OnBoxMap(true, new Vec2(10.5f, 4.5f));
+            Assert.AreEqual(AimTargetCode.Box(0), Target(sim));
+            Assert.IsTrue(Vec2.Approximately(Vec2.Right, FirstShotDir(sim), 1e-5f), "the tap shot goes to the box");
+        }
+
+        [Test]
+        public void NearEnemyInTheOpen_BeatsABox()
+        {
+            // The enemy at 3 cells — within the threat radius: always the enemy, even with a box as near.
+            MatchSimulation sim = OnBoxMap(true, new Vec2(10.5f, 7.5f));
+            Assert.AreEqual(AimTargetCode.Fighter(1), Target(sim));
+        }
+
+        [Test]
+        public void FarEnemy_BeatsAFartherBox_ByScore()
+        {
+            // Threat radius 0: no enemy outranks boxes, the score decides. Enemy at 4.5 cells with 10 % health
+            // (4.5 + 0.15 = 4.65) vs the boxes at 4 cells (4 − 1 = 3): the box; the enemy at 1.5 cells (1.65): the enemy.
+            MatchSimulation sim = OnBoxMap(true, new Vec2(10.5f, 6f));
+            sim.Defs.Rules.AutoAimThreatRangeFraction = 0f;
+            sim.State.Fighters[1].Health = sim.State.Fighters[1].MaxHealth / 10;
+            Assert.IsTrue(AimTargetCode.IsBox(Target(sim)));
+            sim.State.Fighters[1].Position = new Vec2(10.5f, 9f);
             Assert.AreEqual(AimTargetCode.Fighter(1), Target(sim));
         }
 
@@ -267,11 +293,11 @@ namespace Arena.Tests.EditMode.Core
         [Test]
         public void StickyBox_LosesToAnEnemyAtOnce()
         {
-            // Stickiness keeps a target only within the best tier: an enemy in the open steps in — switch.
+            // A threat (an enemy in the open within the threat radius) takes the boxes out at once, stickiness or not.
             MatchSimulation sim = OnBoxMap(true, FarAway);
             sim.State.Fighters[0].AimTargetCode = AimTargetCode.Box(0);
             sim.State.Fighters[0].AimTargetTick = sim.State.Globals.Tick;
-            sim.State.Fighters[1].Position = new Vec2(10.5f, 4.5f);
+            sim.State.Fighters[1].Position = new Vec2(10.5f, 7.5f);
             sim.Tick(F.Inputs());
             Assert.AreEqual(AimTargetCode.Fighter(1), Target(sim));
         }

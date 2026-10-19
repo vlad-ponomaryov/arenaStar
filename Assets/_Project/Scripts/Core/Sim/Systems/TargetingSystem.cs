@@ -11,17 +11,18 @@ namespace Arena.Core.Sim.Systems
     /// (<see cref="FindAutoAimTarget"/>, D-129), otherwise the manual aim direction, otherwise the facing.
     /// The auto-aim choice (D-129): candidates are alive enemies visible to the shooter's team (bushes, invisibility —
     /// VisibilitySystem, D-024) with the centre within range, and standing berry boxes with the cell centre within range + ½.
-    /// Tiers: 1 — enemy with a clear line, 2 — box with a clear line, 3 — enemy behind a wall (boxes behind walls are never
-    /// taken). A clear line matters only for deliveries that walls stop (<c>needsClearLine</c>). In a tier the lowest score wins:
-    /// enemies — distance + health weight × health fraction, boxes — distance; ties to the lower index. The last target is kept
-    /// for <see cref="CombatRules.AutoAimStickyTicks"/> while it is in the best tier and at most
+    /// Tiers (D-131): 1 — enemy or box with a clear line (boxes behind walls are never taken), 2 — enemy behind a wall; boxes
+    /// are not candidates at all while an enemy with a clear line is nearer than
+    /// <see cref="CombatRules.AutoAimThreatRangeFraction"/> × range (a threat beats any box). A clear line matters only for deliveries that walls stop (<c>needsClearLine</c>). In a tier the
+    /// lowest score wins: enemies — distance + health weight × health fraction, boxes — distance − <see
+    /// cref="CombatRules.AutoAimBoxBonusCells"/> (a nearer box beats a far enemy); ties to the lower index. The last target is
+    /// kept for <see cref="CombatRules.AutoAimStickyTicks"/> while it is in the best tier and at most
     /// <see cref="CombatRules.AutoAimStickyMarginCells"/> worse. Without rules — the nearest visible enemy (the S2 behaviour).
     /// </summary>
     public static class TargetingSystem
     {
-        private const int TierClearEnemy = 1;
-        private const int TierClearBox = 2;
-        private const int TierBlockedEnemy = 3;
+        private const int TierClearTarget = 1;
+        private const int TierBlockedEnemy = 2;
         private const int TierNone = int.MaxValue;
 
         /// <summary>Box cells are hit at their edge: half a cell beyond the range still reaches the box.</summary>
@@ -112,6 +113,9 @@ namespace Arena.Core.Sim.Systems
             var best = new Candidate { Code = AimTargetCode.None, Tier = TierNone };
             var last = new Candidate { Code = AimTargetCode.None, Tier = TierNone };
             float rangeSq = range * range;
+            float threat = range * rules.AutoAimThreatRangeFraction;
+            float threatSq = threat * threat;
+            bool threatNear = false;
 
             int count = state.Globals.FighterCount;
             for (int j = 0; j < count; j++)
@@ -120,20 +124,22 @@ namespace Arena.Core.Sim.Systems
                 ref FighterState e = ref state.Fighters[j];
                 if (!IsEnemyCandidate(in f, in e)) continue;
                 Vec2 p = LagCompensation.TargetPosition(state, j, rewindTicks);
-                if (Vec2.SqrDistance(p, from) > rangeSq) continue;
+                float distSq = Vec2.SqrDistance(p, from);
+                if (distSq > rangeSq) continue;
                 bool clear = !checkFighters || GridCollision.HasLineOfSight(in grid, from, p);
                 float health = e.MaxHealth > 0 ? (float)e.Health / e.MaxHealth : 1f;
                 var c = new Candidate
                 {
                     Code = AimTargetCode.Fighter(j),
-                    Tier = clear ? TierClearEnemy : TierBlockedEnemy,
+                    Tier = clear ? TierClearTarget : TierBlockedEnemy,
                     Score = Vec2.Distance(p, from) + rules.AutoAimHealthWeightCells * health,
                     Point = p
                 };
                 Consider(ref best, ref last, in c, lastCode);
+                if (clear && distSq <= threatSq) threatNear = true;
             }
 
-            if (rules.AutoAimTargetsBoxes)
+            if (rules.AutoAimTargetsBoxes && !threatNear)
             {
                 int width = state.Globals.MapWidth;
                 float reach = range + BoxReachSlack;
@@ -146,7 +152,8 @@ namespace Arena.Core.Sim.Systems
                     float d = Vec2.Distance(centre, from);
                     if (d > reach) continue;
                     if (needsClearLine && !ReachesCell(in grid, from, centre, column, row)) continue;
-                    var c = new Candidate { Code = AimTargetCode.Box(i), Tier = TierClearBox, Score = d, Point = centre };
+                    var c = new Candidate { Code = AimTargetCode.Box(i), Tier = TierClearTarget,
+                        Score = d - rules.AutoAimBoxBonusCells, Point = centre };
                     Consider(ref best, ref last, in c, lastCode);
                 }
             }

@@ -20,38 +20,53 @@ namespace Arena.Tests.EditMode.Bots
     public sealed class BotDifficultyMatchTests
     {
         private const int Seeds = 15;
-        private const float MinWinShare = 0.65f;
+        // D-131: the order of strength with a clear gap — Medium > Easy > Novice (the share of a stronger level, a draw = ½).
+        private const float MediumOverEasy = 0.65f;
+        private const float EasyOverNovice = 0.8f;
+        private const float MediumOverNovice = 0.9f;
 
         [Test]
-        public void Medium_BeatsEasy_ClearlyMoreOftenThanHalf()
+        public void Medium_BeatsEasy_ClearlyMoreOftenThanHalf() =>
+            AssertStronger(BotDifficulty.Medium, BotDifficulty.Easy, MediumOverEasy);
+
+        [Test]
+        public void Easy_BeatsNovice_Clearly() => AssertStronger(BotDifficulty.Easy, BotDifficulty.Novice, EasyOverNovice);
+
+        [Test]
+        public void Medium_BeatsNovice_AlmostAlways() =>
+            AssertStronger(BotDifficulty.Medium, BotDifficulty.Novice, MediumOverNovice);
+
+        /// <summary>15 seeds × both sides of a full Acorns match between two bot teams; the stronger one's share ≥ min.</summary>
+        private static void AssertStronger(BotDifficulty strong, BotDifficulty weak, float minShare)
         {
             DataSeeder.SeedAll();
             var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
             MatchDefs defs = ConfigConverter.ToMatchDefs(db);
             BotBehaviourDef behaviour = ConfigConverter.ToBotBehaviourDef(db.BotBehaviour);
-            BotDifficultyDef easy = ConfigConverter.ToBotDifficultyDef(db.FindBotDifficulty(BotDifficulty.Easy));
-            BotDifficultyDef medium = ConfigConverter.ToBotDifficultyDef(db.FindBotDifficulty(BotDifficulty.Medium));
+            BotDifficultyDef weakDef = ConfigConverter.ToBotDifficultyDef(db.FindBotDifficulty(weak));
+            BotDifficultyDef strongDef = ConfigConverter.ToBotDifficultyDef(db.FindBotDifficulty(strong));
             int wins = 0, losses = 0, draws = 0;
             for (int seed = 1; seed <= Seeds; seed++)
-            for (int mediumTeam = 0; mediumTeam < 2; mediumTeam++)
+            for (int strongTeam = 0; strongTeam < 2; strongTeam++)
             {
                 MatchSetup setup = MatchSetupFactory.Create(db.MatchRunner, defs, null, seed, true);
                 var sim = new MatchSimulation(defs, setup);
                 var bots = new BotController(behaviour);
-                for (int i = 0; i < setup.SlotCount; i++) bots.AddBot(i, setup.Slots[i].Team == mediumTeam ? medium : easy, seed);
+                for (int i = 0; i < setup.SlotCount; i++) bots.AddBot(i, setup.Slots[i].Team == strongTeam ? strongDef : weakDef, seed);
                 var inputs = TestMatchFactory.Inputs();
                 int maxTicks = defs.Acorns.DurationTicks + 1;
                 for (int t = 0; t < maxTicks && !sim.IsEnded; t++) BotTestFactory.Step(sim, bots, inputs);
                 int winner = sim.State.Mode.WinnerTeam;
-                if (winner == mediumTeam) wins++;
+                if (winner == strongTeam) wins++;
                 else if (winner < 0) draws++;
                 else losses++;
             }
             float share = (wins + 0.5f * draws) / (2 * Seeds);
-            string summary = "Medium vs Easy: wins " + wins + ", losses " + losses + ", draws " + draws + ", share " + share.ToString("0.00");
+            string summary = strong + " vs " + weak + ": wins " + wins + ", losses " + losses + ", draws " + draws + ", share " +
+                share.ToString("0.00");
             UnityEngine.Debug.Log(summary);
             TestContext.WriteLine(summary);
-            Assert.GreaterOrEqual(share, MinWinShare, summary);
+            Assert.GreaterOrEqual(share, minShare, summary);
         }
 
         [Test]

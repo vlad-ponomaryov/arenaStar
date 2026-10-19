@@ -39,6 +39,9 @@ namespace Arena.Data
         public Color DamageTakenColor;
         public Color HealColor;
 
+        [Tooltip("The \"+N % power\" text over the own fighter when it picks berries up (Last Beast, D-131).")]
+        public Color BerryBonusColor;
+
         [Tooltip("Canvas of the floating texts: reference resolution and width/height match (as the HUD canvas).")]
         public Vector2 TextReferenceResolution;
 

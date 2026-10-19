@@ -61,11 +61,16 @@ namespace Arena.Editor.Data
         private const float ConnectionLostSeconds = 1f;
         private const float HudPingRefreshSeconds = 0.5f;
 
-        // Bots (GDD §7): Novice ±25° / 600 ms, Easy ±15° / 450 ms, decisions every 0.2 s, retreat below 35 % health.
-        private const float NoviceSpread = 25f;
-        private const float NoviceReaction = 0.6f;
-        private const float EasySpread = 15f;
-        private const float EasyReaction = 0.45f;
+        // Bots (GDD §7): decisions every 0.2 s, retreat below 35 % health. D-131 (players' feedback: even Novice was too hard
+        // for a game for children): Novice ±45° / 1.2 s / a shot every 1.6 s, Easy ±24° / 0.7 s / a shot every 0.6 s
+        // (was Novice ±25° / 600 ms, Easy ±15° / 450 ms, both a shot every 0.3 s); Medium unchanged.
+        private const float NoviceSpread = 45f;
+        private const float NoviceReaction = 1.2f;
+        private const float NoviceShotInterval = 1.6f;
+        private const float EasySpread = 24f;
+        private const float EasyReaction = 0.7f;
+        private const float EasyShotInterval = 0.6f;
+        private const float MediumShotInterval = 0f; // the shared BotMinShotInterval
         private const float MediumSpread = 8f; // GDD §7 "Средний" (F1: "Normal" in the menu)
         private const float MediumReaction = 0.3f;
         private const float BotDecisionSeconds = 0.2f;
@@ -99,15 +104,15 @@ namespace Arena.Editor.Data
         // "misuse" = the ult at a lone tanky target in its zone / the trick at any perceived enemy; empty-bush shots without
         // a reason; retreat threshold shifted per life by a random amount within ± jitter (sometimes too late).
         // GDD §7: Novice "rarely and off the mark", Easy "sometimes".
-        private const float NoviceUltChance = 0.25f;
+        private const float NoviceUltChance = 0.15f;
         private const float NoviceUltMisuse = 0.05f;
-        private const float NoviceTrickChance = 0.25f;
+        private const float NoviceTrickChance = 0.15f;
         private const float NoviceTrickMisuse = 0.02f;
         private const float NoviceBushShot = 0.06f;
         private const float NoviceRetreatJitter = 0.12f;
-        private const float EasyUltChance = 0.5f;
+        private const float EasyUltChance = 0.35f;
         private const float EasyUltMisuse = 0.02f;
-        private const float EasyTrickChance = 0.5f;
+        private const float EasyTrickChance = 0.35f;
         private const float EasyTrickMisuse = 0.01f;
         private const float EasyBushShot = 0.03f;
         private const float EasyRetreatJitter = 0.06f;
@@ -181,14 +186,18 @@ namespace Arena.Editor.Data
         private const float FogStepSeconds = 20f;
         private const float FogShrinkCells = 2f;
         private const int FogDamagePerSecond = 500;
-        private const int BerryDamagePercent = 8;
-        private const int BerryHealthPercent = 8;
+        // D-131 (players' feedback: 5 boxes did not feel stronger): +12 % per berry, 2 berries per box, a berry heals 10 %,
+        // at most 10 berries count (+120 %).
+        private const int BerryDamagePercent = 12;
+        private const int BerryHealthPercent = 12;
+        private const int MaxBonusBerries = 10;
+        private const int BerryHealPercent = 10;
         private const int ExtraBerriesOnDefeat = 1;
 
         // PROTO (D-089): box durability ≈ 2.5 Pix bursts, 1 berry per box, fog +250 per second per step in pulses of 0.5 s,
         // smallest safe square 5×5 cells, 6 min safety limit; berry radius / scatter / pickup delay as acorns (D-025).
         private const int BoxHealth = 3600;
-        private const int BerriesPerBox = 1;
+        private const int BerriesPerBox = 2; // D-131 (was 1)
         private const int FogDamageGrowthPerStep = 250;
         private const float FogPulseSeconds = 0.5f;
         private const float FogMinHalfSize = 2.5f;
@@ -274,6 +283,8 @@ namespace Arena.Editor.Data
             new[] { LocKeys.HudAliveLeft, "Left", "Осталось" },
             new[] { LocKeys.HudFogIn, "Fog in", "Туман через" },
             new[] { LocKeys.HudBerries, "Berries", "Ягоды" },
+            new[] { LocKeys.HudBerryPower, "Berry power", "Сила ягод" },
+            new[] { LocKeys.FeelBerryPower, "+{0}% power", "+{0}% силы" },
             new[] { LocKeys.MenuTrainingMode, "Training mode:", "Режим тренировки:" },
             new[] { LocKeys.PauseTitle, "Pause", "Пауза" },
             new[] { LocKeys.PauseMenuTitle, "Menu", "Меню" },
@@ -331,6 +342,9 @@ namespace Arena.Editor.Data
         private const float AutoAimHealthWeightCells = 1.5f;
         private const float AutoAimStickySeconds = 2f;
         private const float AutoAimStickyMarginCells = 2f;
+        // D-131: a box beats a far enemy — only an enemy in the open within half the range is a threat that outranks boxes.
+        private const float AutoAimThreatRangeFraction = 0.5f;
+        private const float AutoAimBoxBonusCells = 1f;
         private const float RevealSeconds = 1f;
 
         // Acorns map "Glade" (original layout, 21×31, GDD §5.4–5.5): three lanes split by walls and ponds, bushes on the
@@ -533,6 +547,7 @@ namespace Arena.Editor.Data
         private static readonly Color FeelDamageColor = new Color(1f, 1f, 1f, 1f);
         private static readonly Color FeelDamageTakenColor = new Color(1f, 0.38f, 0.32f, 1f);
         private static readonly Color FeelHealColor = new Color(0.45f, 1f, 0.5f, 1f);
+        private static readonly Color FeelBerryBonusColor = new Color(1f, 0.45f, 0.7f, 1f); // D-131: berry pink
         private static readonly Vector2 FeelTextReferenceResolution = new Vector2(1920f, 1080f);
         private const float FeelTextMatchWidthOrHeight = 0.5f;
         private const float FeelOwnHealthHeight = 2.55f;
@@ -556,8 +571,8 @@ namespace Arena.Editor.Data
         private const float FeelUltGlowScale = 0.08f;
         private const float FeelFpsUpdateSeconds = 0.5f;
         private const float FeelAimMagnetDegrees = 5f;
-        private const float FeelAutoAimMarkerRadiusScale = 1.6f; // D-129: disc under the tap target while the stick is held still
-        private const float FeelAutoAimMarkerFill = 0.55f;
+        private const float FeelAutoAimMarkerRadiusScale = 1.3f; // D-129, D-131: faint disc under the tap target while the stick is held still (no line)
+        private const float FeelAutoAimMarkerFill = 0.3f;
 
         // Settings defaults of a first start (GDD §5.1: aim magnet on; full vibration) and frame rate (S2.13, D-062).
         private const bool FeelDefaultMirroredLayout = false;
@@ -631,13 +646,14 @@ namespace Arena.Editor.Data
             db.BotDifficulties.Clear();
             db.BotDifficulties.Add(SeedBotDifficulty(BotNovicePath, BotDifficulty.Novice, NoviceSpread, NoviceReaction,
                 NoviceUltChance, NoviceUltMisuse, NoviceTrickChance, NoviceTrickMisuse, NoviceBushShot, NoviceRetreatJitter,
-                NoLead, NoFocus, NoDodge, NoDodge, NoDodge));
+                NoLead, NoFocus, NoDodge, NoDodge, NoDodge, NoviceShotInterval));
             db.BotDifficulties.Add(SeedBotDifficulty(BotEasyPath, BotDifficulty.Easy, EasySpread, EasyReaction,
                 EasyUltChance, EasyUltMisuse, EasyTrickChance, EasyTrickMisuse, EasyBushShot, EasyRetreatJitter,
-                NoLead, NoFocus, NoDodge, NoDodge, NoDodge));
+                NoLead, NoFocus, NoDodge, NoDodge, NoDodge, EasyShotInterval));
             db.BotDifficulties.Add(SeedBotDifficulty(BotMediumPath, BotDifficulty.Medium, MediumSpread, MediumReaction,
                 MediumUltChance, MediumUltMisuse, MediumTrickChance, MediumTrickMisuse, MediumBushShot, MediumRetreatJitter,
-                MediumLead, MediumFocusHealthCells, MediumDodgeChance, MediumDodgeLookaheadSeconds, MediumDodgeMarginCells));
+                MediumLead, MediumFocusHealthCells, MediumDodgeChance, MediumDodgeLookaheadSeconds, MediumDodgeMarginCells,
+                MediumShotInterval));
             db.BotBehaviour = SeedBotBehaviour();
             EditorUtility.SetDirty(db);
 
@@ -673,6 +689,8 @@ namespace Arena.Editor.Data
             c.AutoAimHealthWeightCells = AutoAimHealthWeightCells;
             c.AutoAimStickySeconds = AutoAimStickySeconds;
             c.AutoAimStickyMarginCells = AutoAimStickyMarginCells;
+            c.AutoAimThreatRangeFraction = AutoAimThreatRangeFraction;
+            c.AutoAimBoxBonusCells = AutoAimBoxBonusCells;
             c.SlowSpeed = SlowSpeed;
             c.NormalSpeed = NormalSpeed;
             c.FastSpeed = FastSpeed;
@@ -782,6 +800,7 @@ namespace Arena.Editor.Data
             c.DamageColor = FeelDamageColor;
             c.DamageTakenColor = FeelDamageTakenColor;
             c.HealColor = FeelHealColor;
+            c.BerryBonusColor = FeelBerryBonusColor;
             c.TextReferenceResolution = FeelTextReferenceResolution;
             c.TextMatchWidthOrHeight = FeelTextMatchWidthOrHeight;
             c.OwnHealthHeight = FeelOwnHealthHeight;
@@ -853,7 +872,8 @@ namespace Arena.Editor.Data
 
         private static BotDifficultyConfig SeedBotDifficulty(string path, BotDifficulty difficulty, float spread, float reaction,
             float ultChance, float ultMisuse, float trickChance, float trickMisuse, float bushShot, float retreatJitter, float lead,
-            float focusHealthCells, float dodgeChance, float dodgeLookaheadSeconds, float dodgeMarginCells)
+            float focusHealthCells, float dodgeChance, float dodgeLookaheadSeconds, float dodgeMarginCells,
+            float shotInterval)
         {
             BotDifficultyConfig c = LoadOrCreate<BotDifficultyConfig>(path);
             c.Difficulty = difficulty;
@@ -870,6 +890,7 @@ namespace Arena.Editor.Data
             c.DodgeChance = dodgeChance;
             c.DodgeLookaheadSeconds = dodgeLookaheadSeconds;
             c.DodgeMarginCells = dodgeMarginCells;
+            c.ShotIntervalSeconds = shotInterval;
             EditorUtility.SetDirty(c);
             return c;
         }
@@ -965,6 +986,8 @@ namespace Arena.Editor.Data
             c.BerriesPerBox = BerriesPerBox;
             c.BerryDamagePercent = BerryDamagePercent;
             c.BerryHealthPercent = BerryHealthPercent;
+            c.MaxBonusBerries = MaxBonusBerries;
+            c.BerryHealPercent = BerryHealPercent;
             c.ExtraBerriesOnDefeat = ExtraBerriesOnDefeat;
             c.BerryPickupRadius = BerryPickupRadius;
             c.BerryDropScatterRadius = BerryDropScatter;

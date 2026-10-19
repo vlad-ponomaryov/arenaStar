@@ -900,9 +900,12 @@ namespace Arena.Bots
             Vec2 aimPoint = BotAim.LeadPoint(f.Position, t.Position, t.Velocity, def.Attack, difficulty.LeadFraction);
             aim = BotAim.ForAbility(BotAim.Apply(aimPoint - f.Position, difficulty.AimSpreadDegrees, ref b.Rng), def.Attack, distance);
             if (aim.IsZero) return false;
-            b.NextShotTick = tick + _behaviour.MinShotIntervalTicks;
+            b.NextShotTick = tick + ShotInterval(slot);
             return true;
         }
+
+        /// <summary>Ticks until the bot's next shot: the larger of the shared minimum and its difficulty's (D-131).</summary>
+        private int ShotInterval(int slot) => Math.Max(_behaviour.MinShotIntervalTicks, _difficulty[slot].ShotIntervalTicks);
 
         /// <summary>A speculative shot at a point (a bush): within range on a clear line, never with the last charge.</summary>
         private bool TryShootAt(MatchState state, MatchDefs defs, int slot, Vec2 point, int tick, out Vec2 aim)
@@ -918,7 +921,7 @@ namespace Arena.Bots
             aim = BotAim.ForAbility(BotAim.Apply(point - f.Position, _difficulty[slot].AimSpreadDegrees, ref b.Rng), def.Attack,
                 Vec2.Distance(f.Position, point));
             if (aim.IsZero) return false;
-            b.NextShotTick = tick + _behaviour.MinShotIntervalTicks;
+            b.NextShotTick = tick + ShotInterval(slot);
             return true;
         }
     }

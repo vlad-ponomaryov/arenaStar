@@ -28,15 +28,18 @@ namespace Arena.Tests.EditMode.Data
             BotDifficultyDef easy = ConfigConverter.ToBotDifficultyDef(db.FindBotDifficulty(BotDifficulty.Easy));
 
             Assert.AreEqual(BotDifficulty.Novice, novice.Difficulty);
-            Assert.AreEqual(25f, novice.AimSpreadDegrees);
-            Assert.AreEqual(18, novice.ReactionTicks, "600 ms");
+            Assert.AreEqual(45f, novice.AimSpreadDegrees, "D-131");
+            Assert.AreEqual(SimTime.SecondsToTicks(1.2f), novice.ReactionTicks, "1.2 s (D-131)");
+            Assert.AreEqual(SimTime.SecondsToTicks(1.6f), novice.ShotIntervalTicks, "D-131: a shot every 1.6 s");
             Assert.AreEqual(BotDifficulty.Easy, easy.Difficulty);
-            Assert.AreEqual(15f, easy.AimSpreadDegrees);
-            Assert.AreEqual(SimTime.SecondsToTicks(0.45f), easy.ReactionTicks, "450 ms");
+            Assert.AreEqual(24f, easy.AimSpreadDegrees, "D-131");
+            Assert.AreEqual(SimTime.SecondsToTicks(0.7f), easy.ReactionTicks, "700 ms (D-131)");
+            Assert.AreEqual(SimTime.SecondsToTicks(0.6f), easy.ShotIntervalTicks, "D-131: a shot every 0.6 s");
             BotDifficultyDef medium = ConfigConverter.ToBotDifficultyDef(db.FindBotDifficulty(BotDifficulty.Medium));
             Assert.AreEqual(BotDifficulty.Medium, medium.Difficulty);
             Assert.AreEqual(8f, medium.AimSpreadDegrees);
             Assert.AreEqual(SimTime.SecondsToTicks(0.3f), medium.ReactionTicks, "300 ms");
+            Assert.AreEqual(0, medium.ShotIntervalTicks, "Medium: the shared minimum interval (D-131)");
             Assert.Greater(medium.LeadFraction, 0f, "F1: lead");
             Assert.Greater(medium.DodgeChance, 0f, "F1: dodging");
             Assert.Greater(medium.FocusHealthWeightCells, 0f, "F1: focus on the weak");

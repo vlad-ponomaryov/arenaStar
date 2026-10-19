@@ -100,6 +100,8 @@ namespace Arena.Net.Content
             c.AutoAimHealthWeightCells = r.ReadFloat();
             c.AutoAimStickyTicks = r.ReadVarInt();
             c.AutoAimStickyMarginCells = r.ReadFloat();
+            c.AutoAimThreatRangeFraction = r.ReadFloat();
+            c.AutoAimBoxBonusCells = r.ReadFloat();
             return c;
         }
 
@@ -240,6 +242,8 @@ namespace Arena.Net.Content
             l.BerriesPerBox = r.ReadVarInt();
             l.BerryDamagePercent = r.ReadVarInt();
             l.BerryHealthPercent = r.ReadVarInt();
+            l.MaxBonusBerries = r.ReadVarInt();
+            l.BerryHealPercent = r.ReadVarInt();
             l.ExtraBerriesOnDefeat = r.ReadVarInt();
             l.BerryPickupRadius = r.ReadFloat();
             l.BerryDropScatterRadius = r.ReadFloat();
@@ -328,6 +332,7 @@ namespace Arena.Net.Content
             d.DodgeChance = r.ReadFloat();
             d.DodgeLookaheadTicks = r.ReadVarInt();
             d.DodgeMarginCells = r.ReadFloat();
+            d.ShotIntervalTicks = r.ReadVarInt();
             return d;
         }
 

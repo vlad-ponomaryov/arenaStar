@@ -42,6 +42,12 @@ namespace Arena.Data
         [Tooltip("Max health bonus per berry, percent, additive (GDD: 8).")]
         [Min(0)] public int BerryHealthPercent;
 
+        [Tooltip("Berries counted for the bonuses (D-131: a cap against a runaway leader); 0 — no cap.")]
+        [Min(0)] public int MaxBonusBerries;
+
+        [Tooltip("Health restored per picked berry, percent of the new max health (D-131).")]
+        [Min(0)] public int BerryHealPercent;
+
         [Tooltip("A defeated fighter drops all its berries and … more (GDD: 1).")]
         [Min(0)] public int ExtraBerriesOnDefeat;
 

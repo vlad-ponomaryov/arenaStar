@@ -123,6 +123,8 @@ namespace Arena.Net.Content
             w.WriteFloat(r.AutoAimHealthWeightCells);
             w.WriteVarInt(r.AutoAimStickyTicks);
             w.WriteFloat(r.AutoAimStickyMarginCells);
+            w.WriteFloat(r.AutoAimThreatRangeFraction);
+            w.WriteFloat(r.AutoAimBoxBonusCells);
         }
 
         private static void WriteFighter(BitWriter w, FighterDef f)
@@ -253,6 +255,8 @@ namespace Arena.Net.Content
             w.WriteVarInt(l.BerriesPerBox);
             w.WriteVarInt(l.BerryDamagePercent);
             w.WriteVarInt(l.BerryHealthPercent);
+            w.WriteVarInt(l.MaxBonusBerries);
+            w.WriteVarInt(l.BerryHealPercent);
             w.WriteVarInt(l.ExtraBerriesOnDefeat);
             w.WriteFloat(l.BerryPickupRadius);
             w.WriteFloat(l.BerryDropScatterRadius);
@@ -335,6 +339,7 @@ namespace Arena.Net.Content
             w.WriteFloat(d.DodgeChance);
             w.WriteVarInt(d.DodgeLookaheadTicks);
             w.WriteFloat(d.DodgeMarginCells);
+            w.WriteVarInt(d.ShotIntervalTicks);
         }
 
         private static void WritePresence(BitWriter w, object value) => w.WriteBool(value != null);

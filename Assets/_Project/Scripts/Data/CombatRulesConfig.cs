@@ -67,6 +67,12 @@ namespace Arena.Data
         [Tooltip("How many cells worse than the best target of its tier the kept target may score.")]
         [Min(0f)] public float AutoAimStickyMarginCells;
 
+        [Tooltip("An enemy in the open nearer than this × the ability range is a threat and beats berry boxes (D-131); a farther one competes with the boxes by score.")]
+        [Range(0f, 1f)] public float AutoAimThreatRangeFraction;
+
+        [Tooltip("A berry box scores this many cells better than its distance against a far enemy (D-131).")]
+        [Min(0f)] public float AutoAimBoxBonusCells;
+
         [Header("Movement speed by class, cells per second")]
         [Min(0f)] public float SlowSpeed;
         [Min(0f)] public float NormalSpeed;
