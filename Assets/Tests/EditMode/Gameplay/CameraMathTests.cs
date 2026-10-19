@@ -1,5 +1,8 @@
+using Arena.Data;
+using Arena.Editor.Data;
 using Arena.Gameplay.Cameras;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace Arena.Tests.EditMode.Gameplay
@@ -11,6 +14,18 @@ namespace Arena.Tests.EditMode.Gameplay
         private const float Offset = 2f;
         private const float Inset = 7f;
         private static readonly Vector2 Bounds = new Vector2(21f, 31f);
+
+        /// <summary>A.3d (D-128): long lens (FOV 35°, farther away) with the same frame height at the focus as PROTO 50° / 18.</summary>
+        [Test]
+        public void SeededCamera_KeepsTheFrameHeightAtTheFocus_WithALongLens()
+        {
+            var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
+            Assert.IsNotNull(db);
+            Assert.IsNotNull(db.Camera);
+            float frame = 2f * db.Camera.Distance * Mathf.Tan(db.Camera.FieldOfView * 0.5f * Mathf.Deg2Rad);
+            Assert.AreEqual(16.8f, frame, 16.8f * 0.02f, "frame height at the focus, cells");
+            Assert.LessOrEqual(db.Camera.FieldOfView, 40f, "long lens: little keystone, front faces alike across the screen");
+        }
 
         [Test]
         public void Team0_LooksTowardsPlusZ_FromBelowTheFocus()

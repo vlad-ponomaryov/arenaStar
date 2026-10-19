@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: CameraConfig
   m_EditorClassIdentifier: Arena.Data::Arena.Data.CameraConfig
   PitchDegrees: 55
-  Distance: 18
-  FieldOfView: 50
+  Distance: 26.6
+  FieldOfView: 35
   ForwardOffset: 2
   EdgeInset: 7
   FollowSharpness: 8

@@ -494,8 +494,8 @@ namespace Arena.Editor.Data
 
         // Camera (GDD §5.5: ~55°); the rest PROTO (D-013).
         private const float CameraPitch = 55f;
-        private const float CameraDistance = 18f;
-        private const float CameraFieldOfView = 50f;
+        private const float CameraDistance = 26.6f;   // A.3d (D-128): long lens — same frame height at the focus (16.8 cells)
+        private const float CameraFieldOfView = 35f;
         private const float CameraForwardOffset = 2f;
         private const float CameraEdgeInset = 7f;
         private const float CameraFollowSharpness = 8f;

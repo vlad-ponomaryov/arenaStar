@@ -92,3 +92,14 @@
   (`UiCaptureTests`). Overlay-канвас в RT не рисуется, стек камер URP render request игнорирует, `WaitForEndOfFrame` в batchmode
   нет — поэтому UI снимается отдельной камерой на чёрном/белом и матируется на 3D-кадр; A.8 может добавить свои кадры туда же.
 - (A.6) Шрифт-ассет TTF содержит подматериал «Font Material» (GUI/Text Shader) — `ShaderSanityTests` пропускает `TrueTypeFontImporter`.
+- (A.3d) Сравнение с концептом: `ArtCapture` → `env_close.png` (витрина 9×7, `Editor/Art/Capture/EnvShowcase.cs`, раскладка там же),
+  `env_stats.txt`, `arena_fov50/arena_fov30.png`; затем `python Tools/art-compare.py Tools/out/art/A.x --before Tools/out/art/A.y` →
+  `compare_env_close.png`, `compare_arena.png`, `camera_ab.png`, `env_report.txt` (ΔE к целям брифа §4). Точки замера — в `EnvShowcase.WriteStats`
+  (сдвинешь стены/кусты витрины — поправь точки). Луг `#73A44E` vs `#5BB56B` — единственный промах, это A.4b.
+- (A.3d) Куст = `EnvMeshBuilder.BushBladeLayout` (6×8 листьев, сетка сквозная) → `BuildBush`; tangent.xyz = нормаль листа, без неё
+  `Arena/Bush` (Cull Off) освещает куст неверно — новые меши под этот шейдер обязаны иметь tangents. Бюджет занят ровно (48×5 + ядро ≤ 10 = 250):
+  добавить листья можно только за счёт сегментов. Цвета — константы `Bush*` в EnvMeshBuilder, `_MassNormal` в шейдере.
+- (A.3d) Пол — `EnvTextureBaker.BakeSand` (абсолютные цвета, `_BaseNormalize` 0, `FloorTint` подгоняет к `#F9D28A`); `FloorSandTexturePath`
+  теперь `Art/Textures/Env/Sand.png`. Мох с `WallTop` снят, плиты верха остались — лист вырезом в A.3f. Тени/AO ещё лиловые — A.3e.
+- (A.3d) Ловушки: python на Windows пишет CRLF — править файлы скриптом с `newline=''`; параллельный агент правит `DataSeeder.cs`,
+  `ViewAssetBuilder.cs`, `Decisions.md` — свои ханки в индекс через `git hash-object -w --stdin --path` + `git update-index --cacheinfo`.

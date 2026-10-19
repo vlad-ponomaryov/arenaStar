@@ -19,16 +19,20 @@ namespace Arena.Tests.EditMode.Art
                 Mesh mesh = EnvMeshBuilder.BuildBush(mask, variant);
                 try
                 {
+                    string name = "bush " + mask + "/" + variant;
                     int tris = mesh.triangles.Length / 3;
-                    Assert.LessOrEqual(tris, EnvMeshBuilder.BushTriangleBudget, "bush " + mask + "/" + variant);
-                    Assert.Greater(tris, 100, "a full field of grass tips");
+                    Assert.LessOrEqual(tris, EnvMeshBuilder.BushTriangleBudget, name);
+                    Assert.Greater(tris, 150, name + ": a full field of blades");
                     Vector3[] v = mesh.vertices;
                     Color[] c = mesh.colors;
                     Assert.AreEqual(v.Length, c.Length, "meshes under Arena/* shaders need vertex colours");
+                    Assert.AreEqual(v.Length, mesh.tangents.Length, "tangent.xyz = blade normal (Arena/Bush)");
                     Bounds b = mesh.bounds;
-                    Assert.Greater(b.size.x, 0.85f, "fills the cell (neighbours merge into one bush)");
-                    Assert.LessOrEqual(b.extents.x, 0.5f + 0.031f, "stays in its cell (foot spread only)");
-                    Assert.Greater(b.max.y, 0.7f);
+                    Assert.Greater(b.size.x, 0.8f, name + ": fills the cell");
+                    Assert.LessOrEqual(b.extents.x, 0.5f + EnvMeshBuilder.BushMaxOverhang + 1e-4f, name + ": overhang");
+                    Assert.LessOrEqual(b.extents.z, 0.5f + EnvMeshBuilder.BushMaxOverhang + 1e-4f, name + ": overhang");
+                    Assert.LessOrEqual(b.max.y, EnvMeshBuilder.BushMaxHeight + 1e-4f, name + ": height");
+                    Assert.Greater(b.max.y, 0.85f, name + ": taller than a stone block's shoulder");
                     float lowWeight = 1f, highWeight = 0f, lowY = float.MaxValue, highY = float.MinValue;
                     float lowGreen = 0f, highGreen = 0f;
                     for (int i = 0; i < v.Length; i++)
@@ -38,10 +42,23 @@ namespace Arena.Tests.EditMode.Art
                         if (v[i].y < lowY) { lowY = v[i].y; lowWeight = c[i].a; lowGreen = c[i].g; }
                         if (v[i].y > highY) { highY = v[i].y; highWeight = c[i].a; highGreen = c[i].g; }
                     }
-                    if (mask != EnvMeshBuilder.BushMaskCount - 1) Assert.Less(lowWeight, 0.05f, "no sway at the ground");
-                    else Assert.Greater(lowY, 0.3f, "a bush closed on all sides has no skirt");
+                    Assert.Less(lowWeight, 0.05f, "no sway at the ground");
                     Assert.Greater(highWeight, 0.8f, "the top sways");
-                    Assert.Greater(highGreen, lowGreen, "the top is lighter than the foot");
+                    Assert.Greater(highGreen, lowGreen, "the tips are lighter than the foot");
+                    // Tips in the concept's emerald-teal (hue 150–165°), saturated.
+                    float tipHue = 0f, tipSat = 0f;
+                    int tipCount = 0;
+                    for (int i = 0; i < v.Length; i++)
+                    {
+                        if (c[i].a < 0.95f) continue;
+                        Color.RGBToHSV(c[i].gamma, out float hh, out float ss, out _);
+                        tipHue += hh;
+                        tipSat += ss;
+                        tipCount++;
+                    }
+                    Assert.Greater(tipCount, 20, name);
+                    Assert.That(tipHue / tipCount * 360f, Is.InRange(148f, 167f), name + ": tip hue");
+                    Assert.Greater(tipSat / tipCount, 0.75f, name + ": tip saturation");
                 }
                 finally
                 {
@@ -51,31 +68,40 @@ namespace Arena.Tests.EditMode.Art
         }
 
         [Test]
-        public void NeighbouringBushes_ShareTheirEdge_SoTheyMergeWithoutAGap()
+        public void BladesNextToASharedSide_AreTheSameInEveryVariantAndMask_SoNeighbouringClumpsHaveNoSeam()
         {
-            // East side of a cell with an east neighbour (mask E = 2) vs the west side of the cell with a west neighbour (W = 1),
-            // in different variants: the top vertices on the shared edge must coincide (heights are variant independent).
-            Mesh west = EnvMeshBuilder.BuildBush(2, 0);
-            Mesh east = EnvMeshBuilder.BuildBush(1, 1);
-            try
+            int gx = EnvMeshBuilder.BushColumns, gz = EnvMeshBuilder.BushRows;
+            float step = 1f / gx;
+            // Reference: blades along each side when only that side is shared (variant 0); W 1, E 2, S 4, N 8.
+            for (int side = 0; side < 4; side++)
             {
-                var edgeA = new System.Collections.Generic.SortedDictionary<float, float>();
-                foreach (Vector3 v in west.vertices) if (Mathf.Abs(v.x - 0.5f) < 1e-4f && v.y > 0.1f) edgeA[Mathf.Round(v.z * 1000f)] = v.y;
-                int matched = 0;
-                foreach (Vector3 v in east.vertices)
+                int bit = 1 << side;
+                BushBlade[] reference = EnvMeshBuilder.BushBladeLayout(bit, 0);
+                int along = side < 2 ? gz : gx;
+                for (int mask = 0; mask < EnvMeshBuilder.BushMaskCount; mask++)
                 {
-                    if (Mathf.Abs(v.x + 0.5f) > 1e-4f || v.y <= 0.1f) continue;
-                    Assert.IsTrue(edgeA.TryGetValue(Mathf.Round(v.z * 1000f), out float y), "vertex at z " + v.z + " has a twin");
-                    Assert.AreEqual(y, v.y, 1e-4f, "same height on the shared edge");
-                    matched++;
+                    if ((mask & bit) == 0) continue;
+                    for (int variant = 0; variant < EnvMeshBuilder.BushVariantCount; variant++)
+                    {
+                        BushBlade[] blades = EnvMeshBuilder.BushBladeLayout(mask, variant);
+                        for (int k = 1; k < along - 1; k++)
+                        {
+                            int i = side == 0 ? 0 : side == 1 ? gx - 1 : k, j = side == 2 ? 0 : side == 3 ? gz - 1 : k;
+                            BushBlade x = blades[j * gx + i], r = reference[j * gx + i];
+                            string at = "side " + side + " mask " + mask + " v" + variant + " blade " + i + "," + j;
+                            Assert.IsTrue(x.EdgeLocked, at);
+                            Assert.Less((x.Root - r.Root).magnitude, 1e-5f, at + ": root");
+                            Assert.AreEqual(r.Height, x.Height, 1e-5f, at + ": height");
+                        }
+                    }
                 }
-                Assert.Greater(matched, 5);
-                foreach (Vector3 v in west.vertices) Assert.Greater(v.x, -0.5f + 1e-3f, "open west side is inset");
             }
-            finally
+            // Across a seam the blade rows keep the grid step: the east column of one cell to the west column of the next.
+            BushBlade[] west = EnvMeshBuilder.BushBladeLayout(2, 0), east = EnvMeshBuilder.BushBladeLayout(1, 1);
+            for (int j = 1; j < gz - 1; j++)
             {
-                Object.DestroyImmediate(west);
-                Object.DestroyImmediate(east);
+                float gap = east[j * gx].Root.x + 1f - west[j * gx + gx - 1].Root.x;
+                Assert.That(gap, Is.InRange(step * 0.5f, step * 1.5f), "row " + j);
             }
         }
 
@@ -156,7 +182,7 @@ namespace Arena.Tests.EditMode.Art
             Assert.AreEqual(EnvMeshBuilder.BushVariantCount, catalog.BushVariantsPerMask);
             Assert.AreEqual(EnvMeshBuilder.ObstaclePropCount, catalog.ObstacleProps.Length);
             Assert.AreEqual(ViewAssetBuilder.ToonEnvShader, catalog.ObstacleProp.shader.name);
-            Assert.IsNotNull(catalog.Floor.GetTexture("_PatchMap"), "grass patches on the sand floor");
+            Assert.IsNotNull(catalog.Floor.GetTexture("_PatchMap"), "grass fringe at bushes on the sand floor");
             foreach (Mesh m in catalog.BushVariants) Assert.IsNotNull(m);
             Assert.Less(catalog.WaterHeight, 0f, "a sunken pond");
             Assert.Greater(catalog.MapStyle.ShadowStrength, 0f);

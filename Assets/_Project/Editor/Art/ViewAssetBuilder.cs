@@ -197,14 +197,15 @@ namespace Arena.Editor.Art
         private const float FloorWorldTiling = 7f;    // cells per grass tile: soft patches every ≈ 3–4 cells
         private const float FloorMacroTiling = 23f;   // the larger turned sample that breaks the repetition
         private const float FloorMacroStrength = 0.3f;
-        // A.3c (D-126): the arena floor is warm sand with clusters of cream pebbles (Flow arena-target floor_001); grass only in
-        // soft patches (uv0.y of the floor mesh, MapMeshStyle.FloorPatch*) drawn with the grass map × PatchTint.
-        private const string FloorSandSource = FlowImageImporter.SourceRoot + "/2026-10-19_arena-target/floor_001.png";
-        public const string FloorSandTexturePath = FlowImageImporter.TargetFolder + "/FloorSand.png";
-        private static readonly Color FloorSandTargetMean = new Color32(0xE4, 0xC4, 0x8C, 0xFF);
-        private const float FloorSandTiling = 8f;
-        private const float FloorSandContrast = 0.3f;
-        private static readonly Color FloorTint = new Color(1f, 0.97f, 0.92f, 1f);
+        // A.3d (D-128): the arena floor is calm baked sand (EnvTextureBaker.BakeSand: slabs of 2 × 2 cells, mottling, rare cracks);
+        // the Flow pebble floor of A.3c (floor_001) stays only in Art/Source — painted pebbles everywhere read as noise. Grass patches
+        // (uv0.y of the floor mesh, MapMeshStyle.FloorPatch*) only as a faint fringe at bushes, drawn with the grass map × PatchTint.
+        public const string FloorSandTexturePath = EnvTextureBaker.SandPath;
+        private const string OldFloorSandTexturePath = FlowImageImporter.TargetFolder + "/FloorSand.png";
+        private const float FloorSandTiling = EnvTextureBaker.SandCellsPerTile;
+        private const float FloorSandContrast = 1f;
+        private const float FloorSandMacroStrength = 0.15f;
+        private static readonly Color FloorTint = new Color(0.95f, 1f, 1.1f, 1f);   // lit sand -> concept #F9D28A
         private static readonly Color PatchTint = new Color(0.86f, 0.95f, 0.62f, 1f);
         private const float PatchTiling = 4f;
         private const float PatchEdge = 0.05f;
@@ -225,7 +226,7 @@ namespace Arena.Editor.Art
         {
             WallBevel = 0.08f,
             WallTop = new Color32(0xF3, 0xE3, 0xC3, 0xFF),
-            WallSide = new Color32(0xB9, 0x8A, 0x5E, 0xFF),
+            WallSide = new Color32(0x8C, 0x54, 0x22, 0xFF),   // A.3d: lit side → concept #A84A14 (dark warm side under a light top)
             WallBevelHighlight = 0.45f,
             WallFootShade = 0.72f,
             WallCellVariation = 0.04f,
@@ -236,8 +237,8 @@ namespace Arena.Editor.Art
             FloorBushOcclusion = 0.4f,
             FloorBushOcclusionRadius = 0.45f,
             FloorPatchCell = 2.2f,
-            FloorPatchCoverage = 0.13f,
-            FloorPatchNearBush = 0.62f,
+            FloorPatchCoverage = 0f,     // A.3d: no grass stains on the sand (they read as mould)
+            FloorPatchNearBush = 0.35f,  // a faint fringe at bushes
             ObstaclePropRadius = 0.4f,
             MeadowMargin = 14f,
             MeadowFade = 6f,
@@ -283,7 +284,7 @@ namespace Arena.Editor.Art
         private const float BasketSpecStrength = 0.6f;
         private const float BasketSpecSize = 0.95f;
         private const float LeafTiling = 0.9f;
-        private const float LeafContrast = 0.5f;
+        private const float LeafContrast = 0f;   // A.3d: the blades are geometry, no painted leaves
         private const float RippleTiling = 2.2f;
         private const float SeeThroughSrcBlend = (float)BlendMode.SrcAlpha;
         private const float SeeThroughDstBlend = (float)BlendMode.OneMinusSrcAlpha;
@@ -328,10 +329,11 @@ namespace Arena.Editor.Art
             Material body = SaveToonMaterial("FighterBody", ToonCharacterShader, BodyColor, 0f);
             (Texture2D grass, float grassMean) = FlowImageImporter.ImportTileable(GrassSource, GrassTexturePath, GrassTextureSize,
                 GrassTargetMean, GrassMaxGain, GrassSeamFeatherPx);
-            (Texture2D sand, float sandMean) = FlowImageImporter.ImportTileable(FloorSandSource, FloorSandTexturePath, GrassTextureSize,
-                FloorSandTargetMean, GrassMaxGain, GrassSeamFeatherPx);
+            AssetDatabase.DeleteAsset(OldFloorSandTexturePath);
+            (Texture2D sand, float sandMean) = EnvTextureBaker.BakeSand();
             Material floor = SaveEnvMaterial("Floor", FloorTint, sand, sandMean, FloorSandContrast);
             floor.SetFloat(WorldTilingProperty, FloorSandTiling);
+            floor.SetFloat(MacroStrengthProperty, FloorSandMacroStrength);
             floor.SetTexture(PatchMapProperty, grass);
             floor.SetFloat(PatchMeanProperty, Mathf.Max(0.05f, grassMean));
             floor.SetFloat(PatchTilingProperty, PatchTiling);

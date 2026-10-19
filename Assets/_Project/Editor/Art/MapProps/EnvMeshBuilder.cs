@@ -7,7 +7,7 @@ namespace Arena.Editor.Art.MapProps
     /// <summary>
     /// Procedural meshes of map props (Art-Spec §2.1, A.3b, D-125), pivot at the bottom centre of a 1 × 1 cell, vertex colours
     /// linear (palette hex in sRGB → <see cref="Color.linear"/>):
-    /// bush — a cap of squashed blobs, ≤ <see cref="BushTriangleBudget"/> triangles, alpha = sway weight (0 at the ground);
+    /// bush — a field of separate grass blades over a dark core (A.3d), ≤ <see cref="BushTriangleBudget"/> triangles, alpha = sway weight;
     /// crate (breakable wall) — panels, a dark frame and an X brace on every side and on top, alpha = gloss 0;
     /// berry basket (Last Beast box) — a lathe basket with a rim and glossy berries (alpha = gloss 1) on top; berries, leaves and
     /// the inside have uv0.x = 1 (no texture detail, Arena/ToonEnv).
@@ -20,22 +20,44 @@ namespace Arena.Editor.Art.MapProps
         /// <summary>Neighbour masks of a bush cell: W 1, E 2, S 4, N 8.</summary>
         public const int BushMaskCount = 16;
 
-        // Tall grass (A.3c; palette: teal-emerald top, deep foot, sunlit tips).
-        private static readonly Color BushTop = new Color32(0x14, 0x96, 0x5C, 0xFF);
-        private static readonly Color BushTip = new Color32(0x6E, 0xE2, 0x7E, 0xFF);
-        private static readonly Color BushFoot = new Color32(0x08, 0x46, 0x36, 0xFF);
-        private const int BushGrid = 8;
-        private const float BushHeight = 0.74f;
-        private const float BushTipAmplitude = 0.28f;
-        private const float BushValleyDepth = 0.12f;
-        private const float BushHeightJitter = 0.09f;
-        private const float BushInset = 0.04f;
-        private const float BushCornerCut = 0.14f;
-        private const float BushShoulder = 0.86f;
-        private const float BushFootSpread = 0.03f;
-        private const float BushTipBlend = 0.85f;
-        private const float BushPlaneJitter = 0.035f;
-        private const float BushValleyShade = 0.5f;
+        // Tall grass (A.3d, D-128; palette of the arena-target concept 002: deep foot, emerald-teal body, sunlit tips).
+        private static readonly Color BushFoot = new Color32(0x13, 0x40, 0x2C, 0xFF);
+        private static readonly Color BushDeep = new Color32(0x00, 0x5C, 0x51, 0xFF);
+        private static readonly Color BushBody = new Color32(0x03, 0x96, 0x6A, 0xFF);
+        private static readonly Color BushTip = new Color32(0x24, 0xE2, 0xA6, 0xFF);   // lit in game close to concept #1CD48E
+        private static readonly Color BushCore = new Color32(0x0E, 0x4A, 0x38, 0xFF);
+        /// <summary>Blade columns (along X) and rows (along Z, depth for the camera) of a cell; odd rows are shifted by half a
+        /// column step, so the staggered pattern tiles across cells.</summary>
+        public const int BushColumns = 6;
+        public const int BushRows = 8;
+        /// <summary>Highest tip above the ground (test bound).</summary>
+        public const float BushMaxHeight = 1.05f;
+        /// <summary>How far a blade may reach over the cell edge (test bound).</summary>
+        public const float BushMaxOverhang = 0.08f;
+        private const float BladeHeight = 0.95f;
+        private const float BladeHeightJitter = 0.1f;
+        private const float BladeOpenEdgeHeight = 0.85f;
+        private const float BladeRootJitter = 0.22f;      // of the grid step
+        private const float BladeOpenInset = 0.03f;
+        private const float BladeWidthMin = 0.11f;        // wide lancets like the concept (8+ px at 1080p)
+        private const float BladeWidthMax = 0.13f;
+        private const float BladeLeanMin = 0.03f;         // tip offset at full height: mostly upright blades
+        private const float BladeLeanMax = 0.1f;
+        private const float BladeOpenLean = 0.07f;        // extra lean out of the mass on an open side
+        private const float BladeYawJitter = 20f;         // degrees; blades face ±Z (both team cameras) give or take this
+        private const float BladeCurl = 0.06f;
+        private const float BladeToneJitter = 0.04f;
+        private const float BladeValueMin = 0.72f;        // per-blade brightness: leaves read one by one, not as a felt
+        private const float BladeValueMax = 1.05f;
+        private const float BladeInnerShade = 0.74f;
+        private const float BladeInnerDepth = 0.45f;
+        private static readonly float[] BladeLevels = { 0f, 0.45f, 0.82f, 1f };
+        private static readonly float[] BladeWidths = { 0.9f, 1.1f, 0.85f, 0f };   // rounded lancet tip
+        private const float BushCoreHeight = 0.25f;
+        private const float BushCoreInset = 0.15f;
+        private const float BushMassOutward = 0.8f;
+        private const float BushMassLean = 0.3f;
+        private const int BushEdgeSeed = 7717;
 
         // Obstacle props (A.3c): barrel, stump, boulder.
         private static readonly Color BarrelStave = new Color32(0xD0, 0x8C, 0x4C, 0xFF);
@@ -83,107 +105,212 @@ namespace Arena.Editor.Art.MapProps
         private const int BasketSides = 12;
 
         /// <summary>
-        /// Tall-grass clump of one cell (A.3c, D-126): a faceted field of grass tips over the cell (<see cref="BushGrid"/>² quads,
-        /// tips on the even vertices of a checker, valleys between) — flat-shaded, so every facet reads as a lit or shaded blade —
-        /// plus a sawtooth skirt down to the ground on every open side. <paramref name="mask"/> = bush neighbours (W 1, E 2, S 4,
-        /// N 8): towards a neighbour the field runs to the cell edge with variant-independent heights, so neighbouring clumps join
-        /// into one mass without a seam; open sides are inset, lowered (a rounded shoulder) and closed by the skirt.
+        /// Tall-grass clump of one cell (A.3d, D-128): a field of separate lancet blades (<see cref="BushGrid"/>² per cell, two
+        /// segments and a tip, double-sided — <c>Arena/Bush</c> draws both faces) over a low dark core that hides the floor.
+        /// Mesh normal = soft normal of the whole mass (up, out of open sides); tangent.xyz = the blade's own plane normal — the
+        /// shader mixes them (flipping the blade part on back faces), so the mass reads as one soft volume made of leaves.
+        /// <paramref name="mask"/> = bush neighbours (W 1, E 2, S 4, N 8): the blade grid tiles across cells, and blades next to a
+        /// shared side do not depend on the variant (no seam between neighbouring clumps); blades on open sides are shorter and
+        /// lean out of the mass. Vertex colour by height (dark foot → teal body → bright tip), inner blades darker; alpha = sway.
         /// </summary>
         public static Mesh BuildBush(int mask, int variant)
         {
-            var m = new MeshData();
-            var rng = new System.Random(1000 + mask * 131 + variant * 7919);
+            BushBlade[] blades = BushBladeLayout(mask, variant);
+            var b = new BushMeshData();
+            for (int i = 0; i < blades.Length; i++) AddBlade(b, blades[i], mask, (uint)(variant * 977 + i));
+            AddBushCore(b, mask);
+            return b.Create("Bush_" + mask + "_" + variant);
+        }
+
+        /// <summary>The blades of a bush cell (A.3d): deterministic per (mask, variant); see <see cref="BuildBush"/>.</summary>
+        public static BushBlade[] BushBladeLayout(int mask, int variant)
+        {
             bool w = (mask & 1) != 0, e = (mask & 2) != 0, s = (mask & 4) != 0, n = (mask & 8) != 0;
-            int g = BushGrid;
-            var pos = new Vector3[(g + 1) * (g + 1)];
-            var tip = new bool[pos.Length];
-            float x0 = -0.5f + (w ? 0f : BushInset), x1 = 0.5f - (e ? 0f : BushInset);
-            float z0 = -0.5f + (s ? 0f : BushInset), z1 = 0.5f - (n ? 0f : BushInset);
-            for (int j = 0; j <= g; j++)
+            int gx = BushColumns, gz = BushRows;
+            float step = 1f / gx, rowStep = 1f / gz;
+            var blades = new BushBlade[gx * gz];
+            for (int j = 0; j < gz; j++)
             {
-                for (int i = 0; i <= g; i++)
+                for (int i = 0; i < gx; i++)
                 {
-                    float u = (float)i / g, v = (float)j / g;
-                    float x = Mathf.Lerp(x0, x1, u), z = Mathf.Lerp(z0, z1, v);
-                    bool onW = i == 0, onE = i == g, onS = j == 0, onN = j == g;
-                    bool openEdge = (onW && !w) || (onE && !e) || (onS && !s) || (onN && !n);
-                    bool sharedEdge = (onW && w) || (onE && e) || (onS && s) || (onN && n);
-                    // Round the corners between two open sides.
-                    bool cornerOpen = (onW || onE) && (onS || onN) && openEdge && !sharedEdge &&
-                                      ((onW && !w) || (onE && !e)) && ((onS && !s) || (onN && !n));
-                    if (cornerOpen)
+                    bool openW = i == 0 && !w, openE = i == gx - 1 && !e, openS = j == 0 && !s, openN = j == gz - 1 && !n;
+                    bool locked = (i == 0 && w) || (i == gx - 1 && e) || (j == 0 && s) || (j == gz - 1 && n);
+                    // Edge-locked blades hash without the variant (and the same for every mask sharing that side).
+                    int seed = locked ? BushEdgeSeed : 101 + variant * 31;
+                    float x = -0.5f + (i + 0.25f + 0.5f * (j & 1)) * step + (Hash01(i, j, seed, 0) - 0.5f) * 2f * BladeRootJitter * step;
+                    float z = -0.5f + (j + 0.5f) * rowStep + (Hash01(i, j, seed, 1) - 0.5f) * 2f * BladeRootJitter * rowStep;
+                    if (openW) x += BladeOpenInset;
+                    if (openE) x -= BladeOpenInset;
+                    if (openS) z += BladeOpenInset;
+                    if (openN) z -= BladeOpenInset;
+                    float h = BladeHeight * (1f + (Hash01(i, j, seed, 2) - 0.5f) * 2f * BladeHeightJitter);
+                    Vector3 outward = new Vector3((openE ? 1f : 0f) - (openW ? 1f : 0f), 0f, (openN ? 1f : 0f) - (openS ? 1f : 0f));
+                    if (outward.sqrMagnitude > 0f) h *= BladeOpenEdgeHeight;
+                    h = Mathf.Min(h, BushMaxHeight);
+                    float leanAngle = Hash01(i, j, seed, 3) * Mathf.PI * 2f;
+                    float leanLength = Mathf.Lerp(BladeLeanMin, BladeLeanMax, Hash01(i, j, seed, 4)) * h;
+                    Vector3 lean = new Vector3(Mathf.Cos(leanAngle), 0f, Mathf.Sin(leanAngle)) * leanLength + outward.normalized * BladeOpenLean;
+                    float yaw = (Hash01(i, j, seed, 5) - 0.5f) * 2f * BladeYawJitter * Mathf.Deg2Rad;
+                    float width = Mathf.Lerp(BladeWidthMin, BladeWidthMax, Hash01(i, j, seed, 6));
+                    // Depth inside the mass: distance to the nearest open side of this cell (closed cells: deep everywhere).
+                    float depth = 1f;
+                    if (!w) depth = Mathf.Min(depth, x + 0.5f);
+                    if (!e) depth = Mathf.Min(depth, 0.5f - x);
+                    if (!s) depth = Mathf.Min(depth, z + 0.5f);
+                    if (!n) depth = Mathf.Min(depth, 0.5f - z);
+                    var root = new Vector3(x, 0f, z);
+                    // Keep the whole blade within the allowed overhang: shorten the lean if the tip would reach too far.
+                    float half = width * 0.5f * BladeWidths[1];
+                    float limit = 0.5f + BushMaxOverhang - half;
+                    Vector3 tip = root + lean;
+                    tip.x = Mathf.Clamp(tip.x, -limit, limit);
+                    tip.z = Mathf.Clamp(tip.z, -limit, limit);
+                    blades[j * gx + i] = new BushBlade
                     {
-                        x *= 1f - BushCornerCut;
-                        z *= 1f - BushCornerCut;
-                    }
-                    bool isTip = ((i + j) & 1) == 0;
-                    float h = BushHeight + (isTip ? BushTipAmplitude : -BushValleyDepth);
-                    if (!sharedEdge && !openEdge)
-                    {
-                        h += Range(rng, -BushHeightJitter, BushHeightJitter);
-                        x += Range(rng, -BushPlaneJitter, BushPlaneJitter);
-                        z += Range(rng, -BushPlaneJitter, BushPlaneJitter);
-                    }
-                    if (openEdge) h *= BushShoulder;
-                    else if (NextToOpen(i, j, g, w, e, s, n)) h *= Mathf.Lerp(BushShoulder, 1f, 0.6f);
-                    int k = j * (g + 1) + i;
-                    pos[k] = new Vector3(x, h, z);
-                    tip[k] = isTip;
+                        Column = i,
+                        Row = j,
+                        Root = root,
+                        Height = h,
+                        Lean = tip - root,
+                        Facing = new Vector3(-Mathf.Sin(yaw), 0f, -Mathf.Cos(yaw)),
+                        Width = width,
+                        Shade = Mathf.Lerp(1f, BladeInnerShade, Smoothstep(0.08f, BladeInnerDepth, depth)),
+                        EdgeLocked = locked
+                    };
                 }
             }
+            return blades;
+        }
 
-            for (int j = 0; j < g; j++)
+        private static void AddBlade(BushMeshData b, in BushBlade blade, int mask, uint tone)
+        {
+            Vector3 across = Vector3.Cross(Vector3.up, blade.Facing).normalized;
+            float curl = (Hash01(blade.Column, blade.Row, (int)tone, 7) - 0.5f) * 2f * BladeCurl;
+            float toneShift = (Hash01(blade.Column, blade.Row, (int)tone, 8) - 0.5f) * 2f * BladeToneJitter;
+            float value = Mathf.Lerp(BladeValueMin, BladeValueMax, Hash01(blade.Column, blade.Row, (int)tone, 9));
+            int levels = BladeLevels.Length;
+            var left = new int[levels];
+            var right = new int[levels];
+            for (int k = 0; k < levels; k++)
             {
-                for (int i = 0; i < g; i++)
+                float t = BladeLevels[k];
+                Vector3 centre = blade.Root + Vector3.up * (blade.Height * t) + blade.Lean * Mathf.Pow(t, 1.7f) + blade.Facing * (curl * t * t);
+                float halfWidth = blade.Width * 0.5f * BladeWidths[k];
+                Vector3 mass = MassNormal(centre, mask, blade.Lean);
+                Color col = BladeColor(t, blade.Shade, value, toneShift);
+                if (halfWidth <= 0f)
                 {
-                    int a = j * (g + 1) + i, b = a + 1, c = a + g + 1, d = c + 1;
-                    // Split along the diagonal through the two tips of the quad (or the valleys): ridges, not a flat checker.
-                    if (tip[a])
-                    {
-                        BushTri(m, pos[a], pos[b], pos[d], tip[a], tip[b], tip[d]);
-                        BushTri(m, pos[a], pos[d], pos[c], tip[a], tip[d], tip[c]);
-                    }
-                    else
-                    {
-                        BushTri(m, pos[a], pos[b], pos[c], tip[a], tip[b], tip[c]);
-                        BushTri(m, pos[b], pos[d], pos[c], tip[b], tip[d], tip[c]);
-                    }
+                    left[k] = right[k] = b.Add(centre, mass, blade.Facing, col);
+                    continue;
                 }
+                left[k] = b.Add(centre - across * halfWidth, mass, blade.Facing, col);
+                right[k] = b.Add(centre + across * halfWidth, mass, blade.Facing, col);
+            }
+            for (int k = 0; k + 1 < levels; k++)
+            {
+                b.Tri(left[k], right[k], right[k + 1], blade.Facing);
+                if (left[k + 1] != right[k + 1]) b.Tri(left[k], right[k + 1], left[k + 1], blade.Facing);
+            }
+        }
+
+        /// <summary>Soft normal of the grass mass at a point: up, tilted out of the open sides near them and a little along the lean.</summary>
+        private static Vector3 MassNormal(Vector3 p, int mask, Vector3 lean)
+        {
+            Vector3 n = Vector3.up;
+            if ((mask & 1) == 0) n += Vector3.left * (BushMassOutward * (1f - Smoothstep(0f, 0.4f, p.x + 0.5f)));
+            if ((mask & 2) == 0) n += Vector3.right * (BushMassOutward * (1f - Smoothstep(0f, 0.4f, 0.5f - p.x)));
+            if ((mask & 4) == 0) n += Vector3.back * (BushMassOutward * (1f - Smoothstep(0f, 0.4f, p.z + 0.5f)));
+            if ((mask & 8) == 0) n += Vector3.forward * (BushMassOutward * (1f - Smoothstep(0f, 0.4f, 0.5f - p.z)));
+            n += lean.normalized * BushMassLean;
+            return n.normalized;
+        }
+
+        /// <summary>Blade colour at height fraction t (linear): foot → deep teal → body → tip; inner blades darker below the tip.</summary>
+        private static Color BladeColor(float t, float shade, float value, float toneShift)
+        {
+            Color c = t < 0.15f ? Color.Lerp(BushFoot, BushDeep, t / 0.15f)
+                : t < 0.6f ? Color.Lerp(BushDeep, BushBody, Smoothstep(0.15f, 0.6f, t))
+                : Color.Lerp(BushBody, BushTip, Smoothstep(0.68f, 1f, t));
+            float k = Mathf.Lerp(shade, 1f, t * t) * value * (1f + toneShift);
+            c = new Color(c.r * k, c.g * k * (1f + toneShift * 0.5f), c.b * k * (1f - toneShift * 0.5f), 1f).linear;
+            c.a = Mathf.Pow(t, 1.5f);
+            return c;
+        }
+
+        /// <summary>Low dark box under the blades (top and the open sides): the floor never shows through the mass.</summary>
+        private static void AddBushCore(BushMeshData b, int mask)
+        {
+            float x0 = (mask & 1) != 0 ? -0.5f : -0.5f + BushCoreInset, x1 = (mask & 2) != 0 ? 0.5f : 0.5f - BushCoreInset;
+            float z0 = (mask & 4) != 0 ? -0.5f : -0.5f + BushCoreInset, z1 = (mask & 8) != 0 ? 0.5f : 0.5f - BushCoreInset;
+            float y = BushCoreHeight;
+            Color top = BushCore.linear, foot = (BushCore * 0.7f).linear;
+            top.a = 0f;
+            foot.a = 0f;
+            b.Quad(new Vector3(x0, y, z0), new Vector3(x1, y, z0), new Vector3(x1, y, z1), new Vector3(x0, y, z1), Vector3.up, top, top);
+            if ((mask & 4) == 0) b.Quad(new Vector3(x0, 0f, z0), new Vector3(x1, 0f, z0), new Vector3(x1, y, z0), new Vector3(x0, y, z0), Vector3.back, foot, top);
+            if ((mask & 8) == 0) b.Quad(new Vector3(x1, 0f, z1), new Vector3(x0, 0f, z1), new Vector3(x0, y, z1), new Vector3(x1, y, z1), Vector3.forward, foot, top);
+            if ((mask & 1) == 0) b.Quad(new Vector3(x0, 0f, z1), new Vector3(x0, 0f, z0), new Vector3(x0, y, z0), new Vector3(x0, y, z1), Vector3.left, foot, top);
+            if ((mask & 2) == 0) b.Quad(new Vector3(x1, 0f, z0), new Vector3(x1, 0f, z1), new Vector3(x1, y, z1), new Vector3(x1, y, z0), Vector3.right, foot, top);
+        }
+
+        /// <summary>Deterministic hash in [0, 1] of a blade (column, row), a seed and a channel.</summary>
+        private static float Hash01(int i, int j, int seed, int channel)
+        {
+            unchecked
+            {
+                uint h = (uint)i * 374761393u + (uint)j * 668265263u + (uint)seed * 2246822519u + (uint)channel * 3266489917u;
+                h = (h ^ (h >> 13)) * 1274126177u;
+                h ^= h >> 16;
+                return (h & 0xFFFFFF) / 16777215f;
+            }
+        }
+
+        /// <summary>Vertex lists of a bush: positions, mass normals, blade normals (tangent.xyz), linear colours (alpha = sway).</summary>
+        private sealed class BushMeshData
+        {
+            private readonly List<Vector3> _verts = new List<Vector3>();
+            private readonly List<Vector3> _normals = new List<Vector3>();
+            private readonly List<Vector4> _tangents = new List<Vector4>();
+            private readonly List<Color> _colors = new List<Color>();
+            private readonly List<int> _tris = new List<int>();
+
+            public int Add(Vector3 p, Vector3 massNormal, Vector3 bladeNormal, Color linear)
+            {
+                _verts.Add(p);
+                _normals.Add(massNormal);
+                _tangents.Add(new Vector4(bladeNormal.x, bladeNormal.y, bladeNormal.z, 1f));
+                _colors.Add(linear);
+                return _verts.Count - 1;
             }
 
-            // Skirts on the open sides: from the field's edge down to the ground, a little wider at the foot.
-            if (!s) for (int i = 0; i < g; i++) BushSkirt(m, pos[i], pos[i + 1], tip[i], tip[i + 1], Vector3.back);
-            if (!n) for (int i = 0; i < g; i++) BushSkirt(m, pos[g * (g + 1) + i], pos[g * (g + 1) + i + 1], tip[g * (g + 1) + i], tip[g * (g + 1) + i + 1], Vector3.forward);
-            if (!w) for (int j = 0; j < g; j++) BushSkirt(m, pos[j * (g + 1)], pos[(j + 1) * (g + 1)], tip[j * (g + 1)], tip[(j + 1) * (g + 1)], Vector3.left);
-            if (!e) for (int j = 0; j < g; j++) BushSkirt(m, pos[j * (g + 1) + g], pos[(j + 1) * (g + 1) + g], tip[j * (g + 1) + g], tip[(j + 1) * (g + 1) + g], Vector3.right);
-            return m.Create("Bush_" + mask + "_" + variant);
-        }
+            /// <summary>Triangle whose front face (Unity winding) looks along <paramref name="front"/>.</summary>
+            public void Tri(int a, int b, int c, Vector3 front)
+            {
+                Vector3 n = Vector3.Cross(_verts[b] - _verts[a], _verts[c] - _verts[a]);
+                if (Vector3.Dot(n, front) < 0f) { _tris.Add(a); _tris.Add(c); _tris.Add(b); }
+                else { _tris.Add(a); _tris.Add(b); _tris.Add(c); }
+            }
 
-        private static bool NextToOpen(int i, int j, int g, bool w, bool e, bool s, bool n) =>
-            (i == 1 && !w) || (i == g - 1 && !e) || (j == 1 && !s) || (j == g - 1 && !n);
+            /// <summary>Flat quad a-b-c-d (a, b at the bottom with <paramref name="bottom"/>, c, d with <paramref name="top"/>).</summary>
+            public void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal, Color bottom, Color top)
+            {
+                int ia = Add(a, normal, normal, bottom), ib = Add(b, normal, normal, bottom);
+                int ic = Add(c, normal, normal, top), id = Add(d, normal, normal, top);
+                Tri(ia, ib, ic, normal);
+                Tri(ia, ic, id, normal);
+            }
 
-        /// <summary>Colour of a grass vertex: dark foot → juicy body → bright tips; valleys a little darker. Alpha = sway weight.</summary>
-        private static Color BushColor(Vector3 p, bool isTip)
-        {
-            float h = Mathf.Clamp01(p.y / (BushHeight + BushTipAmplitude));
-            Color col = Color.Lerp(BushFoot, BushTop, Smoothstep(0.05f, 0.8f, h));
-            if (isTip) col = Color.Lerp(col, BushTip, BushTipBlend * Smoothstep(0.7f, 1f, h));
-            else col = Color.Lerp(col, BushFoot, BushValleyShade);
-            col = col.linear;
-            col.a = Mathf.Pow(h, 1.5f);
-            return col;
-        }
-
-        private static void BushTri(MeshData m, Vector3 a, Vector3 b, Vector3 c, bool ta, bool tb, bool tc) =>
-            m.FlatTriColors(a, b, c, Vector3.up, BushColor(a, ta), BushColor(b, tb), BushColor(c, tc));
-
-        private static void BushSkirt(MeshData m, Vector3 a, Vector3 b, bool ta, bool tb, Vector3 outward)
-        {
-            Vector3 fa = new Vector3(a.x, 0f, a.z) + outward * BushFootSpread, fb = new Vector3(b.x, 0f, b.z) + outward * BushFootSpread;
-            Color ca = BushColor(a, ta), cb = BushColor(b, tb), foot = BushColor(fa, false);
-            Vector3 towards = (outward + Vector3.up * 0.2f).normalized;
-            m.FlatTriColors(fa, a, b, towards, foot, ca, cb);
-            m.FlatTriColors(fa, b, fb, towards, foot, cb, foot);
+            public Mesh Create(string name)
+            {
+                var mesh = new Mesh { name = name };
+                mesh.SetVertices(_verts);
+                mesh.SetNormals(_normals);
+                mesh.SetTangents(_tangents);
+                mesh.SetColors(_colors);
+                mesh.SetTriangles(_tris, 0);
+                mesh.RecalculateBounds();
+                return mesh;
+            }
         }
 
         /// <summary>

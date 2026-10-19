@@ -101,6 +101,9 @@ namespace Arena.Editor.Art.Capture
                 MatchLightRig.Apply(s_light, 0f, s_catalog); // light and wall shadows as for team 0
                 SaveWithColorBlind(RenderMap(camera, stage), dir, "map");
                 SaveArena(camera, config, stage, database, dir);
+                stage.Root.SetActive(false);
+                try { EnvShowcase.Save(camera, config, s_catalog, s_light, dir); }
+                finally { stage.Root.SetActive(true); }
                 SaveSilhouettes(camera, config, stage, dir);
                 SaveModelSheets(camera, config, stage, dir);
                 SaveHeroShots(camera, config, stage, dir);
@@ -177,6 +180,20 @@ namespace Arena.Editor.Art.Capture
                     Object.DestroyImmediate(big);
                     Save(shot, dir, names[s]);
                     Object.DestroyImmediate(shot);
+                    if (s != 0) continue;
+                    // A.3d camera A/B (D-128): the same frame height at the focus with other lenses (FOV, distance).
+                    for (int ab = 0; ab < CameraAlternatives.Length; ab++)
+                    {
+                        Vector2 lens = CameraAlternatives[ab];
+                        camera.fieldOfView = lens.x;
+                        camera.transform.SetPositionAndRotation(CameraMath.Position(focus, rotation, lens.y), rotation);
+                        Texture2D abBig = Render(camera, ShotWidth * 2, ShotHeight * 2);
+                        Texture2D abShot = Downscale(abBig, 2);
+                        Object.DestroyImmediate(abBig);
+                        Save(abShot, dir, "arena_fov" + Mathf.RoundToInt(lens.x));
+                        Object.DestroyImmediate(abShot);
+                    }
+                    camera.fieldOfView = config.FieldOfView;
                 }
             }
             finally
@@ -186,6 +203,9 @@ namespace Arena.Editor.Art.Capture
                 stage.Root.SetActive(true);
             }
         }
+
+        /// <summary>A.3d: other lenses (FOV degrees, distance) of <c>arena_fov&lt;N&gt;.png</c>, all with a 16.8-cell frame at the focus.</summary>
+        private static readonly Vector2[] CameraAlternatives = { new Vector2(50f, 18f), new Vector2(30f, 31.3f) };
 
         /// <summary>Focus of <c>arena_base.png</c> as a fraction of the map height (team 0 spawns at the bottom).</summary>
         private const float ArenaBaseFocus = 0.2f;
@@ -301,7 +321,7 @@ namespace Arena.Editor.Art.Capture
         }
 
         /// <summary>Box-filter downscale by an integer factor (antialiasing of a supersampled render).</summary>
-        private static Texture2D Downscale(Texture2D src, int factor)
+        internal static Texture2D Downscale(Texture2D src, int factor)
         {
             int w = src.width / factor, h = src.height / factor;
             Color32[] from = src.GetPixels32();
@@ -491,7 +511,7 @@ namespace Arena.Editor.Art.Capture
             Object.DestroyImmediate(cell);
         }
 
-        private static Color32[] Crop(Texture2D src, int x0, int y0, int w, int h)
+        internal static Color32[] Crop(Texture2D src, int x0, int y0, int w, int h)
         {
             Color32[] from = src.GetPixels32();
             var to = new Color32[w * h];
@@ -515,7 +535,7 @@ namespace Arena.Editor.Art.Capture
         }
 
         /// <summary>Renders the camera into an sRGB render texture and reads it back (opaque).</summary>
-        private static Texture2D Render(Camera camera, int width, int height)
+        internal static Texture2D Render(Camera camera, int width, int height)
         {
             var rt = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 1 };
             RenderTexture previousTarget = camera.targetTexture;
@@ -564,7 +584,7 @@ namespace Arena.Editor.Art.Capture
             Save(tex, dir, name);
         }
 
-        private static void Save(Texture2D tex, string dir, string name)
+        internal static void Save(Texture2D tex, string dir, string name)
         {
             string path = Path.Combine(dir, name + ".png");
             File.WriteAllBytes(path, tex.EncodeToPNG());

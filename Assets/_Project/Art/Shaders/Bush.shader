@@ -1,4 +1,7 @@
-// Bush (Art-Spec §2.1, A.3b, D-125): one mesh of a few squashed blobs, toon lighting of ArenaToon.hlsl without an outline.
+// Bush (Art-Spec §2.1, A.3b, D-125; A.3d, D-128): a field of double-sided grass blades, toon lighting of ArenaToon.hlsl without
+// an outline. Cull Off: the mesh normal is the soft normal of the whole grass mass, tangent.xyz the blade's own plane normal; the
+// lit normal mixes them (_MassNormal), the blade part flipped on back faces — the mass reads as one soft volume of leaves for both
+// team cameras (the blades face ±Z).
 // Albedo = _BaseColor × vertex colour (dark at the foot, juicy at the top) × a leaf detail map sampled in world space (slanted XZ
 // + height, so neighbouring bushes and the static batch need no UVs). Vertex alpha = sway weight (0 at the ground, 1 at the top):
 // the vertex moves in XZ by _SwayAmplitude × sin(time · _SwaySpeed + phase of its world position) — meshes are static-batched into
@@ -14,6 +17,7 @@ Shader "Arena/Bush"
         _LeafTiling ("Units Per Leaf Tile", Float) = 0.9
         _LeafMeanLuminance ("Mean Luminance Of The Leaf Map", Range(0.05, 1)) = 1
         _LeafContrast ("Leaf Contrast", Range(0, 1.5)) = 1
+        _MassNormal ("Mass Normal Weight (vs blade normal)", Range(0, 1)) = 0.5
         _SwayAmplitude ("Sway Amplitude (world)", Range(0, 0.2)) = 0.035
         _SwaySpeed ("Sway Speed (rad/s)", Range(0, 6)) = 1.7
         _SwayPhaseScale ("Sway Phase Per World Unit", Range(0, 4)) = 1.3
@@ -46,6 +50,7 @@ Shader "Arena/Bush"
             float _LeafTiling;
             half _LeafMeanLuminance;
             half _LeafContrast;
+            half _MassNormal;
             float _SwayAmplitude;
             float _SwaySpeed;
             float _SwayPhaseScale;
@@ -72,6 +77,7 @@ Shader "Arena/Bush"
         {
             float4 positionOS : POSITION;
             float3 normalOS : NORMAL;
+            float4 tangentOS : TANGENT;   // xyz: the blade's plane normal (A.3d)
             half4 color : COLOR;
         };
 
@@ -89,7 +95,7 @@ Shader "Arena/Bush"
         {
             Name "BushForward"
             Tags { "LightMode" = "UniversalForward" }
-            Cull Back
+            Cull Off
             ZWrite [_ZWrite]
             Blend [_SrcBlend] [_DstBlend]
 
@@ -102,6 +108,7 @@ Shader "Arena/Bush"
                 float4 positionCS : SV_POSITION;
                 float3 normalWS : TEXCOORD0;
                 float3 positionWS : TEXCOORD1;
+                float3 bladeWS : TEXCOORD2;
                 half4 color : COLOR;
             };
 
@@ -111,11 +118,12 @@ Shader "Arena/Bush"
                 o.positionWS = SwayedWorld(v.positionOS.xyz, v.color.a);
                 o.positionCS = TransformWorldToHClip(o.positionWS);
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
+                o.bladeWS = TransformObjectToWorldDir(v.tangentOS.xyz);
                 o.color = v.color;
                 return o;
             }
 
-            half4 Frag(Varyings i) : SV_Target
+            half4 Frag(Varyings i, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_Target
             {
                 float2 uv = (i.positionWS.xz + i.positionWS.yy * float2(0.45, 0.7)) / max(_LeafTiling, 0.001) + _LeafMap_ST.zw;
                 half3 leaf = SAMPLE_TEXTURE2D(_LeafMap, sampler_LeafMap, uv).rgb / max(_LeafMeanLuminance, 0.05h);
@@ -124,7 +132,8 @@ Shader "Arena/Bush"
                 ArenaToonSurface s;
                 s.albedo = _BaseColor.rgb * i.color.rgb * leaf;
                 s.gloss = 0.0h;
-                s.normalWS = i.normalWS;
+                float faceSign = IS_FRONT_VFACE(face, 1.0, -1.0);
+                s.normalWS = normalize(i.normalWS) * _MassNormal + normalize(i.bladeWS) * (faceSign * (1.0 - _MassNormal));
                 s.positionWS = i.positionWS;
 
                 ArenaToonParams p;
@@ -148,7 +157,7 @@ Shader "Arena/Bush"
         {
             Name "DepthOnly"
             Tags { "LightMode" = "DepthOnly" }
-            Cull Back
+            Cull Off
             ZWrite On
             ColorMask R
 

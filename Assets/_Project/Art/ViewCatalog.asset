@@ -96,7 +96,7 @@ MonoBehaviour:
     WallBevel: 0.08
     WallTop: {r: 0.9529412, g: 0.8901961, b: 0.7647059, a: 1}
     WallBevelHighlight: 0.45
-    WallSide: {r: 0.7254902, g: 0.5411765, b: 0.36862746, a: 1}
+    WallSide: {r: 0.54901963, g: 0.32941177, b: 0.13333334, a: 1}
     WallFootShade: 0.72
     WallCellVariation: 0.04
     FloorSubdivisions: 2
@@ -106,8 +106,8 @@ MonoBehaviour:
     FloorBushOcclusion: 0.4
     FloorBushOcclusionRadius: 0.45
     FloorPatchCell: 2.2
-    FloorPatchCoverage: 0.13
-    FloorPatchNearBush: 0.62
+    FloorPatchCoverage: 0
+    FloorPatchNearBush: 0.35
     ObstaclePropRadius: 0.4
     MeadowMargin: 14
     MeadowFade: 6

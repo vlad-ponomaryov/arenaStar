@@ -30,10 +30,27 @@ namespace Arena.Editor.Art.MapProps
         private const float PillowEdge = 0.83f;
         private const float SlabVariation = 0.06f;
         private const float SpeckleStrength = 0.035f;
-        private static readonly Color Moss = new Color(0.64f, 0.80f, 0.44f, 1f);
-        private static readonly Color MossDeep = new Color(0.50f, 0.68f, 0.38f, 1f);
-        private const float MossThreshold = 0.64f;
-        private const float MossNearGrout = 0.1f;
+
+        // Sand floor (A.3d, D-128): 512 px = 8 × 8 cells; calm warm sand — slabs of 2 × 2 cells in running bond with a faint seam
+        // (≈ 4–5 %), low-frequency mottling (± 4 %), a fine grain and a few hairline cracks. Absolute sRGB colours (not detail ≈ 1).
+        public const string SandPath = TargetFolder + "/Sand.png";
+        public const int SandSize = 512;
+        public const int SandCellsPerTile = 8;
+        private const int SandSeed = 2718;
+        private const int SandSlabCells = 2;
+        private static readonly Color SandBase = new Color32(0xF6, 0xCF, 0x8A, 0xFF);
+        private static readonly Color SandWarm = new Color32(0xF0, 0xC0, 0x7C, 0xFF);
+        private const float SandSeamDarken = 0.045f;
+        private const float SandSeamPx = 1.6f;
+        private const float SandSeamSoftPx = 2.5f;
+        private const float SandSlabVariation = 0.02f;
+        private const float SandMottle = 0.04f;
+        private const float SandWarmMottle = 0.35f;
+        private const float SandGrain = 0.015f;
+        private const int SandCracks = 3;
+        private const int SandCrackSteps = 16;
+        private const float SandCrackStepPx = 2.2f;
+        private const float SandCrackDarken = 0.16f;
 
         // Leaves: 128 px, overlapping leaf ellipses lighter at the top, a darker vein edge.
         public const int LeavesSize = 128;
@@ -88,20 +105,62 @@ namespace Arena.Editor.Art.MapProps
                     float pillow = Mathf.Lerp(PillowEdge, 1f, Smoothstep(GroutPx, PillowPx, edge));
                     float v = pillow * tints[k][nearest] + speckle;
                     Color stone = new Color(v, v * 0.995f, v * 0.985f, 1f);
-                    Color c = edge < GroutPx ? Color.Lerp(Grout, stone, Mathf.Clamp01(edge / GroutPx - 0.5f)) : stone;
-
-                    // Moss: smooth noise, more likely along the grout.
-                    float m = Fbm(x, y, n, 4, WallTopSeed + 7) + MossNearGrout * (1f - Smoothstep(0f, PillowPx, edge));
-                    float moss = Smoothstep(MossThreshold - 0.03f, MossThreshold + 0.03f, m);
-                    if (moss > 0f)
-                    {
-                        Color mc = Color.Lerp(MossDeep, Moss, Fbm(x, y, n, 16, WallTopSeed + 11) + speckle * 3f);
-                        c = Color.Lerp(c, mc, moss * 0.85f);
-                    }
-                    px[y * n + x] = c;
+                    // A.3d: no moss (it read as camouflage stains); the carved leaf relief of the top comes with A.3f.
+                    px[y * n + x] = edge < GroutPx ? Color.Lerp(Grout, stone, Mathf.Clamp01(edge / GroutPx - 0.5f)) : stone;
                 }
             }
             return Save(WallTopPath, px, n, true);
+        }
+
+        /// <summary>The sand floor tile (A.3d): see the constants above. Returns the texture and its linear mean luminance.</summary>
+        public static (Texture2D texture, float meanLuminance) BakeSand()
+        {
+            int n = SandSize, cellPx = n / SandCellsPerTile, slabPx = cellPx * SandSlabCells, slabs = n / slabPx;
+            var rng = new System.Random(SandSeed);
+            var slabTint = new float[slabs * slabs];
+            for (int i = 0; i < slabTint.Length; i++) slabTint[i] = 1f + Range(rng, -SandSlabVariation, SandSlabVariation);
+            var px = new Color[n * n];
+            for (int y = 0; y < n; y++)
+            {
+                int row = y / slabPx;
+                // Running bond: every other row of slabs is shifted by one cell.
+                int shift = (row & 1) * cellPx;
+                for (int x = 0; x < n; x++)
+                {
+                    int sx = ((x + shift) % n) / slabPx;
+                    float lx = (x + shift) % slabPx + 0.5f, ly = y % slabPx + 0.5f;
+                    float edge = Mathf.Min(Mathf.Min(lx, slabPx - lx), Mathf.Min(ly, slabPx - ly));
+                    float seam = 1f - Smoothstep(SandSeamPx, SandSeamPx + SandSeamSoftPx, edge);
+                    float mottle = Fbm(x, y, n, 3, SandSeed + 1);
+                    float warm = Smoothstep(0.35f, 0.75f, Fbm(x, y, n, 2, SandSeed + 2)) * SandWarmMottle;
+                    Color c = Color.Lerp(SandBase, SandWarm, warm);
+                    float k = slabTint[row * slabs + sx] * (1f + (mottle - 0.5f) * 2f * SandMottle)
+                              * (1f + (Hash01(x, y, SandSeed) - 0.5f) * 2f * SandGrain) * (1f - SandSeamDarken * seam);
+                    px[y * n + x] = new Color(c.r * k, c.g * k, c.b * k, 1f);
+                }
+            }
+            // A few hairline cracks: short random walks that wrap around the tile.
+            for (int crack = 0; crack < SandCracks; crack++)
+            {
+                float cx = Range(rng, 0f, n), cy = Range(rng, 0f, n), dir = Range(rng, 0f, Mathf.PI * 2f);
+                for (int step = 0; step < SandCrackSteps; step++)
+                {
+                    dir += Range(rng, -0.7f, 0.7f);
+                    cx += Mathf.Cos(dir) * SandCrackStepPx;
+                    cy += Mathf.Sin(dir) * SandCrackStepPx;
+                    float fade = 1f - step / (float)SandCrackSteps;
+                    for (int dy = -1; dy <= 1; dy++)
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int x = Mod((int)cx + dx, n), y = Mod((int)cy + dy, n);
+                        float d = Mathf.Sqrt(dx * dx + dy * dy);
+                        float k = 1f - SandCrackDarken * fade * Mathf.Clamp01(1.2f - d * 0.6f);
+                        Color c = px[y * n + x];
+                        px[y * n + x] = new Color(c.r * k, c.g * k * 0.98f, c.b * k * 0.95f, 1f);
+                    }
+                }
+            }
+            return Save(SandPath, px, n, true);
         }
 
         public static (Texture2D texture, float meanLuminance) BakeLeaves()
