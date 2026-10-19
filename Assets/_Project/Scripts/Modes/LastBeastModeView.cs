@@ -78,6 +78,10 @@ namespace Arena.Modes
             {
                 GameObject strip = Instantiate(_catalog.FogPrefab, transform);
                 strip.name = "Fog" + i;
+                // D-140: the map theme's fog ("snowstorm" on Snow Valley).
+                Material themeFog = _runner.MapView != null && _runner.MapView.Theme != null ? _runner.MapView.Theme.Fog : null;
+                var stripRenderer = strip.GetComponentInChildren<Renderer>();
+                if (themeFog != null && stripRenderer != null) stripRenderer.sharedMaterial = themeFog;
                 strip.SetActive(false);
                 _fog[i] = strip.transform;
             }

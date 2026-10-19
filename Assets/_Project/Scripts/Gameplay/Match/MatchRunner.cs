@@ -160,7 +160,9 @@ namespace Arena.Gameplay.Match
             _inputCollector.ViewRotated = !freeForAll && LocalTeam != 0;
             _keyboardMouse.Reset();
 
-            _mapView = MapView.Create(transform, _viewCatalog, state.Grid);
+            // D-140: the map's decor and theme by id from the local database (online too); none = the shared look.
+            _mapView = MapView.Create(transform, _viewCatalog, state.Grid, _database.FindMap(defs.Map.Id));
+            if (_mapView.Theme != null && _cameraController != null) _cameraController.Camera.backgroundColor = _mapView.Theme.Background;
             CreateFighterViews(setup);
             _aimIndicator = Instantiate(_viewCatalog.AimIndicatorPrefab, transform);
             _aimIndicator.name = "AimIndicator";

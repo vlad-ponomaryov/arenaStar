@@ -19,6 +19,8 @@ namespace Arena.Tests.EditMode.Data
     /// </summary>
     public sealed class RoyaleThicketMapTests
     {
+        private const int ThicketIndex = 1;
+
         private static GameDatabase Database()
         {
             DataSeeder.SeedAll();
@@ -31,9 +33,10 @@ namespace Arena.Tests.EditMode.Data
         public void SeededMap_45x45_TenSharedSpawns_BoxesWithinLimit_MirroredOnBothAxes()
         {
             GameDatabase db = Database();
-            Assert.AreEqual(1, db.LastBeastMaps.Count);
+            // D-140: Snow Valley is [0] (offline), Thicket [1] (online rotation).
+            Assert.AreEqual(2, db.LastBeastMaps.Count);
             MapConfig config = AssetDatabase.LoadAssetAtPath<MapConfig>(DataSeeder.RoyaleThicketPath);
-            Assert.AreSame(config, db.LastBeastMaps[0]);
+            Assert.AreSame(config, db.LastBeastMaps[ThicketIndex]);
             MapDef map = MapConverter.ToMapDef(config);
             Assert.AreEqual(45, map.Width);
             Assert.AreEqual(45, map.Height);
@@ -54,10 +57,12 @@ namespace Arena.Tests.EditMode.Data
         public void SeededMap_SpawnsReachTheCentre_LastSafeSquareIsOpen()
         {
             GameDatabase db = Database();
-            MatchDefs defs = ConfigConverter.ToLastBeastMatchDefs(db, db.LastBeastMaps[0]);
+            MatchDefs defs = ConfigConverter.ToLastBeastMatchDefs(db, db.LastBeastMaps[ThicketIndex]);
             MapDef map = defs.Map;
             TileGrid grid = map.InitialGrid;
+            // Р3 (D-140): flood from a walkable cell nearest the centre (a map may have a spruce or a wall right in the centre).
             var centre = new GridCell(map.Width / 2, map.Height / 2);
+            for (int d = 0; grid.BlocksMovement(centre.Column, centre.Row) && d < map.Width; d++) centre = new GridCell(map.Width / 2 + d, map.Height / 2);
             var seen = new HashSet<GridCell> { centre };
             var queue = new Queue<GridCell>();
             queue.Enqueue(centre);

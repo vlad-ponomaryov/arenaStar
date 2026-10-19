@@ -29,6 +29,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 31630bfaa678cf24f9d302ae8acf938a, type: 2}
   LastBeastMode: {fileID: 11400000, guid: 2d5cefa662678dc44a2d909785f3388c, type: 2}
   LastBeastMaps:
+  - {fileID: 11400000, guid: 49eef2bdee9bcb244ac2ffd027a02ecc, type: 2}
   - {fileID: 11400000, guid: 6eecf0a93a6083c4d9b1ba103073983a, type: 2}
   Strings: {fileID: 11400000, guid: 0a23a9ebe45295648a8a851b6895acff, type: 2}
   BotDifficulties:

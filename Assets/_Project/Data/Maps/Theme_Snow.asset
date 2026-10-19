@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f79711ddd4bd618488167cb0cf4ed49e, type: 3}
+  m_Name: Theme_Snow
+  m_EditorClassIdentifier: Arena.Data::Arena.Data.MapThemeConfig
+  Id: snow
+  Floor: {fileID: 2100000, guid: 51b23acba3ae05544bf39fd956036567, type: 2}
+  Meadow: {fileID: 2100000, guid: 4bd48e5473a30fc4b9b78235e0a93abb, type: 2}
+  Bush: {fileID: 0}
+  BushSeeThrough: {fileID: 0}
+  Water: {fileID: 2100000, guid: 0d08234a3a091c240a457d3c56ff8ed8, type: 2}
+  Fog: {fileID: 2100000, guid: 7070c8609dc921c4885077f0e3719073, type: 2}
+  Props: {fileID: 2100000, guid: 0a6a486d3429ccc4ba0b47977c0a0015, type: 2}
+  BushVariants:
+  - {fileID: 4300000, guid: a8b06129bda35b546a717fde1af2a6ca, type: 2}
+  - {fileID: 4300000, guid: 8c9ad0a4844a20d408fdb9f033b01ba5, type: 2}
+  - {fileID: 4300000, guid: 7dcc4f6f8a517f24a890c3ace1032b08, type: 2}
+  - {fileID: 4300000, guid: 8a64c16d6ba55d9408835685d79237b4, type: 2}
+  - {fileID: 4300000, guid: 3e687c53a44c7104cb2702340ea9376b, type: 2}
+  - {fileID: 4300000, guid: eb3e856b3d37e2047a0cdbd89e9d506c, type: 2}
+  - {fileID: 4300000, guid: 9bb3e66b422754246a05284e1d4a3381, type: 2}
+  - {fileID: 4300000, guid: aa347496618b2d343981b375c05f411f, type: 2}
+  - {fileID: 4300000, guid: aaadcf70cafdea14f815c76e38fcb0b8, type: 2}
+  - {fileID: 4300000, guid: a600f9e5deef20c4698d02dbe2cea42a, type: 2}
+  - {fileID: 4300000, guid: bbd3ce6274fbc454fb81479842724e06, type: 2}
+  - {fileID: 4300000, guid: 0cae66f9fe06a0944b137da6cc29ea62, type: 2}
+  - {fileID: 4300000, guid: c375c6180318a554aa72d628fe2b4a6a, type: 2}
+  - {fileID: 4300000, guid: 5070d9f31af6afe46b765b7add2b7539, type: 2}
+  - {fileID: 4300000, guid: e176abd014b058248a3d40b069c5f643, type: 2}
+  - {fileID: 4300000, guid: 738c39e6fb6f6f6449a6562d77ac87a0, type: 2}
+  - {fileID: 4300000, guid: 344f26e5472517c458092817f99c2ff6, type: 2}
+  - {fileID: 4300000, guid: fbc3ed283dd1f19408bf4eb22177d5da, type: 2}
+  - {fileID: 4300000, guid: 772adc56f3dc6694e91318aa1cf91f7b, type: 2}
+  - {fileID: 4300000, guid: 7ebf1dc1244f79544976f505b5101f43, type: 2}
+  - {fileID: 4300000, guid: 3b45fc4a79c35f646b0d941b4e394c2c, type: 2}
+  - {fileID: 4300000, guid: f64febf4a8d3c1f40afe06ead63d1b0a, type: 2}
+  - {fileID: 4300000, guid: cc5a53eb9bf7b9143aa0ed98c9d44a7e, type: 2}
+  - {fileID: 4300000, guid: f146a26aca614ad4cb52fc68211adfed, type: 2}
+  - {fileID: 4300000, guid: e603a352ef28e38459f60b9741ca1ed2, type: 2}
+  - {fileID: 4300000, guid: 4440e630acfc2e24ab43b65c9c30fe13, type: 2}
+  - {fileID: 4300000, guid: 0bacad6692562c442a1846a9e94e016d, type: 2}
+  - {fileID: 4300000, guid: 946ae84978a7c154b95ab35d501d84f1, type: 2}
+  - {fileID: 4300000, guid: aee6a99383dc87f40b550b802159583e, type: 2}
+  - {fileID: 4300000, guid: 60204e1e679d977419c9306bcf5bc762, type: 2}
+  - {fileID: 4300000, guid: 58f76ef3ab6536948929a0f4850502ea, type: 2}
+  - {fileID: 4300000, guid: 933a1fc5846640244806cc7f7e7ef677, type: 2}
+  Background: {r: 0.61960787, g: 0.6901961, b: 0.7764706, a: 1}
+  FloorOcclusionColor: {r: 0.6117647, g: 0.68235296, b: 0.78431374, a: 1}
+  MeadowEdge: {r: 0.65882355, g: 0.72156864, b: 0.8, a: 1}
+  MeadowInner: {r: 0.7058824, g: 0.7607843, b: 0.83137256, a: 1}
+  FloorPatchCoverage: 0.4
+  FloorDecor: 0
+  Tree: {fileID: 4300000, guid: 4ca3a0793f3126e4fa866ab5d15a6a52, type: 2}
+  Gifts:
+  - {fileID: 4300000, guid: 31fed1a8ad8802543b479d43c257b2b3, type: 2}
+  - {fileID: 4300000, guid: 102a683cd7aa94c4ba12c0c70902dbe8, type: 2}
+  - {fileID: 4300000, guid: decdff81e2110e84b997373a52b4db34, type: 2}
+  GiftBig: {fileID: 4300000, guid: f9740f2ae42ee51429b3fe9df185900c, type: 2}
+  Snowmen:
+  - {fileID: 4300000, guid: 297657a84fc227c4eb3b31964ee0b946, type: 2}
+  - {fileID: 4300000, guid: 7551b7c088df9b34fa141b7c3ac55997, type: 2}
+  FortBrick: {fileID: 4300000, guid: abfeeff87e4c7444ab64ac522dcf2d60, type: 2}
+  FortCorner: {fileID: 4300000, guid: d2fb57e2d64bf95469259080b7eb98af, type: 2}
+  Drift: {fileID: 4300000, guid: 49a1c46302e76334a82ea6cbe20dbb17, type: 2}
+  Sled: {fileID: 4300000, guid: d59d3f2bc7ac0cb48a926f22e1c11c70, type: 2}
+  SnowPile: {fileID: 4300000, guid: 5a8bb2d7e1c1a9041933d4a7f62d21ba, type: 2}
+  FrameTrees:
+  - {fileID: 4300000, guid: 14b0ed34b65d55f41bc7a1308668bade, type: 2}
+  - {fileID: 4300000, guid: f458a57306ba98a4697f48b268e6ea2b, type: 2}
+  FrameTreeSpacing: 1.7
+  FrameTreeOffset: 1.3
+  FrameTreeRings: 2
+  FrameTreeRingStep: 1.5
+  FrameTreeScaleJitter: 0.18
+  SnowmanYawJitter: 25

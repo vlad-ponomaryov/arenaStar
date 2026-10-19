@@ -48,3 +48,5 @@ MonoBehaviour:
   RequiredSpawnsPerTeam: 3
   RequiredSharedSpawns: 0
   RequireCentralSymmetry: 1
+  Decor: []
+  Theme: {fileID: 0}

@@ -32,6 +32,8 @@ namespace Arena.Editor.Data
         public const string AcornsModePath = ModesFolder + "/Acorns.asset";
         public const string LastBeastModePath = ModesFolder + "/LastBeast.asset";
         public const string RoyaleThicketPath = MapsFolder + "/Royale_Thicket.asset";
+        public const string RoyaleSnowValleyPath = MapsFolder + "/Royale_SnowValley.asset";
+        public const string SnowThemePath = MapsFolder + "/Theme_Snow.asset";
         public const string LocalizationFolder = DataRoot + "/Localization";
         public const string StringsPath = LocalizationFolder + "/Strings.asset";
         public const string BotsFolder = DataRoot + "/Bots";
@@ -406,6 +408,64 @@ namespace Arena.Editor.Data
             "......\"\"..............." // text row 22: the middle row (its own mirror)
         };
 
+        // Last Beast map "Snow Valley" (D-139, D-140, Docs/Map-SnowValley-LB.md §3.1 verbatim = Tools/maps/snow_valley_lb_quarter.txt):
+        // 4 snow forts in the corners, 2 ice ponds on the side axis, the spruce square in the centre, 44 gifts; top-left quarter, mirrored.
+        private const string RoyaleSnowValleyId = "royale_snow_valley";
+        private static readonly string[] RoyaleSnowValleyQuarter =
+        {
+            "\"\"\"..................\"\"", // text row 0 (top edge)
+            "\"\"\"....................",
+            ".......S........%.....S",
+            "...........$...........",
+            "..............#........",
+            "...##.........#........",
+            "......##%..%##..\"\"\"...$",
+            "......#......#..\"\"\"....",
+            "\"\"....%......%..\"\"\"....",
+            "\"\".......$$.......#....",
+            ".........$........#..##",
+            "...$..%......%...$.....",
+            "......#......#...%.....",
+            "......##%..%##.....\"\"..",
+            "....##.............\"\"..",
+            "..S............%.......",
+            "..................%....",
+            "...%.....%$...........$",
+            "..\"\"............%......",
+            "..\"\"........\"\"\"....$...",
+            "......~~~..$\"\"\"........",
+            "......~~~..#..........#",
+            "..$...~~~..#.....$...##" // text row 22: the middle row (its own mirror)
+        };
+
+        // Its decor layer (§5, legend in Arena.Data.MapDecor): T spruce, f fort / pier / snow bricks, d drift, s sled, m snowman, G big gift.
+        private static readonly string[] RoyaleSnowValleyDecorQuarter =
+        {
+            ".......................", // text row 0
+            ".......................",
+            "................m......",
+            ".......................",
+            "..............s........",
+            "...dd.........s........",
+            "......fff..fff.........",
+            "......f......f.........",
+            "......f......f.........",
+            "..................s....",
+            "..................s..ff",
+            "......f......f.........",
+            "......f......f...m.....",
+            "......fff..fff.........",
+            "....dd.................",
+            "...............m.......",
+            "..................m....",
+            "...m.....m............G",
+            "................m......",
+            "...................G...",
+            ".......................",
+            "...........f..........T",
+            "...........f.....G...TT" // text row 22
+        };
+
         // PROTO (D-013): body radii in cells.
         private const float RadiusDefault = 0.45f;
         private const float RadiusLarge = 0.55f;
@@ -640,6 +700,8 @@ namespace Arena.Editor.Data
             db.LastBeastMode = SeedLastBeastMode();
             if (db.LastBeastMaps == null) db.LastBeastMaps = new System.Collections.Generic.List<MapConfig>();
             db.LastBeastMaps.Clear();
+            // D-140: the offline Last Beast plays LastBeastMaps[0] (Snow Valley); Thicket stays in the online rotation.
+            db.LastBeastMaps.Add(SeedRoyaleSnowValley());
             db.LastBeastMaps.Add(SeedRoyaleThicket());
             db.Strings = SeedStrings();
             if (db.BotDifficulties == null) db.BotDifficulties = new System.Collections.Generic.List<BotDifficultyConfig>();
@@ -968,6 +1030,21 @@ namespace Arena.Editor.Data
             c.RequiredSpawnsPerTeam = 0;
             c.RequiredSharedSpawns = RoyaleSharedSpawns;
             c.RequireCentralSymmetry = false;
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        private static MapConfig SeedRoyaleSnowValley()
+        {
+            MapConfig c = LoadOrCreate<MapConfig>(RoyaleSnowValleyPath);
+            c.Id = RoyaleSnowValleyId;
+            c.Rows = MirrorQuarter(RoyaleSnowValleyQuarter);
+            c.Decor = MirrorQuarter(RoyaleSnowValleyDecorQuarter);
+            c.RequiredSpawnsPerTeam = 0;
+            c.RequiredSharedSpawns = RoyaleSharedSpawns;
+            c.RequireCentralSymmetry = false;
+            // The snow theme is a view asset (SnowThemeBuilder links it too); null until it is built — the map then uses the shared look.
+            c.Theme = AssetDatabase.LoadAssetAtPath<MapThemeConfig>(SnowThemePath);
             EditorUtility.SetDirty(c);
             return c;
         }

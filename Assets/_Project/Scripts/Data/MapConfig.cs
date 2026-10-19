@@ -25,5 +25,12 @@ namespace Arena.Data
 
         [Tooltip("Team maps must be centrally symmetric (GDD §5.5).")]
         public bool RequireCentralSymmetry;
+
+        [Tooltip("Decor layer (D-140): rows like Rows, one symbol per cell = which prop the view draws there (legend in MapDecor); " +
+                 "empty = the look by the cell type. View only: the simulation and the content pack never read it.")]
+        public string[] Decor = new string[0];
+
+        [Tooltip("Look of this map (materials, colours, decor props); empty = the shared look of the view catalog.")]
+        public MapThemeConfig Theme;
     }
 }

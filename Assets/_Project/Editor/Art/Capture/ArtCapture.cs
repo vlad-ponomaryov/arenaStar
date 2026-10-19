@@ -116,6 +116,85 @@ namespace Arena.Editor.Art.Capture
             Debug.Log(DoneMarker + " " + Path.GetFullPath(dir));
         }
 
+        /// <summary>Folder of <see cref="CaptureLastBeastMap"/> under <see cref="OutRoot"/>.</summary>
+        public const string LastBeastMapStep = "snow_lb";
+
+        /// <summary>Spawn of the first gameplay shot of <see cref="CaptureLastBeastMap"/>: column 7, text row 2 (Map-SnowValley-LB §5 п.6).</summary>
+        private static readonly Vector2Int LastBeastSpawnShot = new Vector2Int(7, 2);
+        private const int TopViewSize = 2048;
+        private const float TopViewMarginCells = 3f;
+
+        /// <summary>
+        /// D-140 (Map-SnowValley-LB §5 п.6): the offline Last Beast map (<c>LastBeastMaps[0]</c>) with its theme and decor through the
+        /// real <see cref="MapView"/>, no fighters — <c>top.png</c> (straight from above, the whole map and its frame), <c>spawn.png</c>
+        /// (the match camera at the spawn of column 7, text row 2) and <c>tree.png</c> (the match camera at the centre spruce), the
+        /// gameplay shots 2× supersampled. Run with <c>Tools/unity-method.ps1 -Graphics -Method
+        /// Arena.Editor.Art.Capture.ArtCapture.CaptureLastBeastMap</c>; writes to <c>Tools/out/art/snow_lb/</c>.
+        /// </summary>
+        public static void CaptureLastBeastMap()
+        {
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+                throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: no graphics device (run with -Graphics, without -nographics)");
+            string dir = Path.Combine(OutRoot, LastBeastMapStep);
+            Directory.CreateDirectory(dir);
+            EditorSceneManager.OpenScene(SceneBuilder.ScenePath(SceneNames.Match), OpenSceneMode.Single);
+            var database = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
+            var catalog = AssetDatabase.LoadAssetAtPath<ViewCatalog>(ViewAssetBuilder.ViewCatalogPath);
+            if (database == null || catalog == null || database.Camera == null || database.LastBeastMaps == null || database.LastBeastMaps.Count == 0)
+                throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: missing GameDatabase/ViewCatalog/CameraConfig/LastBeastMaps");
+            Camera camera = Camera.main;
+            if (camera == null) throw new InvalidOperationException("Arena.Editor.Art.Capture.ArtCapture: Match scene has no main camera");
+            var runner = Object.FindFirstObjectByType<MatchRunner>();
+            s_light = runner != null ? runner.MainLight : null;
+            s_catalog = catalog;
+            SceneBuilder.ApplyMatchEnvironment();
+
+            MapConfig map = database.LastBeastMaps[0];
+            TileGrid grid = MapConverter.ToMapDef(map).InitialGrid;
+            var root = new GameObject("CaptureLastBeastMap");
+            try
+            {
+                MapView view = MapView.Create(root.transform, catalog, in grid, map);
+                if (view.Theme != null) camera.backgroundColor = view.Theme.Background;
+                MatchLightRig.Apply(s_light, 0f, s_catalog);
+
+                camera.orthographic = true;
+                camera.orthographicSize = grid.Height * 0.5f + TopViewMarginCells;
+                camera.transform.SetPositionAndRotation(new Vector3(grid.Width * 0.5f, OrthoCameraDistance, grid.Height * 0.5f), Quaternion.Euler(90f, 0f, 0f));
+                Texture2D top = Render(camera, TopViewSize, TopViewSize);
+                Save(top, dir, "top");
+                Object.DestroyImmediate(top);
+                camera.orthographic = false;
+
+                CameraConfig config = database.Camera;
+                var size = new Vector2(grid.Width, grid.Height);
+                var spawn = new GridCell(LastBeastSpawnShot.x, grid.Height - 1 - LastBeastSpawnShot.y);
+                Vector3[] targets = { WorldCoords.ToWorld(spawn.Center), new Vector3(grid.Width * 0.5f, 0f, grid.Height * 0.5f) };
+                string[] names = { "spawn", "tree" };
+                Quaternion rotation = CameraMath.Rotation(config.PitchDegrees, false);
+                for (int s = 0; s < names.Length; s++)
+                {
+                    Vector3 focus = CameraMath.FocusFree(targets[s], size, config.FreeForwardOffset, config.EdgeInset, config.FreeSideInset);
+                    camera.fieldOfView = config.FieldOfView;
+                    camera.transform.SetPositionAndRotation(CameraMath.Position(focus, rotation, config.Distance), rotation);
+                    Texture2D big = Render(camera, ShotWidth * 2, ShotHeight * 2);
+                    Texture2D shot = Downscale(big, 2);
+                    Object.DestroyImmediate(big);
+                    Save(shot, dir, names[s]);
+                    Object.DestroyImmediate(shot);
+                }
+                Debug.Log("ArtCapture: Last Beast map '" + map.Id + "' decor props " + view.DecorPropCount + ", frame trees " + view.FrameTreeCount +
+                          ", boxes " + view.BoxCount + ", breakables " + view.BreakableCount + ", bushes " + view.BushCount);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                MapShadowMask.Clear();
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+            Debug.Log(DoneMarker + " " + Path.GetFullPath(dir));
+        }
+
         /// <summary>The value after <see cref="StepArgument"/>, or <see cref="DefaultStep"/>; only letters, digits, '.', '-', '_'.</summary>
         public static string ReadStep(string[] args)
         {

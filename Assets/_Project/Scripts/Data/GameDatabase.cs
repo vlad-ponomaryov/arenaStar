@@ -57,6 +57,24 @@ namespace Arena.Data
             return null;
         }
 
+        /// <summary>Map config by id among the default, Acorns and Last Beast maps, or null (views find a map's decor and theme, D-140).
+        /// No allocations.</summary>
+        public MapConfig FindMap(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            if (DefaultMap != null && string.Equals(DefaultMap.Id, id, StringComparison.Ordinal)) return DefaultMap;
+            MapConfig found = FindMap(AcornsMaps, id);
+            return found != null ? found : FindMap(LastBeastMaps, id);
+        }
+
+        private static MapConfig FindMap(List<MapConfig> maps, string id)
+        {
+            if (maps == null) return null;
+            for (int i = 0; i < maps.Count; i++)
+                if (maps[i] != null && string.Equals(maps[i].Id, id, StringComparison.Ordinal)) return maps[i];
+            return null;
+        }
+
         /// <summary>Bot difficulty config of <paramref name="difficulty"/>, or null.</summary>
         public BotDifficultyConfig FindBotDifficulty(BotDifficulty difficulty)
         {
