@@ -1,13 +1,14 @@
-"""Elara sound set: original synthesis (numpy + scipy), no samples.
+"""Roarik sound set (copy of synth_brumm.py with Roarik parameters: heavy toy-dino stomps, "chomp" bite = jaw clack +
+short growl, royal roar ult, grunt hurt, low pompous comic voice with a growly "rr"): original synthesis (numpy + scipy),
+no samples.
 
-Writes 16-bit mono WAV files to Assets/_Project/Audio/Fighters/Elara/, a preview
+Writes 16-bit mono WAV files to Assets/_Project/Audio/Fighters/Roarik/, a preview
 (all sounds in a row) and a spectrogram sheet to Tools/out/audio/, and prints
 objective checks (duration, peak, edge clicks, spectral centroid, voice f0).
 
 Deterministic: fixed seed, all tunable parameters in dictionaries below.
-Usage:  python Tools/Audio/synth_lark.py
-Brief:  Docs/Briefs/A-Roster3D.md (sounds). Copy of synth_lark.py retuned for Elara:
-        lobbed star "twinkle-whoosh", sparkly hit, "Starfall" shimmer + soft boom ult, bright 12-year-old girl voice.
+Usage:  python Tools/Audio/synth_roarik.py
+Brief:  Docs/Briefs/A-Roster3D.md
 """
 import os
 import sys
@@ -17,7 +18,7 @@ from scipy import signal
 from scipy.io import wavfile
 
 # ---------------------------------------------------------------- parameters
-SEED = 20261042
+SEED = 20261124
 SR = 44100
 PEAK_DBFS = -1.0
 FADE_IN_MS = 3.0
@@ -25,91 +26,93 @@ FADE_OUT_MS = 5.0
 PREVIEW_GAP_S = 0.4
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-OUT_DIR = os.path.join(ROOT, "Assets", "_Project", "Audio", "Fighters", "Elara")
+OUT_DIR = os.path.join(ROOT, "Assets", "_Project", "Audio", "Fighters", "Roarik")
 PREVIEW_DIR = os.path.join(ROOT, "Tools", "out", "audio")
 
 # Footsteps: rubber-sole "thump" + a little scuff noise.
 # Thump kept above ~100 Hz so it is still audible on phone speakers.
 STEP = {
     "variants": [  # (duration s, thump start Hz, thump end Hz, scuff level, scuff centre Hz)
-        (0.060, 300.0, 160.0, 0.40, 2600.0),
-        (0.065, 285.0, 150.0, 0.38, 2800.0),
-        (0.070, 320.0, 165.0, 0.42, 2400.0),
-        (0.075, 275.0, 145.0, 0.40, 2700.0),
+        (0.190, 190.0, 85.0, 0.32, 1000.0),
+        (0.200, 180.0, 80.0, 0.30, 1100.0),
+        (0.185, 200.0, 88.0, 0.34, 950.0),
+        (0.210, 175.0, 78.0, 0.30, 1050.0),
     ],
-    "thump_decay": 0.022,
-    "scuff_decay": 0.018,
-    "scuff_delay": 0.004,
-    "lowpass": 3000.0,
+    "thump_decay": 0.060,
+    "scuff_decay": 0.025,
+    "scuff_delay": 0.006,
+    "lowpass": 2200.0,
 }
 
 # Blaster shot: low thump + soft harmonic glide (up, then down) + small hiss.
-SHOT = {
+SHOT = {  # bite "chomp": low thump + growly glide + a bright jaw clack (hiss band, very short)
     "variants": [  # (duration s, glide base Hz)
-        (0.300, 660.0),
-        (0.320, 590.0),
-        (0.290, 740.0),
+        (0.220, 120.0),
+        (0.210, 110.0),
+        (0.230, 128.0),
     ],
-    "thump_hz": (160.0, 70.0),
-    "thump_decay": 0.045,
-    "thump_level": 0.25,
-    "glide_up": 1.5,          # base -> base*up in glide_up_time
-    "glide_up_time": 0.080,
-    "glide_down": 1.35,        # then -> base*down at the end
-    "harmonics": [1.0, 0.25, 0.30, 0.08],
+    "thump_hz": (180.0, 60.0),
+    "thump_decay": 0.050,
+    "thump_level": 1.0,
+    "glide_up": 1.25,
+    "glide_up_time": 0.040,
+    "glide_down": 0.70,
+    "harmonics": [1.0, 0.70, 0.50, 0.32, 0.20, 0.12],
     "tone_level": 0.60,
-    "tone_attack": 0.006,
-    "tone_decay": 0.120,
-    "tone_lowpass": 3200.0,
-    "vibrato_hz": 9.0,
-    "vibrato_depth": 0.015,
-    "hiss_band": (500.0, 2600.0),
-    "hiss_level": 0.30,
-    "hiss_decay": 0.040,
+    "tone_attack": 0.010,
+    "tone_decay": 0.090,
+    "tone_lowpass": 1600.0,
+    "vibrato_hz": 31.0,          # growl roughness
+    "vibrato_depth": 0.07,
+    "hiss_band": (1500.0, 4200.0),
+    "hiss_level": 1.6,
+    "hiss_decay": 0.012,
 }
 
 # Projectile hit: dense soft "slap" + a short sparkle.
 HIT = {
     "duration": 0.150,
-    "thud_hz": (320.0, 140.0),
+    "thud_hz": (160.0, 75.0),
     "thud_decay": 0.030,
     "slap_band": (250.0, 1400.0),
-    "slap_level": 0.35,
+    "slap_level": 1.0,
     "slap_decay": 0.018,
-    "sparkle_hz": [1980.0, 2640.0, 3300.0],
+    "sparkle_hz": [2350.0, 3100.0, 3900.0],
     "sparkle_delays": [0.010, 0.022, 0.034],
-    "sparkle_level": 0.22,
+    "sparkle_level": 0.0,
     "sparkle_decay": 0.030,
 }
 
 # Ultimate: 0.3 s charge + big discharge.
-ULT = {
-    "duration": 1.20,
-    "charge_time": 0.70,
-    "charge_hz": (330.0, 990.0),
-    "charge_harmonics": [1.0, 0.45, 0.22, 0.10],
-    "charge_tremolo_hz": (10.0, 30.0),
-    "charge_level": 0.55,
-    "charge_noise_band": (600.0, 2400.0),
-    "charge_noise_level": 0.10,
-    "boom_hz": (95.0, 38.0),
-    "boom_decay": 0.170,
-    "boom_level": 0.30,
-    "blast_hz": (880.0, 1320.0),
-    "blast_harmonics": [1.0, 0.6, 0.35, 0.2, 0.1],
-    "blast_decay": 0.260,
-    "blast_level": 0.55,
-    "blast_lowpass": 3500.0,
-    "rumble_lowpass": 900.0,
-    "rumble_level": 0.35,
-    "rumble_decay": 0.330,
+ULT = {  # "Royal Roar": short inhale + long growly roar with a low boom
+    "duration": 1.30,
+    "charge_time": 0.16,
+    "charge_hz": (90.0, 150.0),
+    "charge_harmonics": [1.0, 0.4, 0.15],
+    "charge_tremolo_hz": (6.0, 14.0),
+    "charge_level": 0.45,
+    "charge_noise_band": (500.0, 2000.0),
+    "charge_noise_level": 0.30,
+    "boom_hz": (75.0, 36.0),
+    "boom_decay": 0.200,
+    "boom_level": 0.8,
+    "blast_hz": (190.0, 92.0),
+    "blast_harmonics": [1.0, 0.8, 0.6, 0.45, 0.32, 0.22, 0.14],
+    "blast_decay": 0.480,
+    "blast_level": 0.85,
+    "blast_lowpass": 2000.0,
+    "blast_growl_hz": 27.0,
+    "blast_growl_depth": 0.45,
+    "rumble_lowpass": 800.0,
+    "rumble_level": 0.40,
+    "rumble_decay": 0.400,
 }
 
-# Hurt: dull thud + short armour squeak (no voice).
+# Hurt: dull thud + a short low grunt tone (no words).
 HURT = {
     "variants": [  # (duration s, thud start Hz, squeak start Hz, squeak end Hz)
-        (0.160, 130.0, 1150.0, 1550.0),
-        (0.180, 115.0, 1350.0, 1050.0),
+        (0.200, 120.0, 260.0, 190.0),
+        (0.220, 110.0, 240.0, 170.0),
     ],
     "thud_end_ratio": 0.5,
     "thud_decay": 0.040,
@@ -117,56 +120,60 @@ HURT = {
     "noise_level": 0.35,
     "noise_decay": 0.030,
     "squeak_delay": 0.025,
-    "squeak_len": 0.070,
-    "squeak_level": 0.16,
-    "squeak_vibrato_hz": 45.0,
-    "squeak_vibrato_depth": 0.03,
+    "squeak_len": 0.110,
+    "squeak_level": 0.30,
+    "squeak_vibrato_hz": 30.0,
+    "squeak_vibrato_depth": 0.05,
 }
 
-# Teen-girl vowel formants (slightly lower than Theo's child set) (Hz): F1, F2, F3, F4.
-VOWELS = {
-    "a": (900.0, 1550.0, 3300.0, 4300.0),
-    "e": (600.0, 2250.0, 3400.0, 4400.0),
-    "i": (380.0, 2850.0, 3650.0, 4500.0),
-    "o": (560.0, 1000.0, 3100.0, 4200.0),
-    "u": (420.0, 950.0, 3000.0, 4100.0),
+# Child-like vowel formants (Hz): F1, F2, F3, F4.
+VOWELS = {  # big cartoon creature, adult-male-ish formants (lower again)
+    "a": (700.0, 1150.0, 2450.0, 3300.0),
+    "e": (520.0, 1900.0, 2600.0, 3500.0),
+    "i": (300.0, 2300.0, 3000.0, 3700.0),
+    "o": (450.0, 780.0, 2400.0, 3200.0),
+    "u": (320.0, 740.0, 2300.0, 3100.0),
 }
 FORMANT_BW = (90.0, 130.0, 220.0, 300.0)
 
 # Wordless voice: f0 contour points (t s, Hz), vowel path (t s, vowel),
 # amplitude points (t s, gain), breath onset ("h") length, breath level.
 VOICE = {
-    "elara_vo_effort": {  # "he!" on ult
+    "roarik_vo_effort": {  # growly "hrra!" on the roar
+        "duration": 0.38,
+        "f0": [(0.0, 120.0), (0.10, 150.0), (0.38, 112.0)],
+        "vowels": [(0.0, "a"), (0.38, "a")],
+        "amp": [(0.0, 0.0), (0.06, 0.0), (0.10, 1.0), (0.26, 0.85), (0.38, 0.0)],
+        "breath_onset": 0.08,
+        "breath_level": 0.12,
+        "growl": 0.35,
+    },
+    "roarik_vo_hurt": {  # offended "oof!"
         "duration": 0.30,
-        "f0": [(0.0, 360.8), (0.08, 387.9), (0.30, 324.7)],
-        "vowels": [(0.0, "e"), (0.30, "a")],
-        "amp": [(0.0, 0.0), (0.06, 0.0), (0.09, 1.0), (0.18, 0.85), (0.30, 0.0)],
-        "breath_onset": 0.07,
-        "breath_level": 0.10,
-    },
-    "elara_vo_hurt": {  # "ai"
-        "duration": 0.34,
-        "f0": [(0.0, 396.9), (0.10, 401.4), (0.34, 297.7)],
-        "vowels": [(0.0, "a"), (0.14, "a"), (0.26, "i"), (0.34, "i")],
-        "amp": [(0.0, 0.0), (0.02, 1.0), (0.20, 0.8), (0.34, 0.0)],
+        "f0": [(0.0, 150.0), (0.08, 158.0), (0.30, 112.0)],
+        "vowels": [(0.0, "o"), (0.30, "u")],
+        "amp": [(0.0, 0.0), (0.02, 1.0), (0.18, 0.75), (0.30, 0.0)],
         "breath_onset": 0.0,
         "breath_level": 0.05,
+        "growl": 0.15,
     },
-    "elara_vo_win": {  # joyful "ye-e!" rising
-        "duration": 0.75,
-        "f0": [(0.0, 288.6), (0.12, 306.7), (0.45, 378.8), (0.75, 405.9)],
-        "vowels": [(0.0, "i"), (0.08, "i"), (0.20, "e"), (0.75, "e")],
-        "amp": [(0.0, 0.0), (0.03, 0.8), (0.20, 1.0), (0.60, 0.9), (0.75, 0.0)],
+    "roarik_vo_win": {  # pompous "ha-HAA!" (two beats, the second higher)
+        "duration": 0.80,
+        "f0": [(0.0, 125.0), (0.14, 130.0), (0.22, 128.0), (0.30, 160.0), (0.60, 168.0), (0.80, 135.0)],
+        "vowels": [(0.0, "a"), (0.80, "a")],
+        "amp": [(0.0, 0.0), (0.03, 0.9), (0.14, 0.8), (0.20, 0.15), (0.28, 1.0), (0.62, 0.9), (0.80, 0.0)],
+        "breath_onset": 0.05,
+        "breath_level": 0.06,
+        "growl": 0.12,
+    },
+    "roarik_vo_lose": {  # deflated "aww-oo..." falling
+        "duration": 0.90,
+        "f0": [(0.0, 150.0), (0.30, 135.0), (0.40, 142.0), (0.90, 102.0)],
+        "vowels": [(0.0, "a"), (0.35, "o"), (0.90, "u")],
+        "amp": [(0.0, 0.0), (0.04, 0.9), (0.30, 0.75), (0.36, 0.45), (0.44, 0.85), (0.90, 0.0)],
         "breath_onset": 0.0,
         "breath_level": 0.05,
-    },
-    "elara_vo_lose": {  # sad "o-o..." falling
-        "duration": 0.85,
-        "f0": [(0.0, 360.8), (0.30, 333.7), (0.38, 351.8), (0.85, 270.6)],
-        "vowels": [(0.0, "o"), (0.85, "u")],
-        "amp": [(0.0, 0.0), (0.04, 0.9), (0.28, 0.75), (0.34, 0.45), (0.42, 0.85), (0.85, 0.0)],
-        "breath_onset": 0.0,
-        "breath_level": 0.04,
+        "growl": 0.10,
     },
 }
 VOICE_COMMON = {
@@ -174,13 +181,14 @@ VOICE_COMMON = {
     "vibrato_cents": 18.0,
     "jitter_cents": 6.0,
     "tilt": 1.0,              # harmonic amplitude ~ 1/k^tilt
-    "max_harm_hz": 6000.0,
+    "max_harm_hz": 5000.0,
+    "growl_hz": 29.0,          # amplitude "rr" (per-voice depth: spec["growl"])
     "frame_s": 0.002,
 }
 
 CHECKS = {
-    "shot_centroid_max_hz": 3000.0,
-    "voice_f0_range": (270.0, 420.0),
+    "shot_centroid_max_hz": 2500.0,  # applies to roarik_attack
+    "voice_f0_range": (100.0, 170.0),
     "voice_f0_tolerance": 15.0,
     "lead_silence_ms": 5.0,
     "edge_click_ratio": 0.02,   # |first|, |last| sample vs peak
@@ -279,21 +287,26 @@ def make_step(v):
 
 
 def make_shot(v):
-    """Dart launcher: air puff (band noise) + rubbery rising "thwip" + small low pop."""
     p = SHOT
     dur, base = v
     t = t_axis(dur)
     ph, _ = sweep_phase(*p["thump_hz"], t, curve=0.35)
     thump = p["thump_level"] * np.sin(ph) * attack_decay(t, 0.002, p["thump_decay"])
     up_t = p["glide_up_time"]
-    f = np.where(t < up_t, base * (p["glide_up"] ** (t / up_t)),
-                 base * p["glide_up"] * ((p["glide_down"] / p["glide_up"]) ** ((t - up_t) / (dur - up_t))))
+    f = np.where(
+        t < up_t,
+        base * (p["glide_up"] ** (t / up_t)),
+        base * p["glide_up"] * ((p["glide_down"] / p["glide_up"]) ** ((t - up_t) / (dur - up_t))),
+    )
+    f = f * (1 + p["vibrato_depth"] * np.sin(2 * np.pi * p["vibrato_hz"] * t))
     tone = harmonic_tone(f, p["harmonics"])
+    # second slightly detuned voice for warmth
+    tone += 0.5 * harmonic_tone(f * 1.007, p["harmonics"])
     tone = lowpass(tone, p["tone_lowpass"], order=4)
-    tone *= p["tone_level"] * attack_decay(t, p["tone_attack"], p["tone_decay"], 0.012)
-    puff = bandpass(noise(len(t)), *p["hiss_band"])
-    puff *= p["hiss_level"] / (np.std(puff) + 1e-9) * 0.3 * attack_decay(t, 0.003, p["hiss_decay"])
-    return thump + tone + puff
+    tone *= p["tone_level"] * attack_decay(t, p["tone_attack"], p["tone_decay"])
+    hiss = bandpass(noise(len(t)), *p["hiss_band"])
+    hiss *= p["hiss_level"] / (np.std(hiss) + 1e-9) * 0.3 * attack_decay(t, 0.002, p["hiss_decay"])
+    return thump + tone + hiss
 
 
 def make_hit():
@@ -318,7 +331,7 @@ def make_ult():
     f = p["charge_hz"][0] * (p["charge_hz"][1] / p["charge_hz"][0]) ** (x ** 1.4)
     trem_rate = p["charge_tremolo_hz"][0] + (p["charge_tremolo_hz"][1] - p["charge_tremolo_hz"][0]) * x
     trem = 0.75 + 0.25 * np.sin(2 * np.pi * np.cumsum(trem_rate) / SR)
-    charge_env = (0.12 + 0.88 * x ** 1.6) * (t < ct + 0.01)
+    charge_env = (0.35 + 0.65 * x ** 1.6) * (t < ct + 0.01)
     charge_env = charge_env * np.clip((ct + 0.01 - t) / 0.01, 0, 1)
     charge = p["charge_level"] * harmonic_tone(f, p["charge_harmonics"]) * trem * charge_env
     cn = bandpass(noise(len(t)), *p["charge_noise_band"])
@@ -332,6 +345,7 @@ def make_ult():
     blast = harmonic_tone(fbl * after + 1e-3, p["blast_harmonics"])
     blast += 0.5 * harmonic_tone((fbl * 1.01) * after + 1e-3, p["blast_harmonics"])
     blast = lowpass(blast, p["blast_lowpass"], order=4) * attack_decay(t, 0.008, p["blast_decay"], ct)
+    blast *= 1 - p["blast_growl_depth"] * 0.5 * (1 + np.sin(2 * np.pi * p["blast_growl_hz"] * t))
     rumble = lowpass(noise(len(t)), p["rumble_lowpass"], order=4)
     rumble *= p["rumble_level"] / (np.std(rumble) + 1e-9) * 0.3 * attack_decay(t, 0.004, p["rumble_decay"], ct)
     return charge + p["boom_level"] * boom + p["blast_level"] * blast + rumble
@@ -383,7 +397,7 @@ def make_voice(spec):
     frames = np.arange(0, dur + c["frame_s"], c["frame_s"])
     ft = vowel_track(spec["vowels"], frames)
     f0_fr = np.interp(frames, t, f0)
-    kmax = int(c["max_harm_hz"] / 300.0) + 1
+    kmax = int(c["max_harm_hz"] / 100.0) + 1
     voiced = np.zeros_like(t)
     norm = None
     for k in range(1, kmax + 1):
@@ -392,7 +406,7 @@ def make_voice(spec):
         g = g / k ** c["tilt"] * (fk < c["max_harm_hz"])
         voiced += np.interp(t, frames, g) * np.sin(k * phase)
     amp = interp_points(spec["amp"], t)
-    voiced *= amp
+    voiced *= amp * (1 - spec.get("growl", 0.0) * 0.5 * (1 + np.sin(2 * np.pi * c["growl_hz"] * t)))
     # breath: noise shaped by the current vowel's F2/F3 region, plus "h" onset
     br = bandpass(noise(len(t)), 1200.0, 4500.0)
     br /= np.std(br) + 1e-9
@@ -412,7 +426,7 @@ def centroid(x):
     return float(np.sum(freqs * spec) / np.sum(spec))
 
 
-def f0_track(x, fmin=150.0, fmax=700.0):
+def f0_track(x, fmin=80.0, fmax=700.0):
     win = int(0.030 * SR)
     hop = int(0.010 * SR)
     peak = np.max(np.abs(x))
@@ -441,9 +455,9 @@ def check(name, x):
     ok = lead_ms <= CHECKS["lead_silence_ms"] and edge <= CHECKS["edge_click_ratio"] and peak_db <= -0.99
     info = (f"{name:18s} {len(x) / SR * 1000:6.0f} ms  peak {peak_db:5.2f} dBFS  lead {lead_ms:4.1f} ms  "
             f"edge {edge:.3f}  dHead {head:.3f} dTail {tail:.3f}  centroid {centroid(x):6.0f} Hz")
-    if name.startswith("elara_attack") and centroid(x) > CHECKS["shot_centroid_max_hz"]:
+    if name.startswith("roarik_attack") and centroid(x) > CHECKS["shot_centroid_max_hz"]:
         ok = False
-    if name.startswith("elara_vo"):
+    if name.startswith("roarik_vo"):
         tr = f0_track(x)
         lo, hi = CHECKS["voice_f0_range"]
         tol = CHECKS["voice_f0_tolerance"]
@@ -458,14 +472,14 @@ def check(name, x):
 def build_all():
     sounds = []
     for i, v in enumerate(STEP["variants"], 1):
-        sounds.append((f"elara_step_{i:02d}", make_step(v)))
+        sounds.append((f"roarik_step_{i:02d}", make_step(v)))
     for i, v in enumerate(SHOT["variants"], 1):
-        sounds.append((f"elara_attack_{i:02d}", make_shot(v)))
-    sounds.append(("elara_hit", make_hit()))
-    sounds.append(("elara_ult", make_ult()))
+        sounds.append((f"roarik_attack_{i:02d}", make_shot(v)))
+    sounds.append(("roarik_hit", make_hit()))
+    sounds.append(("roarik_ult", make_ult()))
     for i, v in enumerate(HURT["variants"], 1):
-        sounds.append((f"elara_hurt_{i:02d}", make_hurt(v)))
-    for name in ("elara_vo_effort", "elara_vo_hurt", "elara_vo_win", "elara_vo_lose"):
+        sounds.append((f"roarik_hurt_{i:02d}", make_hurt(v)))
+    for name in ("roarik_vo_effort", "roarik_vo_hurt", "roarik_vo_win", "roarik_vo_lose"):
         sounds.append((name, make_voice(VOICE[name])))
     return [(n, finalize(x)) for n, x in sounds]
 
@@ -493,7 +507,7 @@ def make_sheet(sounds, path):
         ax.tick_params(labelsize=7)
     for ax in list(axes.flat)[len(sounds):]:
         ax.axis("off")
-    fig.suptitle("Elara SFX - spectrograms (0-8 kHz)", fontsize=11)
+    fig.suptitle("Roarik SFX - spectrograms (0-8 kHz)", fontsize=11)
     fig.tight_layout()
     fig.savefig(path, dpi=90)
     plt.close(fig)
@@ -512,8 +526,8 @@ def main():
         _, xi = wavfile.read(os.path.join(OUT_DIR, name + ".wav"))
         all_ok &= check(name, xi.astype(float) / 32768.0)
         preview += [x, gap]
-    write_wav(os.path.join(PREVIEW_DIR, "elara_preview.wav"), np.concatenate(preview))
-    make_sheet(sounds, os.path.join(PREVIEW_DIR, "elara_sheet.png"))
+    write_wav(os.path.join(PREVIEW_DIR, "roarik_preview.wav"), np.concatenate(preview))
+    make_sheet(sounds, os.path.join(PREVIEW_DIR, "roarik_sheet.png"))
     print(f"SFX: {len(sounds)} files -> {OUT_DIR}; checks {'OK' if all_ok else 'FAILED'}")
     return 0 if all_ok else 1
 
