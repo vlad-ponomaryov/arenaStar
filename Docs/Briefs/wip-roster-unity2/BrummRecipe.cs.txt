@@ -1,0 +1,30 @@
+using Arena.Gameplay.View;
+using UnityEngine;
+
+namespace Arena.Editor.Art.Fighters.Recipes
+{
+    /// <summary>
+    /// Brumm, the big kind heavy gunner in barrel armour with a cactus pot (A-Roster3D-unity2): FBX body, texture and weapon from <c>Art/Source/3D/brumm/source.md</c>, installed like Theo through
+    /// <see cref="FbxFighterRecipe"/>. The view of the data fighter <c>"brumm"</c> (D-150).
+    /// </summary>
+    public static class BrummRecipe
+    {
+        public const string FighterId = "brumm";
+        public const string Hero = "brumm";
+        /// <summary>The FBX is ≈ 1.0 tall (source.md); bigger than Theo, below Kovach (1.95).</summary>
+        public const float Scale = 1.75f;
+
+        public static FighterModelRecipe Create() => FbxFighterRecipe.Create(new FbxFighterSpec
+        {
+            FighterId = FighterId,
+            Hero = Hero,
+            Scale = Scale,
+            AttackStyle = FighterAttackStyle.Shoot,
+            UltStyle = FighterAttackStyle.Throw,
+            TrickStyle = FighterTrickStyle.HelmetTap,
+            LidRadii = new Vector3(0.028f, 0.020f, 0.010f),
+            LidLift = -0.002f,
+            LidSegments = 6
+        });
+    }
+}

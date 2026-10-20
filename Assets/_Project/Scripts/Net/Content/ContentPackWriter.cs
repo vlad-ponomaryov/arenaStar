@@ -169,6 +169,7 @@ namespace Arena.Net.Content
             w.WriteFloat(a.ConeAngleDegrees);
             w.WriteVarInt(a.BurstCount);
             w.WriteVarInt(a.BurstIntervalTicks);
+            w.WriteVarInt(a.RecoveryTicks);
             w.WriteFloat(a.DashDistance);
             w.WriteFloat(a.DashSpeed);
             w.WriteBool(a.BreaksWalls);

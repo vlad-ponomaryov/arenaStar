@@ -26,6 +26,9 @@ namespace Arena.Core.Balance
         /// <summary>Health of the target dummy of the ult measure (never defeated during <see cref="FightSeconds"/>).</summary>
         public int DummyHealth;
 
+        /// <summary>The attacker starts with all its charges (the burst kill time) instead of one (the sustained rate).</summary>
+        public bool FullCharges;
+
         public void Validate()
         {
             if (MapWidth < 3 || MapHeight < 3) throw new ArgumentException("BalanceProbeSettings: map must be at least 3×3");

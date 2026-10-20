@@ -877,7 +877,7 @@ namespace Arena.Bots
         }
 
         private bool CanPressAttack(in FighterState f, in BotBrain b, int tick) =>
-            f.BurstShotsLeft <= 0 && f.Charges > 0 && !f.IsHeld(InputButtons.Attack) && !f.IsDashing && !f.Stunned && tick >= b.NextShotTick;
+            AttackSystem.IsReady(in f, tick) && f.Charges > 0 && !f.IsHeld(InputButtons.Attack) && !f.IsDashing && !f.Stunned && tick >= b.NextShotTick;
 
         /// <summary>True (and the spread aim direction) if the bot presses the attack at its target this tick.</summary>
         private bool TryAim(MatchState state, MatchDefs defs, int slot, int target, int tick, out Vec2 aim)

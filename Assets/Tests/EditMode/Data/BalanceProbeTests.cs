@@ -68,6 +68,41 @@ namespace Arena.Tests.EditMode.Data
             Assert.AreEqual(string.Empty, failures.ToString(), "average kill time outside " + SoftKillMin + "–" + SoftKillMax + " s");
         }
 
+        /// <summary>Melee fighters whose stored charges must not defeat anyone almost at once (D-149: Kovach's burst).</summary>
+        private static readonly string[] HeavySwingFighters = { "bruno" };
+        private const float MinBurstKillSeconds = 1.7f;
+
+        /// <summary>
+        /// Burst kill time (D-149): the attacker starts with all its charges and presses whenever it can. Logs the whole table;
+        /// the heavy swingers need at least <see cref="MinBurstKillSeconds"/> against every fighter.
+        /// </summary>
+        [Test]
+        public void BurstKillTimes_HeavySwingersAreNotInstant()
+        {
+            MatchDefs defs = LoadDefs();
+            BalanceProbeSettings s = Settings();
+            s.FullCharges = true;
+            int n = defs.Fighters.Length;
+            var table = new StringBuilder("Burst kill time, s (full charges; row = attacker, column = defender):\n");
+            var failures = new StringBuilder();
+            for (int a = 0; a < n; a++)
+            {
+                bool heavy = System.Array.IndexOf(HeavySwingFighters, defs.Fighters[a].Id) >= 0;
+                table.Append(defs.Fighters[a].Id).Append(':');
+                for (int d = 0; d < n; d++)
+                {
+                    float seconds = BalanceProbe.KillSeconds(defs, a, d, s);
+                    table.Append(' ').Append(defs.Fighters[d].Id).Append(' ').Append(seconds.ToString("0.00"));
+                    if (heavy && seconds < MinBurstKillSeconds)
+                        failures.Append(defs.Fighters[a].Id).Append('→').Append(defs.Fighters[d].Id).Append(' ').Append(seconds.ToString("0.00")).Append("; ");
+                }
+                table.Append('\n');
+            }
+            TestContext.WriteLine(table.ToString());
+            UnityEngine.Debug.Log(table.ToString());
+            Assert.AreEqual(string.Empty, failures.ToString(), "burst kill faster than " + MinBurstKillSeconds + " s");
+        }
+
         [Test]
         public void UltCharges_In30SecondsOfActiveFight_InSoftRange()
         {

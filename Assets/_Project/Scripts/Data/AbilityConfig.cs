@@ -59,6 +59,9 @@ namespace Arena.Data
         [Tooltip("Seconds between shots of a burst (PROTO).")]
         [Min(0f)] public float BurstIntervalSeconds;
 
+        [Tooltip("Seconds after the last shot of an attack before the next press is accepted (a heavy swing, D-149); 0 = none.")]
+        [Min(0f)] public float RecoverySeconds;
+
         [Header("Dash")]
         [Tooltip("Dash length in cells.")]
         [Min(0f)] public float DashDistance;

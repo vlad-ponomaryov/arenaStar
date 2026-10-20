@@ -1,0 +1,307 @@
+diff --git a/Assets/Tests/EditMode/Core/AttackTests.cs b/Assets/Tests/EditMode/Core/AttackTests.cs
+index cbfb6da..e19906b 100644
+--- a/Assets/Tests/EditMode/Core/AttackTests.cs
++++ b/Assets/Tests/EditMode/Core/AttackTests.cs
+@@ -47,6 +47,32 @@ public void Attack_SpendsOneCharge_ForWholeBurst_OfFourWithInterval()
+             Assert.AreEqual(F.BurstCount, active);
+         }
+ 
++        [Test]
++        public void Recovery_DelaysTheNextAttack_AfterTheLastShotOfTheBurst()
++        {
++            const int recovery = 10;
++            var defs = F.CreateDefs();
++            defs.Fighters[0].Attack.RecoveryTicks = recovery;
++            var sim = F.CreateWith(defs, F.Slot(0, 0, 10f, 5f));
++            var inputs = F.Inputs();
++            var startTicks = new List<int>();
++            for (int t = 0; t < 60; t++)
++            {
++                // Mash: press on even ticks, release on odd ones (every press is a rising edge).
++                inputs[0] = t % 2 == 0 ? new PlayerInput(Vec2.Zero, Vec2.Up, InputButtons.Attack) : default;
++                int charges = sim.State.Fighters[0].Charges;
++                int tick = sim.State.Tick;
++                sim.Tick(inputs);
++                if (sim.State.Fighters[0].Charges < charges) startTicks.Add(tick);
++            }
++
++            int lastShot = (F.BurstCount - 1) * F.BurstIntervalTicks;
++            Assert.GreaterOrEqual(startTicks.Count, 2);
++            Assert.AreEqual(0, startTicks[0]);
++            Assert.GreaterOrEqual(startTicks[1], lastShot + recovery, "no new attack during the recovery (D-149)");
++            Assert.LessOrEqual(startTicks[1], lastShot + recovery + 1, "the attack is ready right after the recovery");
++        }
++
+         [Test]
+         public void ManualAim_FiresAlongAimDirection()
+         {
+diff --git a/Assets/Tests/EditMode/Data/BalanceProbeTests.cs b/Assets/Tests/EditMode/Data/BalanceProbeTests.cs
+index cabe9ed..afc072b 100644
+--- a/Assets/Tests/EditMode/Data/BalanceProbeTests.cs
++++ b/Assets/Tests/EditMode/Data/BalanceProbeTests.cs
+@@ -68,6 +68,41 @@ public void KillTimes_EveryPairEnds_AverageInSoftRange()
+             Assert.AreEqual(string.Empty, failures.ToString(), "average kill time outside " + SoftKillMin + "–" + SoftKillMax + " s");
+         }
+ 
++        /// <summary>Melee fighters whose stored charges must not defeat anyone almost at once (D-149: Kovach's burst).</summary>
++        private static readonly string[] HeavySwingFighters = { "bruno" };
++        private const float MinBurstKillSeconds = 1.7f;
++
++        /// <summary>
++        /// Burst kill time (D-149): the attacker starts with all its charges and presses whenever it can. Logs the whole table;
++        /// the heavy swingers need at least <see cref="MinBurstKillSeconds"/> against every fighter.
++        /// </summary>
++        [Test]
++        public void BurstKillTimes_HeavySwingersAreNotInstant()
++        {
++            MatchDefs defs = LoadDefs();
++            BalanceProbeSettings s = Settings();
++            s.FullCharges = true;
++            int n = defs.Fighters.Length;
++            var table = new StringBuilder("Burst kill time, s (full charges; row = attacker, column = defender):\n");
++            var failures = new StringBuilder();
++            for (int a = 0; a < n; a++)
++            {
++                bool heavy = System.Array.IndexOf(HeavySwingFighters, defs.Fighters[a].Id) >= 0;
++                table.Append(defs.Fighters[a].Id).Append(':');
++                for (int d = 0; d < n; d++)
++                {
++                    float seconds = BalanceProbe.KillSeconds(defs, a, d, s);
++                    table.Append(' ').Append(defs.Fighters[d].Id).Append(' ').Append(seconds.ToString("0.00"));
++                    if (heavy && seconds < MinBurstKillSeconds)
++                        failures.Append(defs.Fighters[a].Id).Append('→').Append(defs.Fighters[d].Id).Append(' ').Append(seconds.ToString("0.00")).Append("; ");
++                }
++                table.Append('\n');
++            }
++            TestContext.WriteLine(table.ToString());
++            UnityEngine.Debug.Log(table.ToString());
++            Assert.AreEqual(string.Empty, failures.ToString(), "burst kill faster than " + MinBurstKillSeconds + " s");
++        }
++
+         [Test]
+         public void UltCharges_In30SecondsOfActiveFight_InSoftRange()
+         {
+diff --git a/Assets/_Project/Editor/Data/DataSeeder.cs b/Assets/_Project/Editor/Data/DataSeeder.cs
+index f3a8e51..a486112 100644
+--- a/Assets/_Project/Editor/Data/DataSeeder.cs
++++ b/Assets/_Project/Editor/Data/DataSeeder.cs
+@@ -552,7 +552,11 @@ public static class DataSeeder
+ 
+         // Bruno full set (GDD §6): ult "Ram" — dash 6 cells, 1000, knockback 2 cells, stun 0.5 s, breaks walls; trick
+         // "Hard Hat" — −40 % damage taken for 2 s; talent "Stubborn" — +15 % damage below 40 % health. PROTO: speeds, charge.
+-        private const int BrunoUltCharge = 7200;    // PROTO ≈ 6 swings hitting (6 × 1200)
++        private const int BrunoUltCharge = 6000;    // PROTO ≈ 6 swings hitting (6 × 1000, D-149)
++        // D-149 (user: "Kovach kills almost instantly"): 1000 per swing (was 1200) and 0.9 s before the next swing, so the
++        // 3 stored charges no longer land within 0.13 s: a frail fighter takes 3 swings / ≈ 1.8 s point-blank.
++        private const int BrunoSwingDamage = 1000;
++        private const float BrunoSwingRecovery = 0.9f;
+         private const float BrunoRamDistance = 6f;
+         private const float BrunoRamSpeed = 15f;    // PROTO: 6 cells in 0.4 s
+         private const int BrunoRamDamage = 1000;
+@@ -787,7 +791,7 @@ public static void SeedAll()
+             {
+                 //                     id       HP    speed               radius         recharge  attack (range, damage — GDD §6)
+                 SeedFighter("pix",   3400, SpeedClass.Normal, RadiusDefault, 1.4f, Projectile(8f, PixDropSpeed, PixDropRadius, 0, PixBurstCount, PixBurstInterval, 380)),
+-                SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   1.1f, Cone(2.5f, BrunoConeAngle, 1, 0f, 1200)),
++                SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   1.1f, Cone(2.5f, BrunoConeAngle, 1, 0f, BrunoSwingDamage)),
+                 SeedFighter("chomp", 3000, SpeedClass.Normal, RadiusDefault, 1.6f, ChompBomb()),
+                 SeedFighter("kora",  4200, SpeedClass.Slow,   RadiusMedium,  1.5f, KoraCup()),
+                 SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 2.0f, NovaCone()),
+@@ -1363,6 +1367,7 @@ private static void SeedPixAbilities(FighterConfig c)
+ 
+         private static void SeedBrunoAbilities(FighterConfig c)
+         {
++            c.Attack.RecoverySeconds = BrunoSwingRecovery;
+             c.UltChargeRequired = BrunoUltCharge;
+             c.Ult = new AbilityConfig
+             {
+diff --git a/Assets/_Project/Scripts/Bots/BotController.cs b/Assets/_Project/Scripts/Bots/BotController.cs
+index d677161..6a374d1 100644
+--- a/Assets/_Project/Scripts/Bots/BotController.cs
++++ b/Assets/_Project/Scripts/Bots/BotController.cs
+@@ -877,7 +877,7 @@ private static bool NeedsClearShot(AbilityDef ult)
+         }
+ 
+         private bool CanPressAttack(in FighterState f, in BotBrain b, int tick) =>
+-            f.BurstShotsLeft <= 0 && f.Charges > 0 && !f.IsHeld(InputButtons.Attack) && !f.IsDashing && !f.Stunned && tick >= b.NextShotTick;
++            AttackSystem.IsReady(in f, tick) && f.Charges > 0 && !f.IsHeld(InputButtons.Attack) && !f.IsDashing && !f.Stunned && tick >= b.NextShotTick;
+ 
+         /// <summary>True (and the spread aim direction) if the bot presses the attack at its target this tick.</summary>
+         private bool TryAim(MatchState state, MatchDefs defs, int slot, int target, int tick, out Vec2 aim)
+diff --git a/Assets/_Project/Scripts/Core/Balance/BalanceProbe.cs b/Assets/_Project/Scripts/Core/Balance/BalanceProbe.cs
+index d968d70..fb88e39 100644
+--- a/Assets/_Project/Scripts/Core/Balance/BalanceProbe.cs
++++ b/Assets/_Project/Scripts/Core/Balance/BalanceProbe.cs
+@@ -15,7 +15,8 @@ namespace Arena.Core.Balance
+     /// all-floor map, the defender standing still at <see cref="BalanceProbeSettings.DistanceFraction"/> of the attack range,
+     /// the attacker pressing its main attack with auto-aim whenever a charge is ready (talents unlocked, no ult or trick).
+     /// "Continuous hitting" starts without a charge stock: the attacker has one charge for the first shot at tick 0 and then
+-    /// only what recharges (so the result is the sustained rate, not a burst of the 3 stored charges).
++    /// only what recharges (so the result is the sustained rate, not a burst of the 3 stored charges);
++    /// <see cref="BalanceProbeSettings.FullCharges"/> starts with all charges instead (the burst of a fresh fighter, D-149).
+     ///   - <see cref="KillSeconds"/>: time from the first shot to the defeat of the defender;
+     ///   - <see cref="UltsPerFight"/>: ults charged in <see cref="BalanceProbeSettings.FightSeconds"/> of such a fight against an
+     ///     unkillable dummy, × <see cref="BalanceProbeSettings.HitFraction"/> (in a real fight not every attack lands).
+@@ -101,7 +102,7 @@ private static MatchSimulation CreateSim(MatchDefs probe, int attacker, int defe
+             };
+             var sim = new MatchSimulation(probe, setup);
+             ref FighterState a = ref sim.State.Fighters[AttackerSlot];
+-            a.Charges = 1;
++            a.Charges = s.FullCharges ? probe.Rules.MaxCharges : 1;
+             a.ChargeProgressTicks = 0;
+             return sim;
+         }
+@@ -110,7 +111,7 @@ private static MatchSimulation CreateSim(MatchDefs probe, int attacker, int defe
+         private static void Step(MatchSimulation sim, PlayerInput[] inputs)
+         {
+             ref FighterState a = ref sim.State.Fighters[AttackerSlot];
+-            bool press = a.Alive && a.Charges > 0 && a.BurstShotsLeft <= 0 && !a.IsDashing && !a.IsHeld(InputButtons.Attack);
++            bool press = a.Alive && a.Charges > 0 && AttackSystem.IsReady(in a, sim.State.Globals.Tick) && !a.IsDashing && !a.IsHeld(InputButtons.Attack);
+             inputs[AttackerSlot] = press ? new PlayerInput(Vec2.Zero, Vec2.Zero, InputButtons.Attack | InputButtons.AutoAim) : default;
+             sim.Tick(inputs);
+         }
+diff --git a/Assets/_Project/Scripts/Core/Balance/BalanceProbeSettings.cs b/Assets/_Project/Scripts/Core/Balance/BalanceProbeSettings.cs
+index 29aeecb..a9691b3 100644
+--- a/Assets/_Project/Scripts/Core/Balance/BalanceProbeSettings.cs
++++ b/Assets/_Project/Scripts/Core/Balance/BalanceProbeSettings.cs
+@@ -26,6 +26,9 @@ public sealed class BalanceProbeSettings
+         /// <summary>Health of the target dummy of the ult measure (never defeated during <see cref="FightSeconds"/>).</summary>
+         public int DummyHealth;
+ 
++        /// <summary>The attacker starts with all its charges (the burst kill time) instead of one (the sustained rate).</summary>
++        public bool FullCharges;
++
+         public void Validate()
+         {
+             if (MapWidth < 3 || MapHeight < 3) throw new ArgumentException("BalanceProbeSettings: map must be at least 3×3");
+diff --git a/Assets/_Project/Scripts/Core/Defs/AbilityDef.cs b/Assets/_Project/Scripts/Core/Defs/AbilityDef.cs
+index 4fc7d8a..ef11988 100644
+--- a/Assets/_Project/Scripts/Core/Defs/AbilityDef.cs
++++ b/Assets/_Project/Scripts/Core/Defs/AbilityDef.cs
+@@ -54,6 +54,10 @@ public sealed class AbilityDef
+         /// <summary>Ticks between shots of a burst.</summary>
+         public int BurstIntervalTicks;
+ 
++        /// <summary>Ticks after the last shot of an attack before the next press is accepted (a heavy swing that cannot dump
++        /// all stored charges at once, D-149); 0 = none. Only the main attack uses it.</summary>
++        public int RecoveryTicks;
++
+         /// <summary>Dash length in cells (<see cref="DeliveryKind.Dash"/>).</summary>
+         public float DashDistance;
+ 
+@@ -162,6 +166,7 @@ public void Validate(string owner)
+                 throw new ArgumentException(owner + ": only a placed field may block projectiles");
+             if (BurstCount < 1) throw new ArgumentException(owner + ": BurstCount must be ≥ 1");
+             if (BurstCount > 1 && BurstIntervalTicks < 1) throw new ArgumentException(owner + ": BurstIntervalTicks must be ≥ 1");
++            if (RecoveryTicks < 0) throw new ArgumentException(owner + ": RecoveryTicks must be ≥ 0");
+ 
+             if (Effects == null) throw new ArgumentException(owner + ": Effects is null");
+             // Only a dash may have no effects (a pure movement trick); everything else must do something.
+diff --git a/Assets/_Project/Scripts/Core/Sim/Systems/AttackSystem.cs b/Assets/_Project/Scripts/Core/Sim/Systems/AttackSystem.cs
+index 349db21..0a7e207 100644
+--- a/Assets/_Project/Scripts/Core/Sim/Systems/AttackSystem.cs
++++ b/Assets/_Project/Scripts/Core/Sim/Systems/AttackSystem.cs
+@@ -14,9 +14,15 @@ namespace Arena.Core.Sim.Systems
+     /// follows every <see cref="AbilityDef.BurstIntervalTicks"/> in the same direction. A press during a burst is ignored.
+     /// A shot boost (<see cref="EffectKind.BoostShots"/>) is spent at the press and applies to the whole burst.
+     /// Shots are delivered by <see cref="AbilitySystem.Activate"/> (shared with ult and trick).
++    /// After the last shot the next press waits <see cref="AbilityDef.RecoveryTicks"/> (a heavy swing, D-149): the burst
++    /// tick <see cref="FighterState.NextBurstTick"/> then marks the end of the recovery.
+     /// </summary>
+     public static class AttackSystem
+     {
++        /// <summary>True if a press of the attack would start a new attack now (no burst running, the recovery is over);
++        /// charges, dash and stun are checked separately.</summary>
++        public static bool IsReady(in FighterState f, int tick) => f.BurstShotsLeft <= 0 && tick >= f.NextBurstTick;
++
+         public static void Update(MatchState state, MatchDefs defs, in PlayerInput input, SimEventBuffer events, int slot)
+         {
+             ref FighterState f = ref state.Fighters[slot];
+@@ -29,21 +35,21 @@ public static void Update(MatchState state, MatchDefs defs, in PlayerInput input
+                 if (tick >= f.NextBurstTick)
+                 {
+                     f.BurstShotsLeft--;
+-                    f.NextBurstTick = tick + attack.BurstIntervalTicks;
++                    f.NextBurstTick = tick + (f.BurstShotsLeft > 0 ? attack.BurstIntervalTicks : attack.RecoveryTicks);
+                     AbilitySystem.Activate(state, defs, events, slot, attack, abilityRef, f.BurstDir, -1f,
+                         EffectContext.FullDamagePercent + f.ShotBonusPercent, input.ViewDelayTicks);
+                 }
+                 return;
+             }
+ 
+-            if (!f.WasPressed(InputButtons.Attack) || f.IsDashing) return;
++            if (!f.WasPressed(InputButtons.Attack) || f.IsDashing || tick < f.NextBurstTick) return;
+             if (!ChargeSystem.TryConsumeCharge(ref f)) return;
+ 
+             Vec2 dir = AbilitySystem.ResolveDirection(state, defs.Rules, slot, in input, attack);
+             f.Facing = dir;
+             f.BurstDir = dir;
+             f.BurstShotsLeft = attack.BurstCount - 1;
+-            f.NextBurstTick = tick + attack.BurstIntervalTicks;
++            f.NextBurstTick = tick + (f.BurstShotsLeft > 0 ? attack.BurstIntervalTicks : attack.RecoveryTicks);
+             f.ShotBonusPercent = 0;
+             if (f.BoostedShotsLeft > 0)
+             {
+diff --git a/Assets/_Project/Scripts/Data/AbilityConfig.cs b/Assets/_Project/Scripts/Data/AbilityConfig.cs
+index 2f6a707..fc009e2 100644
+--- a/Assets/_Project/Scripts/Data/AbilityConfig.cs
++++ b/Assets/_Project/Scripts/Data/AbilityConfig.cs
+@@ -59,6 +59,9 @@ public sealed class AbilityConfig
+         [Tooltip("Seconds between shots of a burst (PROTO).")]
+         [Min(0f)] public float BurstIntervalSeconds;
+ 
++        [Tooltip("Seconds after the last shot of an attack before the next press is accepted (a heavy swing, D-149); 0 = none.")]
++        [Min(0f)] public float RecoverySeconds;
++
+         [Header("Dash")]
+         [Tooltip("Dash length in cells.")]
+         [Min(0f)] public float DashDistance;
+diff --git a/Assets/_Project/Scripts/Data/Conversion/ConfigConverter.cs b/Assets/_Project/Scripts/Data/Conversion/ConfigConverter.cs
+index b05d1f2..bbee724 100644
+--- a/Assets/_Project/Scripts/Data/Conversion/ConfigConverter.cs
++++ b/Assets/_Project/Scripts/Data/Conversion/ConfigConverter.cs
+@@ -371,6 +371,7 @@ public static AbilityDef ToAbilityDef(AbilityConfig c, string owner)
+                 ConeAngleDegrees = c.ConeAngleDegrees,
+                 BurstCount = c.BurstCount,
+                 BurstIntervalTicks = SimTime.SecondsToTicks(c.BurstIntervalSeconds),
++                RecoveryTicks = SimTime.SecondsToTicks(c.RecoverySeconds),
+                 DashDistance = c.DashDistance,
+                 DashSpeed = c.DashSpeed,
+                 BreaksWalls = c.BreaksWalls,
+diff --git a/Assets/_Project/Scripts/Net/Content/ContentPackHeader.cs b/Assets/_Project/Scripts/Net/Content/ContentPackHeader.cs
+index a6502ab..30eb545 100644
+--- a/Assets/_Project/Scripts/Net/Content/ContentPackHeader.cs
++++ b/Assets/_Project/Scripts/Net/Content/ContentPackHeader.cs
+@@ -15,7 +15,7 @@ public struct ContentPackHeader
+         public const uint MagicValue = 0x434E5241u;
+ 
+         /// <summary>Format of the pack body; bump on any change of <see cref="ContentPackWriter"/> (D-091).</summary>
+-        public const ushort CurrentFormatVersion = 6;
++        public const ushort CurrentFormatVersion = 7;
+ 
+         public const int Size = 18;
+ 
+diff --git a/Assets/_Project/Scripts/Net/Content/ContentPackReader.cs b/Assets/_Project/Scripts/Net/Content/ContentPackReader.cs
+index 09a4bd7..5e7f414 100644
+--- a/Assets/_Project/Scripts/Net/Content/ContentPackReader.cs
++++ b/Assets/_Project/Scripts/Net/Content/ContentPackReader.cs
+@@ -150,6 +150,7 @@ private static AbilityDef ReadOptionalAbility(BitReader r)
+             a.ConeAngleDegrees = r.ReadFloat();
+             a.BurstCount = r.ReadVarInt();
+             a.BurstIntervalTicks = r.ReadVarInt();
++            a.RecoveryTicks = r.ReadVarInt();
+             a.DashDistance = r.ReadFloat();
+             a.DashSpeed = r.ReadFloat();
+             a.BreaksWalls = r.ReadBool();
+diff --git a/Assets/_Project/Scripts/Net/Content/ContentPackWriter.cs b/Assets/_Project/Scripts/Net/Content/ContentPackWriter.cs
+index ac921a3..494420d 100644
+--- a/Assets/_Project/Scripts/Net/Content/ContentPackWriter.cs
++++ b/Assets/_Project/Scripts/Net/Content/ContentPackWriter.cs
+@@ -169,6 +169,7 @@ private static void WriteOptionalAbility(BitWriter w, AbilityDef a)
+             w.WriteFloat(a.ConeAngleDegrees);
+             w.WriteVarInt(a.BurstCount);
+             w.WriteVarInt(a.BurstIntervalTicks);
++            w.WriteVarInt(a.RecoveryTicks);
+             w.WriteFloat(a.DashDistance);
+             w.WriteFloat(a.DashSpeed);
+             w.WriteBool(a.BreaksWalls);

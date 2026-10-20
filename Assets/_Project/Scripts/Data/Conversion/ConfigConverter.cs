@@ -371,6 +371,7 @@ namespace Arena.Data.Conversion
                 ConeAngleDegrees = c.ConeAngleDegrees,
                 BurstCount = c.BurstCount,
                 BurstIntervalTicks = SimTime.SecondsToTicks(c.BurstIntervalSeconds),
+                RecoveryTicks = SimTime.SecondsToTicks(c.RecoverySeconds),
                 DashDistance = c.DashDistance,
                 DashSpeed = c.DashSpeed,
                 BreaksWalls = c.BreaksWalls,

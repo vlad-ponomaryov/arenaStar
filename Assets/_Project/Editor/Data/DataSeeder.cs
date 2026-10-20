@@ -552,7 +552,11 @@ namespace Arena.Editor.Data
 
         // Bruno full set (GDD §6): ult "Ram" — dash 6 cells, 1000, knockback 2 cells, stun 0.5 s, breaks walls; trick
         // "Hard Hat" — −40 % damage taken for 2 s; talent "Stubborn" — +15 % damage below 40 % health. PROTO: speeds, charge.
-        private const int BrunoUltCharge = 7200;    // PROTO ≈ 6 swings hitting (6 × 1200)
+        private const int BrunoUltCharge = 6000;    // PROTO ≈ 6 swings hitting (6 × 1000, D-149)
+        // D-149 (user: "Kovach kills almost instantly"): 1000 per swing (was 1200) and 0.9 s before the next swing, so the
+        // 3 stored charges no longer land within 0.13 s: a frail fighter takes 3 swings / ≈ 1.8 s point-blank.
+        private const int BrunoSwingDamage = 1000;
+        private const float BrunoSwingRecovery = 0.9f;
         private const float BrunoRamDistance = 6f;
         private const float BrunoRamSpeed = 15f;    // PROTO: 6 cells in 0.4 s
         private const int BrunoRamDamage = 1000;
@@ -787,7 +791,7 @@ namespace Arena.Editor.Data
             {
                 //                     id       HP    speed               radius         recharge  attack (range, damage — GDD §6)
                 SeedFighter("pix",   3400, SpeedClass.Normal, RadiusDefault, 1.4f, Projectile(8f, PixDropSpeed, PixDropRadius, 0, PixBurstCount, PixBurstInterval, 380)),
-                SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   1.1f, Cone(2.5f, BrunoConeAngle, 1, 0f, 1200)),
+                SeedFighter("bruno", 5600, SpeedClass.Normal, RadiusLarge,   1.1f, Cone(2.5f, BrunoConeAngle, 1, 0f, BrunoSwingDamage)),
                 SeedFighter("chomp", 3000, SpeedClass.Normal, RadiusDefault, 1.6f, ChompBomb()),
                 SeedFighter("kora",  4200, SpeedClass.Slow,   RadiusMedium,  1.5f, KoraCup()),
                 SeedFighter("nova",  2600, SpeedClass.Normal, RadiusDefault, 2.0f, NovaCone()),
@@ -1363,6 +1367,7 @@ namespace Arena.Editor.Data
 
         private static void SeedBrunoAbilities(FighterConfig c)
         {
+            c.Attack.RecoverySeconds = BrunoSwingRecovery;
             c.UltChargeRequired = BrunoUltCharge;
             c.Ult = new AbilityConfig
             {

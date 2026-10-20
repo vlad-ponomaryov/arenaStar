@@ -48,6 +48,32 @@ namespace Arena.Tests.EditMode.Core
         }
 
         [Test]
+        public void Recovery_DelaysTheNextAttack_AfterTheLastShotOfTheBurst()
+        {
+            const int recovery = 10;
+            var defs = F.CreateDefs();
+            defs.Fighters[0].Attack.RecoveryTicks = recovery;
+            var sim = F.CreateWith(defs, F.Slot(0, 0, 10f, 5f));
+            var inputs = F.Inputs();
+            var startTicks = new List<int>();
+            for (int t = 0; t < 60; t++)
+            {
+                // Mash: press on even ticks, release on odd ones (every press is a rising edge).
+                inputs[0] = t % 2 == 0 ? new PlayerInput(Vec2.Zero, Vec2.Up, InputButtons.Attack) : default;
+                int charges = sim.State.Fighters[0].Charges;
+                int tick = sim.State.Tick;
+                sim.Tick(inputs);
+                if (sim.State.Fighters[0].Charges < charges) startTicks.Add(tick);
+            }
+
+            int lastShot = (F.BurstCount - 1) * F.BurstIntervalTicks;
+            Assert.GreaterOrEqual(startTicks.Count, 2);
+            Assert.AreEqual(0, startTicks[0]);
+            Assert.GreaterOrEqual(startTicks[1], lastShot + recovery, "no new attack during the recovery (D-149)");
+            Assert.LessOrEqual(startTicks[1], lastShot + recovery + 1, "the attack is ready right after the recovery");
+        }
+
+        [Test]
         public void ManualAim_FiresAlongAimDirection()
         {
             var sim = F.CreateSingle();

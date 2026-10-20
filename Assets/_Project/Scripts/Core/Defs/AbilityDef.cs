@@ -54,6 +54,10 @@ namespace Arena.Core.Defs
         /// <summary>Ticks between shots of a burst.</summary>
         public int BurstIntervalTicks;
 
+        /// <summary>Ticks after the last shot of an attack before the next press is accepted (a heavy swing that cannot dump
+        /// all stored charges at once, D-149); 0 = none. Only the main attack uses it.</summary>
+        public int RecoveryTicks;
+
         /// <summary>Dash length in cells (<see cref="DeliveryKind.Dash"/>).</summary>
         public float DashDistance;
 
@@ -162,6 +166,7 @@ namespace Arena.Core.Defs
                 throw new ArgumentException(owner + ": only a placed field may block projectiles");
             if (BurstCount < 1) throw new ArgumentException(owner + ": BurstCount must be ≥ 1");
             if (BurstCount > 1 && BurstIntervalTicks < 1) throw new ArgumentException(owner + ": BurstIntervalTicks must be ≥ 1");
+            if (RecoveryTicks < 0) throw new ArgumentException(owner + ": RecoveryTicks must be ≥ 0");
 
             if (Effects == null) throw new ArgumentException(owner + ": Effects is null");
             // Only a dash may have no effects (a pure movement trick); everything else must do something.

@@ -150,6 +150,7 @@ namespace Arena.Net.Content
             a.ConeAngleDegrees = r.ReadFloat();
             a.BurstCount = r.ReadVarInt();
             a.BurstIntervalTicks = r.ReadVarInt();
+            a.RecoveryTicks = r.ReadVarInt();
             a.DashDistance = r.ReadFloat();
             a.DashSpeed = r.ReadFloat();
             a.BreaksWalls = r.ReadBool();

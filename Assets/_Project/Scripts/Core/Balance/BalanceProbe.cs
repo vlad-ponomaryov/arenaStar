@@ -15,7 +15,8 @@ namespace Arena.Core.Balance
     /// all-floor map, the defender standing still at <see cref="BalanceProbeSettings.DistanceFraction"/> of the attack range,
     /// the attacker pressing its main attack with auto-aim whenever a charge is ready (talents unlocked, no ult or trick).
     /// "Continuous hitting" starts without a charge stock: the attacker has one charge for the first shot at tick 0 and then
-    /// only what recharges (so the result is the sustained rate, not a burst of the 3 stored charges).
+    /// only what recharges (so the result is the sustained rate, not a burst of the 3 stored charges);
+    /// <see cref="BalanceProbeSettings.FullCharges"/> starts with all charges instead (the burst of a fresh fighter, D-149).
     ///   - <see cref="KillSeconds"/>: time from the first shot to the defeat of the defender;
     ///   - <see cref="UltsPerFight"/>: ults charged in <see cref="BalanceProbeSettings.FightSeconds"/> of such a fight against an
     ///     unkillable dummy, × <see cref="BalanceProbeSettings.HitFraction"/> (in a real fight not every attack lands).
@@ -101,7 +102,7 @@ namespace Arena.Core.Balance
             };
             var sim = new MatchSimulation(probe, setup);
             ref FighterState a = ref sim.State.Fighters[AttackerSlot];
-            a.Charges = 1;
+            a.Charges = s.FullCharges ? probe.Rules.MaxCharges : 1;
             a.ChargeProgressTicks = 0;
             return sim;
         }
@@ -110,7 +111,7 @@ namespace Arena.Core.Balance
         private static void Step(MatchSimulation sim, PlayerInput[] inputs)
         {
             ref FighterState a = ref sim.State.Fighters[AttackerSlot];
-            bool press = a.Alive && a.Charges > 0 && a.BurstShotsLeft <= 0 && !a.IsDashing && !a.IsHeld(InputButtons.Attack);
+            bool press = a.Alive && a.Charges > 0 && AttackSystem.IsReady(in a, sim.State.Globals.Tick) && !a.IsDashing && !a.IsHeld(InputButtons.Attack);
             inputs[AttackerSlot] = press ? new PlayerInput(Vec2.Zero, Vec2.Zero, InputButtons.Attack | InputButtons.AutoAim) : default;
             sim.Tick(inputs);
         }

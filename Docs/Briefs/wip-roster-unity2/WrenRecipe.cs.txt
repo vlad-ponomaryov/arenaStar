@@ -1,0 +1,30 @@
+using Arena.Gameplay.View;
+using UnityEngine;
+
+namespace Arena.Editor.Art.Fighters.Recipes
+{
+    /// <summary>
+    /// Wren, the tiny girl with a door-sword (bruiser) (A-Roster3D-unity2): FBX body, texture and weapon from <c>Art/Source/3D/wren/source.md</c>, installed like Theo through
+    /// <see cref="FbxFighterRecipe"/>. The view of the data fighter <c>"wren"</c> (D-150).
+    /// </summary>
+    public static class WrenRecipe
+    {
+        public const string FighterId = "wren";
+        public const string Hero = "wren";
+        /// <summary>The FBX is ≈ 0.78 tall (she is 8; source.md): ≈ 1.33, a little under Theo's 1.5.</summary>
+        public const float Scale = 1.7f;
+
+        public static FighterModelRecipe Create() => FbxFighterRecipe.Create(new FbxFighterSpec
+        {
+            FighterId = FighterId,
+            Hero = Hero,
+            Scale = Scale,
+            AttackStyle = FighterAttackStyle.Swipe,
+            UltStyle = FighterAttackStyle.Swipe,
+            TrickStyle = FighterTrickStyle.Hop,
+            LidRadii = new Vector3(0.030f, 0.022f, 0.010f),
+            LidLift = -0.002f,
+            LidSegments = 6
+        });
+    }
+}
