@@ -16,6 +16,7 @@ using Arena.Gameplay.Flow;
 using Arena.Gameplay.Input;
 using Arena.Gameplay.Settings;
 using Arena.Gameplay.View;
+using Arena.Gameplay.View.Anim;
 using UnityEngine;
 
 namespace Arena.Gameplay.Match
@@ -73,6 +74,7 @@ namespace Arena.Gameplay.Match
         private OwnHealthLabel _ownHealth;
         private BerryBonusFeedback _berryBonus;
         private HitFeedback _feedback;
+        private FighterAnimDriver _anim;
         private TelegraphViewPool _telegraphs;
         private int _telegraphTicks;
 
@@ -93,6 +95,9 @@ namespace Arena.Gameplay.Match
         /// <summary>Feedback of the tick events (counters for tests).</summary>
         public HitFeedback Feedback => _feedback;
         public HitStop HitStop => _hitStop;
+
+        /// <summary>Procedural fighter animation (brief A-TheoAnim); null before the match starts.</summary>
+        public FighterAnimDriver AnimDriver => _anim;
         public CameraShake Shake => _shake;
         public DamageNumberPool DamageNumbers => _damageNumbers;
         public TelegraphViewPool Telegraphs => _telegraphs;
@@ -236,6 +241,7 @@ namespace Arena.Gameplay.Match
             SimEventBuffer events = _driver.Events;
             MatchState state = _driver.State;
             _feedback.Process(events, state, Time.unscaledTime);
+            _anim.ProcessEvents(events, state);
             for (int i = 0; i < events.Count; i++)
                 if (events[i].Type == SimEventType.TileBroken) _mapView.OnTileBroken(events[i].Value);
             _viewState.Capture(state);
@@ -263,12 +269,22 @@ namespace Arena.Gameplay.Match
         private void RenderViews(float alpha)
         {
             int count = _viewState.Count;
+            float animDt = Time.deltaTime;
+            _anim.CheckMatchEnd(_driver.State, count);
             for (int i = 0; i < count; i++)
             {
                 FighterView view = _fighterViews[i];
                 if (view == null) continue;
                 bool shown = IsShown(i);
-                view.SetVisible(shown);
+                // A fighter that died in view stays for its defeat clip (no health bar), then hides.
+                bool dying = _anim.UpdateLife(i, _viewState.Alive(i), shown);
+                view.SetVisible(shown || dying);
+                if (dying)
+                {
+                    Transform root = view.transform;
+                    _anim.Render(i, root.position, root.forward, false, false, animDt);
+                    continue;
+                }
                 if (!shown) continue;
                 ref FighterState f = ref _driver.State.Fighters[i];
                 // Own team hidden in a bush: translucent body; a revealed enemy in a bush looks normal.
@@ -276,7 +292,10 @@ namespace Arena.Gameplay.Match
                 Material body = hiddenAlly ? _viewCatalog.FighterHidden : _viewCatalog.FighterBody;
                 if (_feedback.IsFlashing(i, Time.unscaledTime) && _viewCatalog.FighterFlash != null) body = _viewCatalog.FighterFlash;
                 view.SetBodyMaterial(body);
-                view.SetPose(WorldCoords.ToWorld(_viewState.Position(i, alpha)), WorldCoords.DirectionToWorld(_viewState.Facing(i)));
+                Vector3 position = WorldCoords.ToWorld(_viewState.Position(i, alpha));
+                Vector3 facing = WorldCoords.DirectionToWorld(_viewState.Facing(i));
+                view.SetPose(position, facing);
+                _anim.Render(i, position, facing, f.Stunned, f.IsDashing, animDt);
             }
 
             ref FighterState localFighter = ref _driver.State.Fighters[LocalSlot];
@@ -397,6 +416,7 @@ namespace Arena.Gameplay.Match
 
         private void CreateFighterViews(MatchSetup setup)
         {
+            _anim = new FighterAnimDriver(_database.FighterAnim, SimLimits.MaxFighters);
             for (int i = 0; i < setup.SlotCount; i++)
             {
                 string fighterId = _driver.Defs.Fighters[setup.Slots[i].FighterIndex].Id;
@@ -406,6 +426,7 @@ namespace Arena.Gameplay.Match
                 bool alt = _settings.ColorblindPalette;
                 view.SetTeamMaterial(ally ? _viewCatalog.TeamAlly : alt ? _viewCatalog.TeamEnemyAlt : _viewCatalog.TeamEnemy);
                 _fighterViews[i] = view;
+                _anim.Bind(i, view.Rig, view.BodyRenderer);
 
                 if (_viewCatalog.HealthBarPrefab == null) continue;
                 HealthBarView bar = Instantiate(_viewCatalog.HealthBarPrefab, transform);

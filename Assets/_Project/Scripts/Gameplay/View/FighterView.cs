@@ -25,12 +25,21 @@ namespace Arena.Gameplay.View
         /// <summary>Blob shadow quad under the fighter (D-027); hidden together with the view.</summary>
         public Renderer Shadow => _shadow;
 
+        /// <summary>Renderer of the body (skinned mesh of a model, mesh of the capsule), cached on first use; null if none.</summary>
+        public Renderer BodyRenderer
+        {
+            get
+            {
+                if (_bodyRenderer == null && _body != null) _bodyRenderer = _body.GetComponent<Renderer>();
+                return _bodyRenderer;
+            }
+        }
+
         /// <summary>Swaps the shared body material (normal / hidden in a bush); no-op if unchanged.</summary>
         public void SetBodyMaterial(Material material)
         {
             if (material == null || material == _bodyMaterial) return;
-            if (_bodyRenderer == null && _body != null) _bodyRenderer = _body.GetComponent<Renderer>();
-            if (_bodyRenderer == null) return;
+            if (BodyRenderer == null) return;
             _bodyRenderer.sharedMaterial = material;
             _bodyMaterial = material;
         }
