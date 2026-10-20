@@ -105,7 +105,7 @@ def look(yaw, pitch, target=(0, 0, 0.5), scale=1.3, dist=4.0):
 
 
 def render(name):
-    path = os.path.join(os.path.dirname(dst), f"_tmp_{name}.png")
+    path = os.path.join(os.path.dirname(dst), f"_tmp_aspen_{name}.png")
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
     return path
