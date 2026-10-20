@@ -96,6 +96,16 @@ namespace Arena.Data
         [Tooltip("Body turn of the Roll trick, degrees (360 = one somersault).")]
         public float TrickRollDeg;
 
+        [Header("Stunned")]
+        [Tooltip("Dizzy wobble of the body and head while stunned, degrees.")]
+        [Min(0f)] public float StunWobbleDeg;
+
+        [Tooltip("Wobbles per second.")]
+        [Min(0f)] public float StunWobbleHz;
+
+        [Tooltip("Eyelids half closed while stunned, 0–1.")]
+        [Range(0f, 1f)] public float StunLidClosure;
+
         [Header("Hurt")]
         [Min(0.001f)] public float HurtSeconds;
 
@@ -156,6 +166,9 @@ namespace Arena.Data
         public float MuzzleOffset;
 
         [Min(0f)] public float MuzzleScale;
+
+        [Tooltip("Flashes created at match start (all fighters share them).")]
+        [Min(1)] public int MuzzlePoolSize;
 
         [Header("Culling")]
         [Tooltip("Off-screen fighters advance only timers and phases; bones are not written.")]

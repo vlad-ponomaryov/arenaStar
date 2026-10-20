@@ -216,3 +216,4 @@ MonoBehaviour:
   TextFont: {fileID: 12800000, guid: 47df0c11c4a27c04fbc8663ed852f9b0, type: 3}
   TextOutlineColor: {r: 0.23137255, g: 0.16470589, b: 0.11764706, a: 1}
   TextOutlineDistance: {x: 2, y: -2}
+  MuzzleFlashPrefab: {fileID: 9162493635277001388, guid: 3d1eb9a7a31fc36449a759c03e479b1e, type: 3}

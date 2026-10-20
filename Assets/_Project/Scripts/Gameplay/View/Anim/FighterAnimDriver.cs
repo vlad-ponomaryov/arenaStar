@@ -29,6 +29,7 @@ namespace Arena.Gameplay.View.Anim
         private readonly bool[] _wasShown;
         private readonly bool[] _dying;
         private bool _ended;
+        private MuzzleFlashPool _muzzles;
 
         public FighterAnimDriver(FighterAnimConfig config, int capacity)
         {
@@ -66,6 +67,14 @@ namespace Arena.Gameplay.View.Anim
             _rigs[slot] = rig;
             _renderers[slot] = bodyRenderer;
         }
+
+        /// <summary>Muzzle flashes of the shooting fighters; null = none.</summary>
+        public void SetMuzzleFlashes(MuzzleFlashPool pool) => _muzzles = pool;
+
+        public MuzzleFlashPool MuzzleFlashes => _muzzles;
+
+        /// <summary>Ages the effects (muzzle flashes) once per rendered frame, before the slots are rendered.</summary>
+        public void UpdateEffects(float dt) => _muzzles?.Update(dt);
 
         /// <summary>Any sink for a slot (tests, a future Animator-based path); it is told events but not evaluated.</summary>
         public void SetSink(int slot, IFighterAnimSink sink)
@@ -177,9 +186,15 @@ namespace Arena.Gameplay.View.Anim
             animator.Evaluate(dt);
             if (rig == null) return;
             Renderer r = _renderers[slot];
-            if (CullOffscreen && r != null && !r.isVisible) return;
-            animator.Apply(rig);
-            AppliedCount++;
+            bool culled = CullOffscreen && r != null && !r.isVisible;
+            if (!culled)
+            {
+                animator.Apply(rig);
+                AppliedCount++;
+            }
+            if (animator.ConsumeMuzzle(out float scale) && !culled && _muzzles != null
+                && MuzzleFlashPool.MuzzlePoint(rig, _config.MuzzleOffset, out Vector3 at, out Quaternion rotation))
+                _muzzles.Spawn(at, rotation, scale);
         }
 
         private IFighterAnimSink SinkOf(int slot) => slot >= 0 && slot < _sinks.Length ? _sinks[slot] : null;

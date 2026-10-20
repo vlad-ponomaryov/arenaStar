@@ -109,9 +109,11 @@ namespace Arena.Gameplay.View.Anim
             {
                 case AbilitySlot.Attack:
                     _state.ShotLeft = _config.ShotSeconds;
+                    if (_attackStyle == FighterAttackStyle.Shoot) RequestMuzzle(1f);
                     break;
                 case AbilitySlot.Ult:
                     _state.UltLeft = _config.UltSeconds;
+                    _state.UltShotStarted = false;
                     break;
                 case AbilitySlot.Trick:
                     if (_trickStyle != FighterTrickStyle.None) _state.TrickLeft = _config.TrickSeconds;
@@ -143,6 +145,7 @@ namespace Arena.Gameplay.View.Anim
             _state.TrickLeft = 0f;
             _state.HurtLeft = 0f;
             _state.SpawnLeft = 0f;
+            _state.MuzzlePending = false;
         }
 
         public void OnMatchEnd(bool won)
@@ -164,6 +167,21 @@ namespace Arena.Gameplay.View.Anim
             float len = worldDir.magnitude;
             if (len > Epsilon) _state.Look = worldDir / len;
         }
+
+        /// <summary>
+        /// True once per requested muzzle flash (attack shot, the shot part of the ult); <paramref name="scale"/> — size factor.
+        /// Read after <see cref="Apply"/>, so the flash sits at the recoiling barrel.
+        /// </summary>
+        public bool ConsumeMuzzle(out float scale)
+        {
+            scale = _state.MuzzleScale;
+            if (!_state.MuzzlePending) return false;
+            _state.MuzzlePending = false;
+            return true;
+        }
+
+        /// <summary>Starts a blink now (previews, the eyelid check); the regular blink timer is not changed.</summary>
+        public void TriggerBlink() => _state.BlinkLeft = _config.BlinkSeconds;
 
         public void ResetAll()
         {
@@ -224,12 +242,26 @@ namespace Arena.Gameplay.View.Anim
             if (_state.UltLeft > 0f)
             {
                 _state.UltLeft -= dt;
-                PuppetPose.Ult(Pose, c, Progress(_state.UltLeft, c.UltSeconds), _ultStyle, 1f);
+                float u = Progress(_state.UltLeft, c.UltSeconds);
+                if (!_state.UltShotStarted && u >= c.UltCrouchFraction)
+                {
+                    _state.UltShotStarted = true;
+                    if (_ultStyle == FighterAttackStyle.Shoot) RequestMuzzle(c.UltShotScale);
+                }
+                PuppetPose.Ult(Pose, c, u, _ultStyle, 1f);
             }
             if (_state.TrickLeft > 0f)
             {
                 _state.TrickLeft -= dt;
+                // A dash longer than the clip: keep rolling until it ends.
+                if (_state.TrickLeft <= 0f && _state.Dashing) _state.TrickLeft += c.TrickSeconds;
                 PuppetPose.Trick(Pose, c, Progress(_state.TrickLeft, c.TrickSeconds), _trickStyle, 1f);
+            }
+            _state.StunWeight = Mathf.MoveTowards(_state.StunWeight, _state.Stunned ? 1f : 0f, dt / c.BlendSeconds);
+            if (_state.StunWeight > 0f)
+            {
+                _state.StunTime = c.StunWobbleHz > 0f ? Mathf.Repeat(_state.StunTime + dt, 1f / c.StunWobbleHz) : 0f;
+                PuppetPose.Stunned(Pose, c, _state.StunTime, _state.StunWeight);
             }
 
             // 3. Reactions
@@ -266,6 +298,12 @@ namespace Arena.Gameplay.View.Anim
                     restRotation * Quaternion.Euler(p.Euler));
                 t.localScale = BonePose.ComposeScale(rig.RestScales[i], p.Scale);
             }
+        }
+
+        private void RequestMuzzle(float scale)
+        {
+            _state.MuzzlePending = true;
+            _state.MuzzleScale = scale;
         }
 
         private void UpdateBlink(float dt)

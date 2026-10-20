@@ -20,10 +20,10 @@ MonoBehaviour:
   RunSpeedRef: 4
   SpeedSmoothing: 12
   StrideLengthPerHeight: 0.55
-  LegSwingDeg: 35
-  ArmSwingDeg: 25
-  BounceHeight: 0.04
-  LeanForwardDeg: 10
+  LegSwingDeg: 40
+  ArmSwingDeg: 30
+  BounceHeight: 0.06
+  LeanForwardDeg: 12
   LeanTurnDeg: 8
   LeanTurnRateRef: 180
   TeleportDistance: 1
@@ -72,6 +72,9 @@ MonoBehaviour:
   UltShotScale: 1.5
   TrickSeconds: 0.4
   TrickRollDeg: 360
+  StunWobbleDeg: 8
+  StunWobbleHz: 2.5
+  StunLidClosure: 0.5
   HurtSeconds: 0.2
   HurtSquash: 0.12
   HurtTiltDeg: 12
@@ -91,6 +94,7 @@ MonoBehaviour:
   SpringMaxDegrees: 25
   MaxDt: 0.05
   MuzzleSeconds: 0.08
-  MuzzleOffset: 0.18
-  MuzzleScale: 0.35
+  MuzzleOffset: 0.42
+  MuzzleScale: 0.5
+  MuzzlePoolSize: 6
   CullOffscreen: 1

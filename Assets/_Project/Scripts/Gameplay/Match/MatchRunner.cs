@@ -271,6 +271,7 @@ namespace Arena.Gameplay.Match
             int count = _viewState.Count;
             float animDt = Time.deltaTime;
             _anim.CheckMatchEnd(_driver.State, count);
+            _anim.UpdateEffects(animDt);
             for (int i = 0; i < count; i++)
             {
                 FighterView view = _fighterViews[i];
@@ -417,6 +418,8 @@ namespace Arena.Gameplay.Match
         private void CreateFighterViews(MatchSetup setup)
         {
             _anim = new FighterAnimDriver(_database.FighterAnim, SimLimits.MaxFighters);
+            if (_viewCatalog.MuzzleFlashPrefab != null && _database.FighterAnim != null)
+                _anim.SetMuzzleFlashes(new MuzzleFlashPool(_viewCatalog.MuzzleFlashPrefab, transform, _database.FighterAnim));
             for (int i = 0; i < setup.SlotCount; i++)
             {
                 string fighterId = _driver.Defs.Fighters[setup.Slots[i].FighterIndex].Id;

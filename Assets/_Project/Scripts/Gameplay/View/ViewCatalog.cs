@@ -219,6 +219,10 @@ namespace Arena.Gameplay.View
         public Color TextOutlineColor;
         public Vector2 TextOutlineDistance;
 
+        [Header("Fighter animation (A-TheoAnim)")]
+        [Tooltip("Muzzle flash: star mesh with an additive unlit material, pooled by MuzzleFlashPool (written by MuzzleFlashBuilder).")]
+        public GameObject MuzzleFlashPrefab;
+
         /// <summary>The view prefab of the fighter with <paramref name="fighterId"/>, else <see cref="FighterViewPrefab"/>.
         /// No allocations.</summary>
         public FighterView FighterPrefab(string fighterId)

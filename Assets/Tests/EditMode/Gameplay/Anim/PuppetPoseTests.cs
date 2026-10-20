@@ -137,6 +137,19 @@ namespace Arena.Tests.EditMode.Gameplay.Anim
         }
 
         [Test]
+        public void Stunned_IsPeriodic_ZeroAtStart()
+        {
+            var a = new PoseBuffer();
+            var b = new PoseBuffer();
+            PuppetPose.Stunned(a, _config, 0.1f, 1f);
+            PuppetPose.Stunned(b, _config, 0.1f + 1f / _config.StunWobbleHz, 1f);
+            AssertSame(a, b);
+            var zero = new PoseBuffer();
+            PuppetPose.Stunned(zero, _config, 0f, 1f);
+            Assert.AreEqual(0f, zero[FighterBone.Body].Euler.z, Tolerance);
+        }
+
+        [Test]
         public void ComposeScale_ZeroRestTakesOffset()
         {
             Assert.AreEqual(new Vector3(2f, 1f, 0.5f), BonePose.ComposeScale(new Vector3(2f, 1f, 0.5f), Vector3.zero));

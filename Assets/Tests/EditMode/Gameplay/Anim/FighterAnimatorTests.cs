@@ -242,6 +242,64 @@ namespace Arena.Tests.EditMode.Gameplay.Anim
             });
         }
 
+        [Test]
+        public void Stunned_WobblesAndHalfClosesLids_BlendsOut()
+        {
+            FighterAnimator a = MakeAnimator(FighterTrickStyle.None);
+            a.SetStatus(true, false);
+            for (int i = 0; i < 20; i++) a.Evaluate(Dt);
+            Assert.AreEqual(1f, a.State.StunWeight, Tolerance);
+            Assert.AreEqual(_config.StunLidClosure, a.Pose[FighterBone.LidL].Scale.x, 0.01f);
+            a.SetStatus(false, false);
+            for (int i = 0; i < 20; i++) a.Evaluate(Dt);
+            Assert.AreEqual(0f, a.State.StunWeight, Tolerance);
+        }
+
+        [Test]
+        public void Trick_KeepsRollingWhileDashing()
+        {
+            FighterAnimator a = MakeAnimator(FighterTrickStyle.Roll);
+            a.OnShoot(AbilitySlot.Trick, Vector3.forward);
+            a.SetStatus(false, true);
+            int frames = Mathf.CeilToInt(_config.TrickSeconds * 2f / Dt);
+            for (int i = 0; i < frames; i++) a.Evaluate(Dt);
+            Assert.Greater(a.State.TrickLeft, 0f, "still rolling during a long dash");
+            a.SetStatus(false, false);
+            for (int i = 0; i < frames; i++) a.Evaluate(Dt);
+            Assert.LessOrEqual(a.State.TrickLeft, 0f, "ends after the dash");
+        }
+
+        [Test]
+        public void Muzzle_RequestedOncePerShot_UltAfterCrouch()
+        {
+            FighterAnimator a = MakeAnimator(FighterTrickStyle.None);
+            a.OnShoot(AbilitySlot.Attack, Vector3.forward);
+            Assert.IsTrue(a.ConsumeMuzzle(out float scale));
+            Assert.AreEqual(1f, scale);
+            Assert.IsFalse(a.ConsumeMuzzle(out _), "consumed");
+
+            a.OnShoot(AbilitySlot.Ult, Vector3.forward);
+            a.Evaluate(Dt);
+            Assert.IsFalse(a.ConsumeMuzzle(out _), "crouching: no shot yet");
+            for (int i = 0; i < Mathf.CeilToInt(_config.UltSeconds / Dt); i++) a.Evaluate(Dt);
+            Assert.IsTrue(a.ConsumeMuzzle(out scale));
+            Assert.AreEqual(_config.UltShotScale, scale);
+        }
+
+        [Test]
+        public void TriggerBlink_ClosesLidsMidway()
+        {
+            FighterAnimator a = MakeAnimator(FighterTrickStyle.None);
+            a.TriggerBlink();
+            float maxClosure = 0f;
+            for (int i = 0; i < 10; i++)
+            {
+                a.Evaluate(Dt);
+                maxClosure = Mathf.Max(maxClosure, a.Pose[FighterBone.LidL].Scale.x);
+            }
+            Assert.Greater(maxClosure, 0.5f);
+        }
+
         private void Frame(FighterAnimator a, FighterRig rig)
         {
             a.OnMove(_config.RunSpeedRef, Vector3.forward, Dt);

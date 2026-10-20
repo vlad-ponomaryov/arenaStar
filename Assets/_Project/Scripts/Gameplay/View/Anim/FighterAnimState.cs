@@ -30,9 +30,17 @@ namespace Arena.Gameplay.View.Anim
         public float SpawnLeft;
         public Vector3 HurtFrom;
         public float HurtStrength;
+        /// <summary>The shot part of the running ult has started (its muzzle flash was requested).</summary>
+        public bool UltShotStarted;
+        /// <summary>A muzzle flash waits to be spawned after the bones are written; its size factor.</summary>
+        public bool MuzzlePending;
+        public float MuzzleScale;
 
         // Status and end of life / match
         public bool Stunned;
+        public float StunTime;
+        /// <summary>Weight of the stunned wobble (blends in and out over BlendSeconds).</summary>
+        public float StunWeight;
         public bool Dashing;
         public bool Dead;
         public float DefeatElapsed;

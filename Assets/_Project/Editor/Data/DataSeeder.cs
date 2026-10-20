@@ -694,7 +694,8 @@ namespace Arena.Editor.Data
         private const int FeelBatterySaverFrameRate = 30;
 
         // Fighter animation (brief A-TheoAnim §4, D-109), all PROTO: soft breathing, run swings that keep the feet planted
-        // (one step cycle = 0.55 model heights), short recoil, ult = crouch → jump with a full spin → strong shot, roll = one
+        // (one step cycle = 0.55 model heights; amplitudes raised after the AN3 preview so the run reads from
+        // above), short recoil, ult = crouch → jump with a full spin → strong shot, roll = one
         // somersault, hits squash and close the eyes, blinks every 3–5 s (15 % double), springs clamped at 25°.
         private const float AnimBlendSeconds = 0.12f;
         private const float AnimBreathHz = 0.6f;
@@ -704,10 +705,10 @@ namespace Arena.Editor.Data
         private const float AnimRunSpeedRef = 4f;
         private const float AnimSpeedSmoothing = 12f;
         private const float AnimStrideLengthPerHeight = 0.55f;
-        private const float AnimLegSwingDeg = 35f;
-        private const float AnimArmSwingDeg = 25f;
-        private const float AnimBounceHeight = 0.04f;
-        private const float AnimLeanForwardDeg = 10f;
+        private const float AnimLegSwingDeg = 40f;
+        private const float AnimArmSwingDeg = 30f;
+        private const float AnimBounceHeight = 0.06f;
+        private const float AnimLeanForwardDeg = 12f;
         private const float AnimLeanTurnDeg = 8f;
         private const float AnimLeanTurnRateRef = 180f;
         private const float AnimTeleportDistance = 1f;
@@ -724,6 +725,9 @@ namespace Arena.Editor.Data
         private const float AnimUltShotScale = 1.5f;
         private const float AnimTrickSeconds = 0.4f;
         private const float AnimTrickRollDeg = 360f;
+        private const float AnimStunWobbleDeg = 8f;
+        private const float AnimStunWobbleHz = 2.5f;
+        private const float AnimStunLidClosure = 0.5f;
         private const float AnimHurtSeconds = 0.2f;
         private const float AnimHurtSquash = 0.12f;
         private const float AnimHurtTiltDeg = 12f;
@@ -743,8 +747,9 @@ namespace Arena.Editor.Data
         private const float AnimSpringMaxDegrees = 25f;
         private const float AnimMaxDt = 0.05f;
         private const float AnimMuzzleSeconds = 0.08f;
-        private const float AnimMuzzleOffset = 0.18f;
-        private const float AnimMuzzleScale = 0.35f;
+        private const float AnimMuzzleOffset = 0.42f;
+        private const float AnimMuzzleScale = 0.5f;
+        private const int AnimMuzzlePoolSize = 6;
         private const bool AnimCullOffscreen = true;
 
         // Match runner: technical limit + prototype setup (3×3: the local player in slot 0, bots in the others; the line-up is
@@ -1046,6 +1051,9 @@ namespace Arena.Editor.Data
             c.UltShotScale = AnimUltShotScale;
             c.TrickSeconds = AnimTrickSeconds;
             c.TrickRollDeg = AnimTrickRollDeg;
+            c.StunWobbleDeg = AnimStunWobbleDeg;
+            c.StunWobbleHz = AnimStunWobbleHz;
+            c.StunLidClosure = AnimStunLidClosure;
             c.HurtSeconds = AnimHurtSeconds;
             c.HurtSquash = AnimHurtSquash;
             c.HurtTiltDeg = AnimHurtTiltDeg;
@@ -1067,6 +1075,7 @@ namespace Arena.Editor.Data
             c.MuzzleSeconds = AnimMuzzleSeconds;
             c.MuzzleOffset = AnimMuzzleOffset;
             c.MuzzleScale = AnimMuzzleScale;
+            c.MuzzlePoolSize = AnimMuzzlePoolSize;
             c.CullOffscreen = AnimCullOffscreen;
         }
 

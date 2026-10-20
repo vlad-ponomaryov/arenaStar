@@ -125,6 +125,17 @@ namespace Arena.Gameplay.View.Anim
             if (t01 < 1f) CloseLids(p, weight);
         }
 
+        /// <summary>Stunned: the body and head wobble against each other (periodic with 1 / StunWobbleHz), eyes half closed.</summary>
+        public static void Stunned(PoseBuffer p, FighterAnimConfig c, float t, float weight)
+        {
+            float a = TwoPi * c.StunWobbleHz * t;
+            float s = Mathf.Sin(a) * c.StunWobbleDeg;
+            float k = Mathf.Cos(a) * c.StunWobbleDeg;
+            p.AddEuler(FighterBone.Body, new Vector3(VolumeShare * k, 0f, s), weight);
+            p.AddEuler(FighterBone.Head, new Vector3(0f, k, -s), weight);
+            CloseLids(p, c.StunLidClosure * weight);
+        }
+
         /// <summary>Spawn: the whole model grows from 0 (ease-out).</summary>
         public static void Spawn(PoseBuffer p, FighterAnimConfig c, float t01, float weight)
         {
