@@ -49,7 +49,7 @@ namespace Arena.Tests.EditMode.Art
                 Assert.AreSame(catalog.FighterBody, smrs[0].sharedMaterial, id);
                 Mesh mesh = smrs[0].sharedMesh;
                 Assert.AreEqual(FighterModelBuilder.MeshPath(id, FighterModelQuality.Hero), AssetDatabase.GetAssetPath(mesh), id);
-                if (recipe.SourceModel == null)
+                if (recipe.SourceModel == null || recipe.SourceModelHero != null)
                     Assert.That(mesh.triangles.Length / 3, Is.InRange(15000, 30000), id + ": showcase LOD (D-122)");
                 else // no finer FBX yet: the hero model is the same source
                     Assert.AreEqual(catalog.FighterPrefab(id).Body.GetComponent<SkinnedMeshRenderer>().sharedMesh.triangles.Length,
@@ -96,7 +96,6 @@ namespace Arena.Tests.EditMode.Art
                     if (fbx)
                     {
                         Assert.AreEqual(1f, w.weight0 + w.weight1 + w.weight2 + w.weight3, 1e-3f, id + ": weights sum to 1");
-                        Assert.AreEqual(0f, w.weight2, id + ": at most 2 influences (Bone2)");
                         Assert.That(w.boneIndex1, Is.InRange(0, boneCount - 1), id);
                     }
                     else
@@ -211,12 +210,12 @@ namespace Arena.Tests.EditMode.Art
                 maxY = Mathf.Max(maxY, p.y);
                 var bone = (FighterBone)geometry.Bones[i];
                 if (bone == FighterBone.Prop) { propFront = Mathf.Max(propFront, p.z); pmin = Vector3.Min(pmin, p); pmax = Vector3.Max(pmax, p); }
-                if (bone == FighterBone.EyeL || bone == FighterBone.EyeR) eyeFront = Mathf.Max(eyeFront, p.z);
+                if (bone == FighterBone.Head) eyeFront = Mathf.Max(eyeFront, p.z);
             }
             Assert.AreEqual(0f, minY, 0.03f, "feet on the ground: " + minY + ".." + maxY + " prop " + pmin + " " + pmax);
             Assert.AreEqual(TheoRecipe.Scale, maxY, 0.05f, "≈ 1.5 tall, as the other fighters");
             Assert.Greater(propFront, prop.z + 0.5f, "the barrel points forward (+Z)");
-            Assert.Greater(eyeFront, head.z, "eyes on the front of the head");
+            Assert.Greater(eyeFront, head.z + 0.1f, "the face (painted eyes) is on the +Z side of the head");
         }
 
         [Test]
@@ -239,6 +238,45 @@ namespace Arena.Tests.EditMode.Art
             Assert.GreaterOrEqual(gloss.Count, 4, "gloss varies by material (skin, cloth, plates, metal)");
             Color32 red = FighterModelSource.Linear(new Color(0xB3 / 255f, 0x14 / 255f, 0x1C / 255f));
             Assert.That(red.r, Is.InRange(110, 120), "#B3 → linear ≈ 0.45");
+        }
+
+        [Test]
+        public void Theo_IsTextured_OnTheGameAndHeroModels_TheBlasterIsNot()
+        {
+            ViewCatalog catalog = Catalog();
+            var map = AssetDatabase.LoadAssetAtPath<Texture2D>(TheoRecipe.BaseMapPath);
+            Assert.IsNotNull(map, TheoRecipe.BaseMapPath);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(TheoRecipe.BaseMapPath);
+            Assert.IsTrue(importer.sRGBTexture, "colour is sRGB");
+            Assert.IsTrue(importer.mipmapEnabled);
+            Assert.IsFalse(importer.alphaIsTransparency, "alpha is gloss");
+            Assert.AreEqual(TextureImporterAlphaSource.FromInput, importer.alphaSource);
+            Assert.LessOrEqual(map.width, FighterModelImporter.TextureMaxSize);
+            foreach (FighterView view in new[] { catalog.FighterPrefab(TheoRecipe.FighterId), catalog.FighterHeroPrefab(TheoRecipe.FighterId) })
+            {
+                var skin = view.Body.GetComponent<FighterSkin>();
+                Assert.IsNotNull(skin, view.name);
+                Assert.AreSame(map, skin.BaseMap, view.name);
+                Mesh mesh = view.Body.GetComponent<SkinnedMeshRenderer>().sharedMesh;
+                var uvs = new List<Vector2>();
+                mesh.GetUVs(0, uvs);
+                Assert.AreEqual(mesh.vertexCount, uvs.Count, view.name + ": UVs");
+                BoneWeight[] weights = mesh.boneWeights;
+                int textured = 0;
+                for (int i = 0; i < uvs.Count; i++)
+                {
+                    bool prop = weights[i].boneIndex0 == (int)FighterBone.Prop && weights[i].weight0 > 0.999f;
+                    if (uvs[i].x >= 0f)
+                    {
+                        textured++;
+                        Assert.That(uvs[i].x, Is.InRange(0f, 1f), view.name);
+                        Assert.That(uvs[i].y, Is.InRange(0f, 1f), view.name);
+                        Assert.IsFalse(prop, view.name + ": the blaster keeps its vertex colours");
+                    }
+                }
+                Assert.Greater(textured, mesh.vertexCount / 2, view.name + ": the body is textured");
+            }
+            Assert.IsNull(PixRecipe.Create().BaseMap, "procedural recipes stay untextured (_BaseMapOn = 0, white map)");
         }
     }
 }

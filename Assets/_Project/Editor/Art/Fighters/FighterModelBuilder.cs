@@ -26,8 +26,8 @@ namespace Arena.Editor.Art.Fighters
         public const int MaxTriangles = 4000;
         /// <summary>Budget of a held prop that comes as its own FBX (<see cref="FighterModelRecipe.SourceProp"/>), on top of <see cref="MaxTriangles"/>.</summary>
         public const int MaxPropTriangles = 1200;
-        /// <summary>Most bone influences of a source-model vertex the renderer blends (the Blender export uses ≤ 2).</summary>
-        public const SkinQuality SourceSkinQuality = SkinQuality.Bone2;
+        /// <summary>Most bone influences of a source-model vertex the renderer blends (the Blender export uses ≤ 3).</summary>
+        public const SkinQuality SourceSkinQuality = SkinQuality.Bone4;
         private const float BoundsMargin = 1.3f;
         /// <summary>Hero LOD (D-122): every group's budget times this (sculpted groups re-fit their sculpt to it).</summary>
         public const int HeroBudgetScale = 6;
@@ -79,21 +79,28 @@ namespace Arena.Editor.Art.Fighters
         /// All groups of the recipe into one buffer (scaled model space, bone index = <see cref="FighterBone"/>); pure, no assets.
         /// </summary>
         public static MeshBuilderBuffer BuildGeometry(FighterModelRecipe recipe, List<GroupStats> stats = null,
-            FighterModelQuality quality = FighterModelQuality.Game, List<BoneWeight> weights = null)
+            FighterModelQuality quality = FighterModelQuality.Game, List<BoneWeight> weights = null, List<Vector2> uvs = null)
         {
             Validate(recipe);
             ApplySourcePivots(recipe);
             var buffer = new MeshBuilderBuffer();
             var sourceWeights = new List<BoneWeight>();
+            var sourceUvs = new List<Vector2>();
             if (recipe.SourceModel != null)
             {
-                FighterModelSource.AppendModel(recipe.SourceModel, buffer, sourceWeights);
-                stats?.Add(new GroupStats { Name = "model", Triangles = buffer.TriangleCount, Budget = MaxTriangles });
+                string model = quality == FighterModelQuality.Hero && recipe.SourceModelHero != null ? recipe.SourceModelHero : recipe.SourceModel;
+                FighterModelSource.AppendModel(model, buffer, sourceWeights, sourceUvs);
+                stats?.Add(new GroupStats
+                {
+                    Name = "model", Triangles = buffer.TriangleCount,
+                    Budget = quality == FighterModelQuality.Hero ? MaxTriangles * HeroBudgetScale : MaxTriangles
+                });
             }
             if (recipe.SourceProp != null)
             {
                 int before = buffer.TriangleCount;
-                FighterModelSource.AppendProp(recipe.SourceProp, recipe.Bones[(int)FighterBone.Prop].Pivot, FighterBone.Prop, buffer, sourceWeights);
+                FighterModelSource.AppendProp(recipe.SourceProp, recipe.Bones[(int)FighterBone.Prop].Pivot, FighterBone.Prop, buffer, sourceWeights,
+                    sourceUvs);
                 stats?.Add(new GroupStats { Name = "prop", Triangles = buffer.TriangleCount - before, Budget = MaxPropTriangles });
             }
             foreach (FighterGroupSpec group in recipe.Groups)
@@ -129,6 +136,12 @@ namespace Arena.Editor.Art.Fighters
                 for (int i = sourceWeights.Count; i < buffer.VertexCount; i++)
                     weights.Add(new BoneWeight { boneIndex0 = buffer.Bones[i], weight0 = 1f });
             }
+            if (uvs != null)
+            {
+                uvs.Clear();
+                uvs.AddRange(sourceUvs);
+                for (int i = sourceUvs.Count; i < buffer.VertexCount; i++) uvs.Add(FighterModelSource.NoUv);
+            }
             if (!Mathf.Approximately(recipe.Scale, 1f))
                 for (int i = 0; i < buffer.Positions.Count; i++) buffer.Positions[i] *= recipe.Scale;
             return buffer;
@@ -151,8 +164,9 @@ namespace Arena.Editor.Art.Fighters
         {
             var stats = new List<GroupStats>();
             var weights = new List<BoneWeight>();
-            MeshBuilderBuffer geometry = BuildGeometry(recipe, stats, quality, weights);
-            Mesh mesh = SaveMesh(recipe, geometry, weights, quality);
+            var uvs = new List<Vector2>();
+            MeshBuilderBuffer geometry = BuildGeometry(recipe, stats, quality, weights, uvs);
+            Mesh mesh = SaveMesh(recipe, geometry, weights, recipe.SourceModel != null ? uvs : null, quality);
             LogStats(recipe, stats, geometry, quality);
 
             var root = new GameObject("Fighter_" + recipe.FighterId + Suffix(quality));
@@ -194,6 +208,12 @@ namespace Arena.Editor.Art.Fighters
                 smr.lightProbeUsage = LightProbeUsage.Off;
                 smr.reflectionProbeUsage = ReflectionProbeUsage.Off;
                 smr.skinnedMotionVectors = false;
+                if (recipe.BaseMap != null)
+                {
+                    var map = AssetDatabase.LoadAssetAtPath<Texture2D>(recipe.BaseMap);
+                    if (map == null) throw new InvalidOperationException("FighterModelBuilder: no texture at " + recipe.BaseMap);
+                    model.AddComponent<FighterSkin>().BaseMap = map;
+                }
 
                 // Eyelids are modelled closed and hidden at rest (scale 0 = open eyes).
                 bones[(int)FighterBone.LidL].localScale = Vector3.zero;
@@ -235,7 +255,8 @@ namespace Arena.Editor.Art.Fighters
             }
         }
 
-        private static Mesh SaveMesh(FighterModelRecipe recipe, MeshBuilderBuffer geometry, List<BoneWeight> weights, FighterModelQuality quality)
+        private static Mesh SaveMesh(FighterModelRecipe recipe, MeshBuilderBuffer geometry, List<BoneWeight> weights, List<Vector2> uvs,
+            FighterModelQuality quality)
         {
             string path = MeshPath(recipe.FighterId, quality);
             Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -244,6 +265,7 @@ namespace Arena.Editor.Art.Fighters
             geometry.WriteTo(mesh);
             mesh.name = recipe.FighterId + Suffix(quality);
             mesh.boneWeights = weights.ToArray();
+            if (uvs != null) mesh.SetUVs(0, uvs);
             mesh.UploadMeshData(false);
             if (created) AssetDatabase.CreateAsset(mesh, path);
             else EditorUtility.SetDirty(mesh);

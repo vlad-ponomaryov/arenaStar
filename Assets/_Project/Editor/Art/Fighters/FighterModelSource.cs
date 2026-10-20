@@ -20,6 +20,12 @@ namespace Arena.Editor.Art.Fighters
         /// with the right hand on +X, so every source is turned half a circle about the vertical. Applied to the world matrices
         /// of the imported objects: the root's own transform is part of the model (an FBX of one object is that object).
         /// </summary>
+        /// <summary>
+        /// UV of a vertex that is not textured (props, procedural parts): <c>Arena/ToonCharacter</c> uses the base map only where
+        /// uv.x ≥ 0, so one mesh can mix the textured body with vertex-coloured parts.
+        /// </summary>
+        public static readonly Vector2 NoUv = new Vector2(-1f, -1f);
+
         public static readonly Matrix4x4 SourceToModel = Matrix4x4.Rotate(Quaternion.Euler(0f, 180f, 0f));
 
         /// <summary>Heads of the source bones in model space (index = <see cref="FighterBone"/>); null where the FBX has no such bone.</summary>
@@ -47,7 +53,7 @@ namespace Arena.Editor.Art.Fighters
         }
 
         /// <summary>Appends the skinned body at rest; <paramref name="weights"/> gets one entry per added vertex.</summary>
-        public static void AppendModel(string path, MeshBuilderBuffer buffer, List<BoneWeight> weights)
+        public static void AppendModel(string path, MeshBuilderBuffer buffer, List<BoneWeight> weights, List<Vector2> uvs)
         {
             GameObject root = Load(path);
             SkinnedMeshRenderer smr = Skin(path);
@@ -70,6 +76,7 @@ namespace Arena.Editor.Art.Fighters
             Vector3[] normals = mesh.normals;
             Color[] colors = mesh.colors;
             BoneWeight[] source = mesh.boneWeights;
+            Vector2[] uv = mesh.uv;
             if (colors.Length != positions.Length) throw new InvalidOperationException("FighterModelSource: " + path + " has no vertex colours");
             if (source.Length != positions.Length) throw new InvalidOperationException("FighterModelSource: " + path + " has no bone weights");
             int offset = buffer.VertexCount;
@@ -88,12 +95,14 @@ namespace Arena.Editor.Art.Fighters
                 };
                 buffer.AddVertex(m.MultiplyPoint3x4(positions[v]), m.MultiplyVector(normals[v]), Linear(colors[v]), mapped.boneIndex0);
                 weights.Add(mapped);
+                uvs.Add(uv.Length == positions.Length ? uv[v] : NoUv);
             }
             AppendTriangles(buffer, mesh.triangles, offset);
         }
 
         /// <summary>Appends the unskinned prop with its origin at <paramref name="pivot"/>, all on <paramref name="bone"/> (weight 1).</summary>
-        public static void AppendProp(string path, Vector3 pivot, FighterBone bone, MeshBuilderBuffer buffer, List<BoneWeight> weights)
+        public static void AppendProp(string path, Vector3 pivot, FighterBone bone, MeshBuilderBuffer buffer, List<BoneWeight> weights,
+            List<Vector2> uvs)
         {
             GameObject root = Load(path);
             MeshFilter filter = root.GetComponentInChildren<MeshFilter>(true);
@@ -109,6 +118,7 @@ namespace Arena.Editor.Art.Fighters
             {
                 buffer.AddVertex(m.MultiplyPoint3x4(positions[v]), m.MultiplyVector(normals[v]), Linear(colors[v]), (int)bone);
                 weights.Add(new BoneWeight { boneIndex0 = (int)bone, weight0 = 1f });
+                uvs.Add(NoUv); // the prop keeps its vertex colours even on a textured fighter
             }
             AppendTriangles(buffer, mesh.triangles, offset);
         }

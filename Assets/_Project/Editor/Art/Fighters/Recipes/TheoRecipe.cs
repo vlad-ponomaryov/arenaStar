@@ -13,7 +13,10 @@ namespace Arena.Editor.Art.Fighters.Recipes
     public static class TheoRecipe
     {
         public const string FighterId = "pix";
-        public const string ModelPath = FighterModelImporter.Folder + "/theo_game.fbx";
+        public const string ModelPath = FighterModelImporter.Folder + "/theo_v3_game.fbx";
+        public const string HeroModelPath = FighterModelImporter.Folder + "/theo_v3_show.fbx";
+        /// <summary>RGB = colour with baked AO and highlights (sRGB), A = gloss; shared by both FBX (same UVs).</summary>
+        public const string BaseMapPath = FighterModelImporter.TextureFolder + "/theo_v3_tex.png";
         public const string BlasterPath = FighterModelImporter.Folder + "/theo_blaster.fbx";
         /// <summary>The FBX is 1.0 tall; the match fighters stand ≈ 1.5 (Art-Spec §1.4, the hitbox radius 0.45).</summary>
         public const float Scale = 1.5f;
@@ -29,6 +32,8 @@ namespace Arena.Editor.Art.Fighters.Recipes
                 FighterId = FighterId,
                 Scale = Scale,
                 SourceModel = ModelPath,
+                SourceModelHero = HeroModelPath,
+                BaseMap = BaseMapPath,
                 SourceProp = BlasterPath,
                 Bones = new[]
                 {
@@ -47,7 +52,7 @@ namespace Arena.Editor.Art.Fighters.Recipes
                     new FighterBoneSpec(FighterBone.LidL, FighterBone.Head, eyeL),
                     new FighterBoneSpec(FighterBone.LidR, FighterBone.Head, eyeR)
                 },
-                // Eyes are in the FBX (on EyeL/R); blinking via lids on LidL/R is for later (A-Theo3D-unity.md).
+                // Eyes are painted in the texture (EyeL/R, LidL/R carry no weights); blinking via lids on LidL/R is for later.
                 Groups = Array.Empty<FighterGroupSpec>(),
                 AttackStyle = FighterAttackStyle.Shoot,
                 UltStyle = FighterAttackStyle.Shoot,

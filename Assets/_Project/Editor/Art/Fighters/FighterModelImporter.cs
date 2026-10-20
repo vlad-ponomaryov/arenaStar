@@ -10,6 +10,9 @@ namespace Arena.Editor.Art.Fighters
     public sealed class FighterModelImporter : AssetPostprocessor
     {
         public const string Folder = "Assets/_Project/Art/Models/Fighters";
+        /// <summary>Textures of the source bodies: RGB = sRGB colour, A = gloss (data, not transparency).</summary>
+        public const string TextureFolder = "Assets/_Project/Art/Textures/Fighters";
+        public const int TextureMaxSize = 1024;
         /// <summary>Smoothing angle of the recalculated normals: smooth surfaces, hard edges on plates and boots.</summary>
         public const float NormalSmoothingAngle = 60f;
 
@@ -37,6 +40,26 @@ namespace Arena.Editor.Art.Fighters
             importer.optimizeMeshPolygons = false;
             importer.optimizeGameObjects = false;
             importer.skinWeights = ModelImporterSkinWeights.Standard;
+        }
+
+        private void OnPreprocessTexture()
+        {
+            if (!assetPath.StartsWith(TextureFolder + "/")) return;
+            var importer = (TextureImporter)assetImporter;
+            importer.textureType = TextureImporterType.Default;
+            importer.sRGBTexture = true;
+            importer.alphaSource = TextureImporterAlphaSource.FromInput;
+            importer.alphaIsTransparency = false;
+            importer.mipmapEnabled = true;
+            importer.wrapMode = UnityEngine.TextureWrapMode.Clamp;
+            importer.filterMode = UnityEngine.FilterMode.Bilinear;
+            importer.maxTextureSize = TextureMaxSize;
+            importer.textureCompression = TextureImporterCompression.Compressed;
+            importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings
+            {
+                name = "Android", overridden = true, maxTextureSize = TextureMaxSize, format = TextureImporterFormat.ASTC_5x5,
+                textureCompression = TextureImporterCompression.Compressed
+            });
         }
     }
 }

@@ -89,3 +89,14 @@
 - Бюджет: тело ≤ 4000 + бластер-FBX ≤ 1200 (`MaxPropTriangles`, `TriangleLimit`): итог 5100 треуг. (3922 + 1178) —
   выше прежних 4000 на бойца (GDD §8.4 3–5k); при замене на TRELLIS.2 уложить в 5000 или подтвердить.
 - Hero = тот же FBX (тест 15–30k треуг. только для процедурных). Скриншоты — `Tools/out/art/theo3d/` (`-artStep theo3d`).
+
+## v3 в Unity (2026-10-20)
+- `TheoRecipe` → `theo_v3_game.fbx` (5082 треуг. с бластером), витрина `theo_v3_show.fbx` (16794), текстура
+  `Art/Textures/Fighters/theo_v3_tex.png` (импорт `FighterModelImporter`: sRGB, альфа = глянец, мипы, Clamp, 1024, Android ASTC 5×5).
+  v1 `theo_game.fbx` убран из `Assets` (исходник остался). `SkinQuality.Bone4` (у v3 до 3 влияний).
+- Текстура подаётся компонентом `FighterSkin` (`[ExecuteAlways]`, MaterialPropertyBlock `_BaseMap` + `_BaseMapOn = 1`) на SMR —
+  общие материалы FighterBody/Flash/Hidden не размножаются; MPB переживает `SetBodyMaterial`. Шейдер `Arena/ToonCharacter`:
+  `_BaseMap` (white) и `_BaseMapOn` (0) в UnityPerMaterial; текстура берётся только где uv.x ≥ 0 — у бластера и процедурных
+  частей uv = (−1, −1) (`FighterModelSource.NoUv`), они на вершинных цветах. Контур и «призрак» — на вершинных цветах.
+- Скриншоты `Tools/out/art/theo3d/v3/`: текстура есть, глянец, ось и бластер в правой руке верны; z-fighting/рваного контура
+  на 4 оболочках не видно. Красный костюм на красном кольце врага (lineup_team1) сливается — команда читается только по кольцу/HP (D-137).

@@ -1,5 +1,7 @@
 // Fighter body (Art-Spec §6.3, D-110): toon lighting, pixel-constant outline (inverted hull), depth.
 // Albedo = _BaseColor × vertex colour; vertex alpha = gloss. _Flash = 1 → white body (hit flash), the outline stays.
+// Textured sources (A-Theo3D v3): _BaseMapOn = 1 (set per renderer by FighterSkin) takes colour and gloss from _BaseMap where
+// uv.x >= 0 (untextured parts of the same mesh have uv = (-1, -1)); the outline keeps the vertex colours (= blurred texture).
 Shader "Arena/ToonCharacter"
 {
     Properties
@@ -22,6 +24,8 @@ Shader "Arena/ToonCharacter"
         _OutlinePx ("Outline Pixels At Ref Height", Range(0, 6)) = 2
         _OutlineRefHeight ("Outline Ref Screen Height", Float) = 1080
         _Flash ("Flash", Range(0, 1)) = 0
+        _BaseMap ("Base Map (RGB colour, A gloss)", 2D) = "white" {}
+        _BaseMapOn ("Base Map On", Range(0, 1)) = 0
     }
 
     SubShader
@@ -50,13 +54,19 @@ Shader "Arena/ToonCharacter"
             float _OutlinePx;
             float _OutlineRefHeight;
             half _Flash;
+            float4 _BaseMap_ST;
+            half _BaseMapOn;
         CBUFFER_END
+
+        TEXTURE2D(_BaseMap);
+        SAMPLER(sampler_BaseMap);
 
         struct Attributes
         {
             float4 positionOS : POSITION;
             float3 normalOS : NORMAL;
             half4 color : COLOR;
+            float2 uv : TEXCOORD0;
         };
 
         ArenaToonParams CharacterParams()
@@ -93,6 +103,7 @@ Shader "Arena/ToonCharacter"
                 float4 positionCS : SV_POSITION;
                 float3 normalWS : TEXCOORD0;
                 float3 positionWS : TEXCOORD1;
+                float2 uv : TEXCOORD2;
                 half4 color : COLOR;
             };
 
@@ -103,14 +114,17 @@ Shader "Arena/ToonCharacter"
                 o.positionCS = TransformWorldToHClip(o.positionWS);
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.color = v.color;
+                o.uv = v.uv;
                 return o;
             }
 
             half4 Frag(Varyings i) : SV_Target
             {
+                half4 t = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, TRANSFORM_TEX(i.uv, _BaseMap));
+                half on = _BaseMapOn * step(0.0, i.uv.x);
                 ArenaToonSurface s;
-                s.albedo = _BaseColor.rgb * i.color.rgb;
-                s.gloss = i.color.a;
+                s.albedo = _BaseColor.rgb * lerp(i.color.rgb, t.rgb, on);
+                s.gloss = lerp(i.color.a, t.a, on);
                 s.normalWS = i.normalWS;
                 s.positionWS = i.positionWS;
                 half3 color = ArenaToonShade(s, CharacterParams());

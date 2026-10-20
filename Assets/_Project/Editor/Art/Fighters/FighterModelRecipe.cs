@@ -25,6 +25,12 @@ namespace Arena.Editor.Art.Fighters
         /// its bones replace the pivots in <see cref="Bones"/>; <see cref="Groups"/> are added on top. Used for the hero model too.
         /// </summary>
         public string SourceModel;
+        /// <summary>Finer FBX of the same body for the hero model (same bones, UVs and texture); null = <see cref="SourceModel"/>.</summary>
+        public string SourceModelHero;
+        /// <summary>
+        /// Texture of the source body (RGB = sRGB colour, A = gloss) shown through <see cref="FighterSkin"/>; null = vertex colours only.
+        /// </summary>
+        public string BaseMap;
         /// <summary>Unskinned FBX of the held prop (origin = the grip), weighted to <see cref="FighterBone.Prop"/> at its pivot; or null.</summary>
         public string SourceProp;
     }
