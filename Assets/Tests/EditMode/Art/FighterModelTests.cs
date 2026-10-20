@@ -303,5 +303,34 @@ namespace Arena.Tests.EditMode.Art
             }
             Assert.IsNull(PixRecipe.Create().BaseMap, "procedural recipes stay untextured (_BaseMapOn = 0, white map)");
         }
+
+        [Test]
+        public void Theo_HasEyelidsOnLidBones_HiddenAtRest_TexturedWithSkin()
+        {
+            ViewCatalog catalog = Catalog();
+            foreach (FighterView view in new[] { catalog.FighterPrefab(TheoRecipe.FighterId), catalog.FighterHeroPrefab(TheoRecipe.FighterId) })
+            {
+                Mesh mesh = view.Body.GetComponent<SkinnedMeshRenderer>().sharedMesh;
+                BoneWeight[] weights = mesh.boneWeights;
+                var uvs = new List<Vector2>();
+                mesh.GetUVs(0, uvs);
+                foreach (FighterBone lid in new[] { FighterBone.LidL, FighterBone.LidR })
+                {
+                    int count = 0, textured = 0;
+                    for (int i = 0; i < weights.Length; i++)
+                    {
+                        if (weights[i].boneIndex0 != (int)lid) continue;
+                        count++;
+                        Assert.AreEqual(1f, weights[i].weight0, 1e-4f, view.name + " " + lid + ": weight 1");
+                        if (uvs[i].x >= 0f) textured++;
+                    }
+                    Assert.Greater(count, 0, view.name + ": " + lid + " has geometry");
+                    Assert.Greater(textured, 0, view.name + ": " + lid + " shows the texture (UV probe)");
+                    Assert.Less(textured, count, view.name + ": " + lid + " lash keeps its dark vertex colour");
+                    Assert.AreEqual(Vector3.zero, view.Rig.RestScales[(int)lid], view.name + ": " + lid + " hidden at rest");
+                    Assert.AreEqual(Vector3.zero, view.Rig.Bones[(int)lid].localScale, view.name + ": " + lid + " hidden in the prefab");
+                }
+            }
+        }
     }
 }

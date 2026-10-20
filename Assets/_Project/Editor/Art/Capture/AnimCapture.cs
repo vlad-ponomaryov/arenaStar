@@ -42,6 +42,11 @@ namespace Arena.Editor.Art.Capture
         private const int SheetCellHeight = 240;
         // Close-up of the gameplay angle: the camera this far from the focus (half the model height above the ground).
         private const float CameraDistance = 4.6f;
+        private const int CloseUpWidth = 480;
+        private const int CloseUpHeight = 360;
+        private const float CloseUpFieldOfView = 30f;
+        private const float CloseUpDistance = 0.7f;
+        private const float CloseUpRise = 0.1f;
         private const float RunRadius = 1.0f;
         private const float RunSpeed = 3.5f;
         private const float DashSpeed = 5f;
@@ -95,6 +100,9 @@ namespace Arena.Editor.Art.Capture
             SceneBuilder.ApplyMatchEnvironment();
             MatchLightRig.Apply(light, 0f, catalog);
 
+            // Shaders compile synchronously, so the first frame is not rendered with invisible placeholders.
+            bool asyncShaders = ShaderUtil.allowAsyncCompilation;
+            ShaderUtil.allowAsyncCompilation = false;
             CaptureStage stage = CaptureStage.Build(database, catalog);
             MuzzleFlashPool muzzles = null;
             var sheetFrames = new List<Texture2D>();
@@ -127,6 +135,7 @@ namespace Arena.Editor.Art.Capture
             {
                 for (int i = 0; i < sheetFrames.Count; i++) Object.DestroyImmediate(sheetFrames[i]);
                 stage.Destroy();
+                ShaderUtil.allowAsyncCompilation = asyncShaders;
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             }
             Debug.Log(DoneMarker + " " + Path.GetFullPath(dir));
@@ -144,6 +153,7 @@ namespace Arena.Editor.Art.Capture
             MeshRenderer bakedRenderer = null;
             if (skin != null)
             {
+                skin.BakeMesh(bakedMesh, true); // a mesh given to the filter while empty is not drawn after its first bake
                 baked.AddComponent<MeshFilter>().sharedMesh = bakedMesh;
                 bakedRenderer = baked.AddComponent<MeshRenderer>();
                 bakedRenderer.sharedMaterials = skin.sharedMaterials;
@@ -155,6 +165,7 @@ namespace Arena.Editor.Art.Capture
             }
             try
             {
+                SaveLidCloseUp(view, skin, baked.transform, bakedMesh, camera, Path.GetDirectoryName(framesDir));
                 RunFrames(view, animator, config, muzzles, camera, framesDir, sheet, skin, baked.transform, bakedMesh);
             }
             finally
@@ -162,6 +173,56 @@ namespace Arena.Editor.Art.Capture
                 if (skin != null) skin.enabled = true;
                 Object.DestroyImmediate(baked);
                 Object.DestroyImmediate(bakedMesh);
+            }
+        }
+
+        /// <summary>
+        /// The face from the front, eyelids open (rest, scale 0) and closed (scale 1), side by side → <c>theo_lids.png</c> (AN4 check).
+        /// The camera is put back afterwards.
+        /// </summary>
+        private static void SaveLidCloseUp(FighterView view, SkinnedMeshRenderer skin, Transform baked, Mesh bakedMesh, Camera camera,
+            string dir)
+        {
+            FighterRig rig = view.Rig;
+            Transform lidL = rig.Bones[(int)FighterBone.LidL];
+            Transform lidR = rig.Bones[(int)FighterBone.LidR];
+            Transform eyeL = rig.Bones[(int)FighterBone.EyeL];
+            Transform eyeR = rig.Bones[(int)FighterBone.EyeR];
+            if (lidL == null || lidR == null || eyeL == null || eyeR == null || skin == null) return;
+            Vector3 savedPosition = camera.transform.position;
+            Quaternion savedRotation = camera.transform.rotation;
+            float savedFov = camera.fieldOfView;
+            view.SetPose(Spot, Vector3.back);
+            rig.ResetPose();
+            Vector3 face = (eyeL.position + eyeR.position) * 0.5f;
+            camera.fieldOfView = CloseUpFieldOfView;
+            camera.transform.SetPositionAndRotation(face + Vector3.back * CloseUpDistance + Vector3.up * CloseUpRise,
+                Quaternion.LookRotation(face - (face + Vector3.back * CloseUpDistance + Vector3.up * CloseUpRise), Vector3.up));
+            var sheet = new Texture2D(CloseUpWidth * 2, CloseUpHeight, TextureFormat.RGBA32, false);
+            try
+            {
+                for (int k = 0; k < 2; k++)
+                {
+                    Vector3 scale = k == 0 ? rig.RestScales[(int)FighterBone.LidL] : Vector3.one;
+                    lidL.localScale = scale;
+                    lidR.localScale = scale;
+                    skin.BakeMesh(bakedMesh, true);
+                    baked.SetPositionAndRotation(skin.transform.position, skin.transform.rotation);
+                    Texture2D big = ArtCapture.Render(camera, CloseUpWidth * Supersample, CloseUpHeight * Supersample);
+                    Texture2D small = ArtCapture.Downscale(big, Supersample);
+                    sheet.SetPixels32(k * CloseUpWidth, 0, CloseUpWidth, CloseUpHeight, small.GetPixels32());
+                    Object.DestroyImmediate(big);
+                    Object.DestroyImmediate(small);
+                }
+                sheet.Apply();
+                ArtCapture.Save(sheet, dir, "theo_lids");
+            }
+            finally
+            {
+                Object.DestroyImmediate(sheet);
+                rig.ResetPose();
+                camera.fieldOfView = savedFov;
+                camera.transform.SetPositionAndRotation(savedPosition, savedRotation);
             }
         }
 

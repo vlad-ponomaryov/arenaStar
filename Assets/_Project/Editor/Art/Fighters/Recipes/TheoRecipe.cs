@@ -31,6 +31,53 @@ namespace Arena.Editor.Art.Fighters.Recipes
         /// <summary>End of the barrel in the blaster FBX (origin = the grip, +Z = the barrel), before the scale.</summary>
         public static readonly Vector3 BlasterMuzzle = new Vector3(0f, 0.107f, 0.422f);
 
+        // Eyelids (A-TheoAnim AN4): the eyes are painted, so each lid is a flattened half-buried ellipsoid over the painted eye on
+        // LidL/R (scale 0 at rest = collapsed into the eye centre, hidden; 1 = closed) with a dark lash line across its lower half.
+        // The eye centres are the FBX bone heads of EyeL/R (≈ 8 mm under the face); the face there faces forward, up and outwards.
+        // The lid shows the texture's skin from just under the eye (UV probe); sizes before the scale, worked out on close-ups.
+        // The left eye is painted on the visor lens (≈ 2 cm in front of the eye centre): its lid lies on the lens and shows the
+        // lens orange, so the closed eye reads as behind the glass.
+        public static readonly Vector3 EyeCentreR = new Vector3(0.0469f, 0.8007f, 0.1009f);
+        private static readonly Vector3 EyeFacing = new Vector3(0.15f, 0.28f, 0.95f);
+        private static readonly Vector3 LidRadii = new Vector3(0.031f, 0.022f, 0.010f);
+        private const float LidLift = 0.006f;
+        private static readonly Vector3 LashRadii = new Vector3(0.032f, 0.0032f, 0.009f);
+        private const float LashLift = 0.008f;
+        private const float LashDrop = 0.004f;
+        private static readonly Vector3 SkinProbeOffset = new Vector3(0f, -0.05f, 0.009f);
+        private const float VisorLensLift = 0.017f;
+        private static readonly Vector3 VisorFacing = new Vector3(-0.15f, 0.12f, 0.98f);
+        private static readonly Vector3 VisorProbe = new Vector3(-0.055f, 0.776f, 0.122f);
+        private const string LidColor = "#FFFFFF";
+        private const string LashColor = "#2B1D12";
+        private const int LidSegments = 8;
+        private const int LashSegments = 4;
+        private const int LidBudget = 48;
+        private const int LashBudget = 8;
+
+        /// <summary>The lid and lash groups of one eye (<paramref name="side"/> = +1 right, −1 left; the left one on the visor lens).</summary>
+        private static FighterGroupSpec[] Eyelid(FighterBone bone, float side)
+        {
+            bool visor = side < 0f;
+            var eye = new Vector3(EyeCentreR.x * side, EyeCentreR.y, EyeCentreR.z);
+            Vector3 facing = visor ? VisorFacing.normalized : new Vector3(EyeFacing.x * side, EyeFacing.y, EyeFacing.z).normalized;
+            Vector3 centre = visor ? eye + Vector3.forward * VisorLensLift : eye;
+            Quaternion turn = Quaternion.LookRotation(facing, Vector3.up);
+            Vector3 up = turn * Vector3.up;
+            string name = bone == FighterBone.LidL ? "lidL" : "lidR";
+            return new[]
+            {
+                new FighterGroupSpec
+                {
+                    Name = name, Bone = bone, Mode = FighterGroupMode.Parts, Budget = LidBudget, Segments = LidSegments,
+                    Parts = new[] { FighterPartSpec.Ellipsoid(centre + facing * LidLift, LidRadii, LidColor).Oriented(turn) },
+                    UvProbe = visor ? VisorProbe : eye + SkinProbeOffset
+                },
+                FighterGroupSpec.Pieces(name + "Lash", bone, LashBudget, LashSegments,
+                    FighterPartSpec.Ellipsoid(centre + facing * LashLift - up * LashDrop, LashRadii, LashColor).Oriented(turn))
+            };
+        }
+
         public static FighterModelRecipe Create()
         {
             // Pivots before the scale; every bone the FBX has is replaced by its head (FighterModelBuilder.ApplySourcePivots),
@@ -70,8 +117,8 @@ namespace Arena.Editor.Art.Fighters.Recipes
                     new FighterBoneSpec(FighterBone.LidL, FighterBone.Head, eyeL),
                     new FighterBoneSpec(FighterBone.LidR, FighterBone.Head, eyeR)
                 },
-                // Eyes are painted in the texture (EyeL/R, LidL/R carry no weights); blinking via lids on LidL/R is for later.
-                Groups = Array.Empty<FighterGroupSpec>(),
+                // Eyes are painted in the texture (EyeL/R carry no weights); the lids are procedural groups on LidL/R.
+                Groups = Concat(Eyelid(FighterBone.LidL, -1f), Eyelid(FighterBone.LidR, 1f)),
                 AttackStyle = FighterAttackStyle.Shoot,
                 UltStyle = FighterAttackStyle.Shoot,
                 TrickStyle = FighterTrickStyle.Roll,
@@ -80,6 +127,14 @@ namespace Arena.Editor.Art.Fighters.Recipes
                     new FighterSpring { Bone = FighterBone.Head, Frequency = 3.5f, Damping = 0.55f, Amount = 6f }
                 }
             };
+        }
+
+        private static FighterGroupSpec[] Concat(FighterGroupSpec[] a, FighterGroupSpec[] b)
+        {
+            var all = new FighterGroupSpec[a.Length + b.Length];
+            Array.Copy(a, all, a.Length);
+            Array.Copy(b, 0, all, a.Length, b.Length);
+            return all;
         }
     }
 }

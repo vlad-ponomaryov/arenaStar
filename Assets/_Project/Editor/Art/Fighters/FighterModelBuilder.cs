@@ -103,10 +103,12 @@ namespace Arena.Editor.Art.Fighters
                     sourceUvs);
                 stats?.Add(new GroupStats { Name = "prop", Triangles = buffer.TriangleCount - before, Budget = MaxPropTriangles });
             }
+            var probed = new List<(int start, int end, Vector3 probe)>();
             foreach (FighterGroupSpec group in recipe.Groups)
             {
                 int bone = (int)group.Bone;
                 int before = buffer.TriangleCount;
+                int firstVertex = buffer.VertexCount;
                 float step = 0f;
                 bool hero = quality == FighterModelQuality.Hero;
                 int budget = hero ? group.Budget * HeroBudgetScale : group.Budget;
@@ -128,6 +130,7 @@ namespace Arena.Editor.Art.Fighters
                     }
                 }
                 stats?.Add(new GroupStats { Name = group.Name, Triangles = buffer.TriangleCount - before, Budget = budget, Step = step });
+                if (group.UvProbe.HasValue) probed.Add((firstVertex, buffer.VertexCount, group.UvProbe.Value));
             }
             if (weights != null)
             {
@@ -141,10 +144,33 @@ namespace Arena.Editor.Art.Fighters
                 uvs.Clear();
                 uvs.AddRange(sourceUvs);
                 for (int i = sourceUvs.Count; i < buffer.VertexCount; i++) uvs.Add(FighterModelSource.NoUv);
+                foreach ((int start, int end, Vector3 probe) in probed)
+                {
+                    Vector2 uv = NearestSourceUv(buffer, sourceUvs, probe);
+                    for (int i = start; i < end; i++) uvs[i] = uv;
+                }
             }
             if (!Mathf.Approximately(recipe.Scale, 1f))
                 for (int i = 0; i < buffer.Positions.Count; i++) buffer.Positions[i] *= recipe.Scale;
             return buffer;
+        }
+
+        /// <summary>UV of the textured source vertex nearest to <paramref name="probe"/>; <see cref="FighterModelSource.NoUv"/> if none.</summary>
+        private static Vector2 NearestSourceUv(MeshBuilderBuffer buffer, List<Vector2> sourceUvs, Vector3 probe)
+        {
+            Vector2 best = FighterModelSource.NoUv;
+            float bestDistance = float.MaxValue;
+            for (int i = 0; i < sourceUvs.Count; i++)
+            {
+                if (sourceUvs[i].x < 0f) continue;
+                float d = (buffer.Positions[i] - probe).sqrMagnitude;
+                if (d < bestDistance)
+                {
+                    bestDistance = d;
+                    best = sourceUvs[i];
+                }
+            }
+            return best;
         }
 
         /// <summary>Replaces the recipe's pivots with the heads of the bones its source model has (idempotent).</summary>
