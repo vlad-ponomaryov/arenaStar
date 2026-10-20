@@ -311,12 +311,12 @@ namespace Arena.Editor.Data
             new[] { LocKeys.ErrorMatchOver, "The match is already over", "Матч уже закончился" },
             new[] { LocKeys.HudPingMs, "ms", "мс" },
             new[] { LocKeys.ResultsPlace, "Place {0}", "{0}-е место" },
-            new[] { "fighter.pix.name", "Pix", "Пикс" },
-            new[] { "fighter.bruno.name", "Bruno", "Бруно" },
-            new[] { "fighter.chomp.name", "Chomp", "Чомп" },
-            new[] { "fighter.kora.name", "Kora", "Кора" },
-            new[] { "fighter.nova.name", "Nova", "Нова" },
-            new[] { "fighter.vex.name", "Vex", "Векс" }
+            new[] { "fighter.pix.name", "Teo", "Тео" }, // D-148: data ids kept, display names of the roster heroes
+            new[] { "fighter.bruno.name", "Kovach", "Ковач" },
+            new[] { "fighter.chomp.name", "Gala", "Гала" },
+            new[] { "fighter.kora.name", "Elixa", "Эликса" },
+            new[] { "fighter.nova.name", "Lark", "Ларк" },
+            new[] { "fighter.vex.name", "Zip", "Зип" }
         };
 
         /// <summary>Fighter ids in menu order (asset names are the capitalized ids).</summary>

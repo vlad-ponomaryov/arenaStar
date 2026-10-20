@@ -42,7 +42,7 @@ namespace Arena.Tests.EditMode.Data
             var db = AssetDatabase.LoadAssetAtPath<GameDatabase>(DataSeeder.GameDatabasePath);
             Assert.AreSame(table, db.Strings, "GameDatabase.Strings");
             foreach (FighterConfig f in db.Fighters) Assert.IsNotNull(table.Find(f.NameKey), "missing fighter name " + f.NameKey);
-            Assert.AreEqual("Пикс", table.Find("fighter.pix.name").Ru);
+            Assert.AreEqual("Тео", table.Find("fighter.pix.name").Ru); // D-148
             Assert.AreEqual("Acorns", table.Find(LocKeys.ModeAcorns).En);
             Assert.AreEqual("Жёлуди", table.Find(LocKeys.ModeAcorns).Ru);
         }

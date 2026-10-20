@@ -25,3 +25,8 @@ MonoBehaviour:
   ProceduralPriority: 1
   FighterSounds:
   - {fileID: 11400000, guid: 0e5fd3c0835646943b38abc5b3798e1a, type: 2}
+  - {fileID: 11400000, guid: 115da9fe1158afb4888cc6a2f955f482, type: 2}
+  - {fileID: 11400000, guid: 9d23acd98247eb4489ebc90f9d6b2689, type: 2}
+  - {fileID: 11400000, guid: 3405ec8d23dc1bb4d9d90f9159213c7b, type: 2}
+  - {fileID: 11400000, guid: 9fb11173a2d44624899b83bdeb809c96, type: 2}
+  - {fileID: 11400000, guid: 37ecae89274c6204ea47fa8e2f51e46a, type: 2}

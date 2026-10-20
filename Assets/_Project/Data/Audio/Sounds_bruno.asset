@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa7fd7188fcb23247b7201f5e9c5309b, type: 3}
+  m_Name: Sounds_bruno
+  m_EditorClassIdentifier: Arena.Data::Arena.Data.Audio.FighterSoundSet
+  FighterId: bruno
+  StepDistance: 0.9
+  StepTeleportDistance: 1.5
+  Step:
+    Clips:
+    - {fileID: 8300000, guid: 1d2d5f02d1a046a9a674185ca135da83, type: 3}
+    - {fileID: 8300000, guid: 50076a2ebed04d96995bf56760238494, type: 3}
+    - {fileID: 8300000, guid: cbc326a3f2494a6f9f319f27089af20a, type: 3}
+    - {fileID: 8300000, guid: 4e787c446baf4035a609020ff14c8a9c, type: 3}
+    Volume: 0.35
+    PitchJitter: 0.08
+    Cooldown: 0.15
+    Priority: 0
+    Channel: 0
+    LocalOnly: 0
+  Shot:
+    Clips:
+    - {fileID: 8300000, guid: ae28bde942f146b69047cddcd2a94b89, type: 3}
+    - {fileID: 8300000, guid: 2312198598574ec1ab478f9a4bf04751, type: 3}
+    - {fileID: 8300000, guid: 3ae821565ebb4d3cbc13dd7becbf5e3a, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.04
+    Cooldown: 0.35
+    Priority: 2
+    Channel: 0
+    LocalOnly: 0
+  Hit:
+    Clips:
+    - {fileID: 8300000, guid: c7a705ef193d42228b0e92571fa937b5, type: 3}
+    Volume: 0.7
+    PitchJitter: 0.06
+    Cooldown: 0.08
+    Priority: 3
+    Channel: 0
+    LocalOnly: 0
+  Ult:
+    Clips:
+    - {fileID: 8300000, guid: f0a48fd6ed4448388f36f01979ff6596, type: 3}
+    Volume: 1
+    PitchJitter: 0
+    Cooldown: 0.5
+    Priority: 5
+    Channel: 0
+    LocalOnly: 0
+  Hurt:
+    Clips:
+    - {fileID: 8300000, guid: 6a6b113e6b06430ca556aeec41df80ae, type: 3}
+    - {fileID: 8300000, guid: d6a83fa427f24b8caa9088a5918c4cf9, type: 3}
+    Volume: 0.75
+    PitchJitter: 0.05
+    Cooldown: 0.15
+    Priority: 3
+    Channel: 0
+    LocalOnly: 0
+  VoEffort:
+    Clips:
+    - {fileID: 8300000, guid: 6b7a29f4d02f4a6e9eb8cd6c45ef7cc5, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.03
+    Cooldown: 1
+    Priority: 4
+    Channel: 1
+    LocalOnly: 0
+  VoHurt:
+    Clips:
+    - {fileID: 8300000, guid: 2aefe038997b4d299857d5eb7c9001df, type: 3}
+    Volume: 0.7
+    PitchJitter: 0.05
+    Cooldown: 1.5
+    Priority: 3
+    Channel: 1
+    LocalOnly: 1
+  VoWin:
+    Clips:
+    - {fileID: 8300000, guid: be350ccef3084c0dbf20276c9d762e62, type: 3}
+    Volume: 0.9
+    PitchJitter: 0
+    Cooldown: 0
+    Priority: 6
+    Channel: 1
+    LocalOnly: 1
+  VoLose:
+    Clips:
+    - {fileID: 8300000, guid: 0e544c6a5fb14205b74d085e33a79cde, type: 3}
+    Volume: 0.9
+    PitchJitter: 0
+    Cooldown: 0
+    Priority: 6
+    Channel: 1
+    LocalOnly: 1

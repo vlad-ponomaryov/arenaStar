@@ -17,6 +17,7 @@ namespace Arena.Editor.Audio
         public const string AudioConfigPath = AudioDataFolder + "/Audio.asset";
         public const string MixerPath = AudioImportRules.Folder + "/Arena.mixer";
         public const string TheoClipFolder = AudioImportRules.Folder + "/Fighters/Theo";
+        public const string FighterClipRoot = AudioImportRules.Folder + "/Fighters";
 
         // Mixer and voices (PROTO, brief A-TheoSfx).
         private const int MaxVoices = 12;
@@ -42,6 +43,16 @@ namespace Arena.Editor.Audio
         private static readonly float[] TheoVoEffort = { 0.8f, 0.03f, 1f, 4f };
         private static readonly float[] TheoVoHurt = { 0.7f, 0.05f, 1.5f, 3f };
         private static readonly float[] TheoVoEnd = { 0.9f, 0f, 0f, 6f };
+
+        /// <summary>A-Roster3D (D-148): data fighter id, clip folder, clip prefix.</summary>
+        private static readonly string[,] RosterSounds =
+        {
+            { "bruno", "Kovach", "kovach" },
+            { "chomp", "Gala", "gala" },
+            { "kora", "Elixa", "elixa" },
+            { "nova", "Lark", "lark" },
+            { "vex", "Zip", "zip" }
+        };
 
         /// <summary>Seeds the audio and sets <see cref="GameDatabase.Audio"/>. Run: Tools/unity-method.ps1 -Method Arena.Editor.Audio.AudioDataSeeder.SeedAudio</summary>
         public static void SeedAudio()
@@ -78,6 +89,9 @@ namespace Arena.Editor.Audio
             if (c.FighterSounds == null) c.FighterSounds = new System.Collections.Generic.List<FighterSoundSet>();
             c.FighterSounds.Clear();
             c.FighterSounds.Add(SeedTheo());
+            // A-Roster3D: the roster heroes on the data ids they stand in for (D-148); cue settings as Theo's (PROTO).
+            for (int i = 0; i < RosterSounds.GetLength(0); i++)
+                c.FighterSounds.Add(SeedSet(RosterSounds[i, 0], RosterSounds[i, 1], RosterSounds[i, 2], "attack"));
             EditorUtility.SetDirty(c);
             AssetDatabase.SaveAssets();
             Debug.Log("ARENA_AUDIO_SEEDED sets=" + c.FighterSounds.Count + " mixer=" + (mixer != null) + " sfx=" + (c.SfxGroup != null)
@@ -85,32 +99,39 @@ namespace Arena.Editor.Audio
             return c;
         }
 
-        private static FighterSoundSet SeedTheo()
+        private static FighterSoundSet SeedTheo() => SeedSet(TheoId, "Theo", "theo", "shot");
+
+        /// <summary>
+        /// Sound set of one fighter from <c>Audio/Fighters/&lt;folder&gt;/&lt;prefix&gt;_*.wav</c> (the roles of Theo's set; the attack
+        /// clips are <c>&lt;prefix&gt;_&lt;shot&gt;_01..03</c>) with Theo's cue settings.
+        /// </summary>
+        private static FighterSoundSet SeedSet(string fighterId, string folder, string prefix, string shot)
         {
-            FighterSoundSet s = LoadOrCreate<FighterSoundSet>(AudioDataFolder + "/Sounds_" + TheoId + ".asset");
-            s.FighterId = TheoId;
+            FighterSoundSet s = LoadOrCreate<FighterSoundSet>(AudioDataFolder + "/Sounds_" + fighterId + ".asset");
+            string dir = FighterClipRoot + "/" + folder + "/" + prefix + "_";
+            s.FighterId = fighterId;
             s.StepDistance = TheoStepDistance;
             s.StepTeleportDistance = TheoStepTeleport;
-            s.Step = Cue(TheoStep, SfxChannel.Sfx, false, "theo_step_01", "theo_step_02", "theo_step_03", "theo_step_04");
-            s.Shot = Cue(TheoShot, SfxChannel.Sfx, false, "theo_shot_01", "theo_shot_02", "theo_shot_03");
-            s.Hit = Cue(TheoHit, SfxChannel.Sfx, false, "theo_hit");
-            s.Ult = Cue(TheoUlt, SfxChannel.Sfx, false, "theo_ult");
-            s.Hurt = Cue(TheoHurt, SfxChannel.Sfx, false, "theo_hurt_01", "theo_hurt_02");
-            s.VoEffort = Cue(TheoVoEffort, SfxChannel.Voice, false, "theo_vo_effort");
-            // Pain voices only for the local player's own Theo: a crowd of "ouch" from bots is noise.
-            s.VoHurt = Cue(TheoVoHurt, SfxChannel.Voice, true, "theo_vo_hurt");
-            s.VoWin = Cue(TheoVoEnd, SfxChannel.Voice, true, "theo_vo_win");
-            s.VoLose = Cue(TheoVoEnd, SfxChannel.Voice, true, "theo_vo_lose");
+            s.Step = Cue(TheoStep, SfxChannel.Sfx, false, dir, "step_01", "step_02", "step_03", "step_04");
+            s.Shot = Cue(TheoShot, SfxChannel.Sfx, false, dir, shot + "_01", shot + "_02", shot + "_03");
+            s.Hit = Cue(TheoHit, SfxChannel.Sfx, false, dir, "hit");
+            s.Ult = Cue(TheoUlt, SfxChannel.Sfx, false, dir, "ult");
+            s.Hurt = Cue(TheoHurt, SfxChannel.Sfx, false, dir, "hurt_01", "hurt_02");
+            s.VoEffort = Cue(TheoVoEffort, SfxChannel.Voice, false, dir, "vo_effort");
+            // Pain voices only for the local player's own fighter: a crowd of "ouch" from bots is noise.
+            s.VoHurt = Cue(TheoVoHurt, SfxChannel.Voice, true, dir, "vo_hurt");
+            s.VoWin = Cue(TheoVoEnd, SfxChannel.Voice, true, dir, "vo_win");
+            s.VoLose = Cue(TheoVoEnd, SfxChannel.Voice, true, dir, "vo_lose");
             EditorUtility.SetDirty(s);
             return s;
         }
 
-        private static SfxCue Cue(float[] p, SfxChannel channel, bool localOnly, params string[] clipNames)
+        private static SfxCue Cue(float[] p, SfxChannel channel, bool localOnly, string dir, params string[] clipNames)
         {
             var clips = new AudioClip[clipNames.Length];
             for (int i = 0; i < clipNames.Length; i++)
             {
-                string path = TheoClipFolder + "/" + clipNames[i] + ".wav";
+                string path = dir + clipNames[i] + ".wav";
                 clips[i] = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
                 if (clips[i] == null) Debug.LogError("AudioDataSeeder: missing clip " + path);
             }

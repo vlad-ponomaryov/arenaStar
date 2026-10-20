@@ -38,6 +38,19 @@ namespace Arena.Tests.EditMode.Gameplay.Audio
         }
 
         [Test]
+        public void EveryStartingFighter_HasACompleteSoundSet([Values("bruno", "chomp", "kora", "nova", "vex")] string id)
+        {
+            FighterSoundSet set = Config().FindFighterSounds(id);
+            Assert.IsNotNull(set, id + " has a sound set (A-Roster3D)");
+            for (int k = 0; k < FighterSoundSet.KindCount; k++)
+            {
+                SfxCue cue = set.Cue((FighterSoundKind)k);
+                Assert.IsTrue(cue.HasClips, id + " " + (FighterSoundKind)k);
+                for (int i = 0; i < cue.Clips.Length; i++) Assert.IsNotNull(cue.Clips[i], id + " " + (FighterSoundKind)k + " " + i);
+            }
+        }
+
+        [Test]
         public void Mixer_HasSfxAndVoiceGroups()
         {
             AudioConfig c = Config();

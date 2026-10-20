@@ -51,9 +51,9 @@ namespace Arena.Tests.EditMode.Art
                 Assert.AreEqual(FighterModelBuilder.MeshPath(id, FighterModelQuality.Hero), AssetDatabase.GetAssetPath(mesh), id);
                 if (recipe.SourceModel == null || recipe.SourceModelHero != null)
                     Assert.That(mesh.triangles.Length / 3, Is.InRange(15000, 30000), id + ": showcase LOD (D-122)");
-                else // no finer FBX yet: the hero model is the same source
-                    Assert.AreEqual(catalog.FighterPrefab(id).Body.GetComponent<SkinnedMeshRenderer>().sharedMesh.triangles.Length,
-                        mesh.triangles.Length, id);
+                else // no finer FBX yet: the hero model is the same source (only its procedural groups are finer)
+                    Assert.GreaterOrEqual(mesh.triangles.Length,
+                        catalog.FighterPrefab(id).Body.GetComponent<SkinnedMeshRenderer>().sharedMesh.triangles.Length, id);
                 Assert.AreEqual(Enum.GetValues(typeof(FighterBone)).Length, smrs[0].bones.Length, id);
                 Assert.IsNotNull(hero.Rig, id);
                 Assert.AreEqual(catalog.FighterPrefab(id).Rig.TopHeight, hero.Rig.TopHeight, 0.03f, id + ": same size as the match model");
@@ -330,6 +330,44 @@ namespace Arena.Tests.EditMode.Art
                     Assert.AreEqual(Vector3.zero, view.Rig.RestScales[(int)lid], view.name + ": " + lid + " hidden at rest");
                     Assert.AreEqual(Vector3.zero, view.Rig.Bones[(int)lid].localScale, view.name + ": " + lid + " hidden in the prefab");
                 }
+            }
+        }
+
+        private static IEnumerable<FighterModelRecipe> RosterRecipes() => new[]
+        {
+            KovachRecipe.Create(), GalaRecipe.Create(), ElixaRecipe.Create(), LarkRecipe.Create(), ZipRecipe.Create()
+        };
+
+        [Test]
+        public void Roster_FbxModels_StandUpright_HoldTheWeaponInTheRightHand_AndAreTextured()
+        {
+            ViewCatalog catalog = Catalog();
+            foreach (FighterModelRecipe recipe in RosterRecipes())
+            {
+                string id = recipe.FighterId;
+                foreach (string name in FighterModelSource.SkinBoneNames(recipe.SourceModel))
+                    Assert.IsTrue(Enum.TryParse(name, false, out FighterBone _), id + ": FBX bone " + name + " is not a FighterBone");
+                Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<Texture2D>(recipe.BaseMap), id + " " + recipe.BaseMap);
+                MeshBuilderBuffer geometry = FighterModelBuilder.BuildGeometry(recipe);
+                float minY = float.MaxValue, maxY = float.MinValue;
+                for (int i = 0; i < geometry.VertexCount; i++)
+                {
+                    minY = Mathf.Min(minY, geometry.Positions[i].y);
+                    maxY = Mathf.Max(maxY, geometry.Positions[i].y);
+                }
+                Assert.AreEqual(0f, minY, 0.03f, id + ": feet on the ground");
+                Assert.That(maxY, Is.InRange(1.3f, 2.2f), id + ": height");
+
+                FighterView view = catalog.FighterPrefab(id);
+                FighterRig rig = view.Rig;
+                Transform prop = rig.Bone(FighterBone.Prop);
+                Assert.AreSame(rig.Bone(FighterBone.ArmR), prop.parent, id + ": the weapon follows the right arm");
+                Assert.Greater(view.transform.InverseTransformPoint(prop.position).x, 0.1f, id + ": the weapon in the right hand (+X)");
+                Assert.Greater(view.transform.InverseTransformPoint(rig.Bone(FighterBone.Head).position).y,
+                    view.transform.InverseTransformPoint(rig.Bone(FighterBone.Body).position).y, id + ": head above the body");
+                Assert.IsNotNull(rig.Muzzle, id + ": muzzle");
+                Assert.IsNotNull(view.Body.GetComponent<FighterSkin>(), id + ": textured");
+                Assert.AreEqual(Vector3.zero, rig.RestScales[(int)FighterBone.LidL], id + ": eyes open at rest");
             }
         }
     }

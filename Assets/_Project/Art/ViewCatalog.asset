@@ -22,6 +22,21 @@ MonoBehaviour:
   - FighterId: pix
     Prefab: {fileID: 7434505735102882889, guid: e6065e26022b9ce4ca44f130da65a49b, type: 3}
     HeroPrefab: {fileID: 6600160668504146452, guid: cd54b5195bf3f054d8179ace9dfd0b3e, type: 3}
+  - FighterId: bruno
+    Prefab: {fileID: 9177849537813245747, guid: 1e3f9912a1f368e49994b8f785d89324, type: 3}
+    HeroPrefab: {fileID: 6210535754654860122, guid: fc8ba5a76749cef47884744ffb3fb7ef, type: 3}
+  - FighterId: chomp
+    Prefab: {fileID: 8628019455888958062, guid: f106141161f46b24b94c6ed04700ec5a, type: 3}
+    HeroPrefab: {fileID: 5707311100316504466, guid: d43afd446d9c0554d951d09340def808, type: 3}
+  - FighterId: kora
+    Prefab: {fileID: 7561365894106895566, guid: 65ce325a5c8d3fa41a23083d53d67dad, type: 3}
+    HeroPrefab: {fileID: 1605288513378329547, guid: 2ecaecae32c3e1f4b96bd60dc36d44d5, type: 3}
+  - FighterId: nova
+    Prefab: {fileID: 1622548187967704384, guid: b1e67af0a71747747b7add68fafae3ca, type: 3}
+    HeroPrefab: {fileID: 6823824960525187504, guid: a20a3c79a0a1a824ea699b28cce976c0, type: 3}
+  - FighterId: vex
+    Prefab: {fileID: 4353007945017563871, guid: 4ce157dc195eafc49834f93f6705a7a9, type: 3}
+    HeroPrefab: {fileID: 8780509600454409573, guid: 21332b76458482346871973b14828fac, type: 3}
   LogPrefab: {fileID: 7862282338162344235, guid: ec593e0984357a648bf684441dbb6448, type: 3}
   LogThickness: 0.5
   LobBombPrefab: {fileID: 3311351156427285967, guid: 5258f7fb4ea0fcf46a05824c0480affc, type: 3}

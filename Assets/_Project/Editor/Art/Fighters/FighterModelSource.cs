@@ -43,6 +43,17 @@ namespace Arena.Editor.Art.Fighters
             return pivots;
         }
 
+        /// <summary>
+        /// Position of the named empty of a prop FBX (e.g. <c>Muzzle</c>; null if it has none) in the prop's model space (origin = the grip, +Z = forward,
+        /// before the recipe scale), as <see cref="AppendProp"/> places the mesh; for <see cref="FighterModelRecipe.PropMuzzle"/>.
+        /// </summary>
+        public static Vector3? PropPoint(string path, string name)
+        {
+            foreach (Transform t in Load(path).GetComponentsInChildren<Transform>(true))
+                if (t.name == name) return SourceToModel.MultiplyPoint3x4(t.position);
+            return null;
+        }
+
         /// <summary>Names of the bones the skinned body is weighted to (for the tests: each must be a <see cref="FighterBone"/>).</summary>
         public static string[] SkinBoneNames(string path)
         {

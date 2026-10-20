@@ -36,7 +36,10 @@ namespace Arena.Editor.Art.Fighters
         public const string HeroSuffix = "_hero";
 
         /// <summary>Recipes of the fighters that have a model (the rest use the fallback capsule).</summary>
-        public static FighterModelRecipe[] Recipes() => new[] { TheoRecipe.Create() };
+        public static FighterModelRecipe[] Recipes() => new[]
+        {
+            TheoRecipe.Create(), KovachRecipe.Create(), GalaRecipe.Create(), ElixaRecipe.Create(), LarkRecipe.Create(), ZipRecipe.Create()
+        };
 
         /// <summary>Triangle limit of the recipe's match model: the body budget plus the prop budget when the prop is its own FBX.</summary>
         public static int TriangleLimit(FighterModelRecipe recipe) => MaxTriangles + (recipe.SourceProp != null ? MaxPropTriangles : 0);
