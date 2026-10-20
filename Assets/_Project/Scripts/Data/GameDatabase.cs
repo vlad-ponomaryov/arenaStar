@@ -49,6 +49,9 @@ namespace Arena.Data
         [Tooltip("Online client settings: regions, content pack, prediction and interpolation (Server-Spec §12.3).")]
         public NetConfig Net;
 
+        [Tooltip("Procedural animation of the fighter models (view only, D-109).")]
+        public FighterAnimConfig FighterAnim;
+
         /// <summary>Fighter config by id, or null.</summary>
         public FighterConfig FindFighter(string id)
         {

@@ -25,6 +25,7 @@ namespace Arena.Editor.Data
         public const string AcornsGladePath = MapsFolder + "/Acorns_Glade.asset";
         public const string CameraConfigPath = FeelFolder + "/CameraConfig.asset";
         public const string FeelConfigPath = FeelFolder + "/Feel.asset";
+        public const string FighterAnimConfigPath = FeelFolder + "/FighterAnim.asset";
         public const string MatchRunnerConfigPath = CombatFolder + "/MatchRunnerConfig.asset";
         public const string CombatRulesPath = CombatFolder + "/CombatRules.asset";
         public const string GameDatabasePath = DataRoot + "/GameDatabase.asset";
@@ -692,6 +693,60 @@ namespace Arena.Editor.Data
         private const int FeelTargetFrameRate = 60;
         private const int FeelBatterySaverFrameRate = 30;
 
+        // Fighter animation (brief A-TheoAnim §4, D-109), all PROTO: soft breathing, run swings that keep the feet planted
+        // (one step cycle = 0.55 model heights), short recoil, ult = crouch → jump with a full spin → strong shot, roll = one
+        // somersault, hits squash and close the eyes, blinks every 3–5 s (15 % double), springs clamped at 25°.
+        private const float AnimBlendSeconds = 0.12f;
+        private const float AnimBreathHz = 0.6f;
+        private const float AnimBreathScale = 0.02f;
+        private const float AnimIdleSwayDeg = 2f;
+        private const float AnimRunThreshold = 0.4f;
+        private const float AnimRunSpeedRef = 4f;
+        private const float AnimSpeedSmoothing = 12f;
+        private const float AnimStrideLengthPerHeight = 0.55f;
+        private const float AnimLegSwingDeg = 35f;
+        private const float AnimArmSwingDeg = 25f;
+        private const float AnimBounceHeight = 0.04f;
+        private const float AnimLeanForwardDeg = 10f;
+        private const float AnimLeanTurnDeg = 8f;
+        private const float AnimLeanTurnRateRef = 180f;
+        private const float AnimTeleportDistance = 1f;
+        private const float AnimShotSeconds = 0.2f;
+        private const float AnimRecoilDeg = 18f;
+        private const float AnimRecoilDistance = 0.05f;
+        private const float AnimBodyRecoilDeg = 2f;
+        private const float AnimShotPeakTime = 0.15f;
+        private const float AnimUltSeconds = 0.5f;
+        private const float AnimUltCrouchFraction = 0.3f;
+        private const float AnimUltCrouch = 0.08f;
+        private const float AnimUltJump = 0.15f;
+        private const float AnimUltSpinDeg = 360f;
+        private const float AnimUltShotScale = 1.5f;
+        private const float AnimTrickSeconds = 0.4f;
+        private const float AnimTrickRollDeg = 360f;
+        private const float AnimHurtSeconds = 0.2f;
+        private const float AnimHurtSquash = 0.12f;
+        private const float AnimHurtTiltDeg = 12f;
+        private const float AnimHurtHeavyScale = 1.5f;
+        private const float AnimSpawnSeconds = 0.3f;
+        private const float AnimDefeatSeconds = 0.6f;
+        private const float AnimDefeatTumbleDeg = 360f;
+        private const float AnimVictoryHopHz = 1.6f;
+        private const float AnimVictoryHopHeight = 0.12f;
+        private const float AnimVictoryArmDeg = 140f;
+        private const float AnimBlinkSeconds = 0.12f;
+        private const float AnimBlinkIntervalMin = 3f;
+        private const float AnimBlinkIntervalMax = 5f;
+        private const float AnimDoubleBlinkChance = 0.15f;
+        private const float AnimLookMaxDeg = 20f;
+        private const float AnimHeadLookDeg = 10f;
+        private const float AnimSpringMaxDegrees = 25f;
+        private const float AnimMaxDt = 0.05f;
+        private const float AnimMuzzleSeconds = 0.08f;
+        private const float AnimMuzzleOffset = 0.18f;
+        private const float AnimMuzzleScale = 0.35f;
+        private const bool AnimCullOffscreen = true;
+
         // Match runner: technical limit + prototype setup (3×3: the local player in slot 0, bots in the others; the line-up is
         // the fallback when bots do not pick random fighters).
         private const int MaxTicksPerFrame = 4;
@@ -746,6 +801,7 @@ namespace Arena.Editor.Data
             db.AcornsMaps.Add(SeedAcornsGlade());
             db.Camera = SeedCamera();
             db.Feel = SeedFeel();
+            db.FighterAnim = SeedFighterAnim();
             db.MatchRunner = SeedMatchRunner();
             db.AcornsMode = SeedAcornsMode();
             db.LastBeastMode = SeedLastBeastMode();
@@ -948,6 +1004,70 @@ namespace Arena.Editor.Data
             c.BatterySaverFrameRate = FeelBatterySaverFrameRate;
             EditorUtility.SetDirty(c);
             return c;
+        }
+
+        private static FighterAnimConfig SeedFighterAnim()
+        {
+            FighterAnimConfig c = LoadOrCreate<FighterAnimConfig>(FighterAnimConfigPath);
+            FillFighterAnim(c);
+            EditorUtility.SetDirty(c);
+            return c;
+        }
+
+        /// <summary>Writes the seeded animation values into <paramref name="c"/> (also used by tests on a fresh instance).</summary>
+        public static void FillFighterAnim(FighterAnimConfig c)
+        {
+            c.BlendSeconds = AnimBlendSeconds;
+            c.BreathHz = AnimBreathHz;
+            c.BreathScale = AnimBreathScale;
+            c.IdleSwayDeg = AnimIdleSwayDeg;
+            c.RunThreshold = AnimRunThreshold;
+            c.RunSpeedRef = AnimRunSpeedRef;
+            c.SpeedSmoothing = AnimSpeedSmoothing;
+            c.StrideLengthPerHeight = AnimStrideLengthPerHeight;
+            c.LegSwingDeg = AnimLegSwingDeg;
+            c.ArmSwingDeg = AnimArmSwingDeg;
+            c.BounceHeight = AnimBounceHeight;
+            c.LeanForwardDeg = AnimLeanForwardDeg;
+            c.LeanTurnDeg = AnimLeanTurnDeg;
+            c.LeanTurnRateRef = AnimLeanTurnRateRef;
+            c.TeleportDistance = AnimTeleportDistance;
+            c.ShotSeconds = AnimShotSeconds;
+            c.RecoilDeg = AnimRecoilDeg;
+            c.RecoilDistance = AnimRecoilDistance;
+            c.BodyRecoilDeg = AnimBodyRecoilDeg;
+            // Fast kick to the peak, slower settle; 0 at both ends.
+            c.ShotEnvelope = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(AnimShotPeakTime, 1f), new Keyframe(1f, 0f));
+            c.UltSeconds = AnimUltSeconds;
+            c.UltCrouchFraction = AnimUltCrouchFraction;
+            c.UltCrouch = AnimUltCrouch;
+            c.UltJump = AnimUltJump;
+            c.UltSpinDeg = AnimUltSpinDeg;
+            c.UltShotScale = AnimUltShotScale;
+            c.TrickSeconds = AnimTrickSeconds;
+            c.TrickRollDeg = AnimTrickRollDeg;
+            c.HurtSeconds = AnimHurtSeconds;
+            c.HurtSquash = AnimHurtSquash;
+            c.HurtTiltDeg = AnimHurtTiltDeg;
+            c.HurtHeavyScale = AnimHurtHeavyScale;
+            c.SpawnSeconds = AnimSpawnSeconds;
+            c.DefeatSeconds = AnimDefeatSeconds;
+            c.DefeatTumbleDeg = AnimDefeatTumbleDeg;
+            c.VictoryHopHz = AnimVictoryHopHz;
+            c.VictoryHopHeight = AnimVictoryHopHeight;
+            c.VictoryArmDeg = AnimVictoryArmDeg;
+            c.BlinkSeconds = AnimBlinkSeconds;
+            c.BlinkIntervalMin = AnimBlinkIntervalMin;
+            c.BlinkIntervalMax = AnimBlinkIntervalMax;
+            c.DoubleBlinkChance = AnimDoubleBlinkChance;
+            c.LookMaxDeg = AnimLookMaxDeg;
+            c.HeadLookDeg = AnimHeadLookDeg;
+            c.SpringMaxDegrees = AnimSpringMaxDegrees;
+            c.MaxDt = AnimMaxDt;
+            c.MuzzleSeconds = AnimMuzzleSeconds;
+            c.MuzzleOffset = AnimMuzzleOffset;
+            c.MuzzleScale = AnimMuzzleScale;
+            c.CullOffscreen = AnimCullOffscreen;
         }
 
         private static CameraConfig SeedCamera()

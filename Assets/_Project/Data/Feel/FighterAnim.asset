@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb0bc457ac58552409ac4cba916065b2, type: 3}
+  m_Name: FighterAnim
+  m_EditorClassIdentifier: Arena.Data::Arena.Data.FighterAnimConfig
+  BlendSeconds: 0.12
+  BreathHz: 0.6
+  BreathScale: 0.02
+  IdleSwayDeg: 2
+  RunThreshold: 0.4
+  RunSpeedRef: 4
+  SpeedSmoothing: 12
+  StrideLengthPerHeight: 0.55
+  LegSwingDeg: 35
+  ArmSwingDeg: 25
+  BounceHeight: 0.04
+  LeanForwardDeg: 10
+  LeanTurnDeg: 8
+  LeanTurnRateRef: 180
+  TeleportDistance: 1
+  ShotSeconds: 0.2
+  RecoilDeg: 18
+  RecoilDistance: 0.05
+  BodyRecoilDeg: 2
+  ShotEnvelope:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.15
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  UltSeconds: 0.5
+  UltCrouchFraction: 0.3
+  UltCrouch: 0.08
+  UltJump: 0.15
+  UltSpinDeg: 360
+  UltShotScale: 1.5
+  TrickSeconds: 0.4
+  TrickRollDeg: 360
+  HurtSeconds: 0.2
+  HurtSquash: 0.12
+  HurtTiltDeg: 12
+  HurtHeavyScale: 1.5
+  SpawnSeconds: 0.3
+  DefeatSeconds: 0.6
+  DefeatTumbleDeg: 360
+  VictoryHopHz: 1.6
+  VictoryHopHeight: 0.12
+  VictoryArmDeg: 140
+  BlinkSeconds: 0.12
+  BlinkIntervalMin: 3
+  BlinkIntervalMax: 5
+  DoubleBlinkChance: 0.15
+  LookMaxDeg: 20
+  HeadLookDeg: 10
+  SpringMaxDegrees: 25
+  MaxDt: 0.05
+  MuzzleSeconds: 0.08
+  MuzzleOffset: 0.18
+  MuzzleScale: 0.35
+  CullOffscreen: 1
