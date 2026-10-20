@@ -270,7 +270,7 @@ class Ribbon(Leaf):
             mm = float(max(self.w[i], self.w[i + 1], self.t[i], self.t[i + 1]))
             segs.append((np.minimum(self.C[i], self.C[i + 1]) - mm, np.maximum(self.C[i], self.C[i + 1]) + mm))
         self.sbb = segs
-        self.k = F32(0.35 * float(np.median(self.t)))
+        self.k = F32(1.00 * float(np.median(self.t)))
 
     def _seg(self, i, Q):
         A, B = self.C[i], self.C[i + 1]
@@ -494,6 +494,34 @@ class Off(Node):
         return self.ch.d(P) - self.r
 
 
+class OffVar(Node):
+    """Offset by base + fn(P) (a smooth bulge, small next to the base): d = child - base - fn(P)."""
+
+    def __init__(self, ch, base, fn, extra=0.02):
+        self.ch, self.base, self.fn = ch, F32(base), fn
+        self.lo, self.hi = ch.lo - (base + extra), ch.hi + (base + extra)
+
+    def leaves(self):
+        return self.ch.leaves()
+
+    def kids(self):
+        return [self.ch]
+
+    def d(self, P):
+        return (self.ch.d(P) - self.base - np.asarray(self.fn(P), F32)).astype(F32)
+
+
+def chamfer_box(c, R, half, rad, cham, k=0.002):
+    """Rounded box in frame R (columns = local x, y, z) with chamfered edges; cham = [((i, si), (j, sj), w)]: the edge
+    between face (axis i, sign si) and face (axis j, sign sj) is cut by a 45-degree plane leaving a bevel of leg w."""
+    c, R = np.asarray(c, float), np.asarray(R, float)
+    cuts = []
+    for (i, si), (j, sj), w in cham:
+        n = nrm(R[:, i] * si + R[:, j] * sj)
+        cuts.append(Half(n, c + n * (half[i] + half[j] - w) / math.sqrt(2)))
+    return I(RBox(c, half, rad, R), *cuts, k=k)
+
+
 class Shell(Node):
     def __init__(self, ch, t):
         self.ch, self.t = ch, F32(t)
@@ -539,12 +567,14 @@ def grad(fn, P, e=3e-4):
 
 
 def project(fn, P, it=6, off=0.0, clip=0.01):
-    """Newton projection onto the iso-surface fn = off."""
+    """Newton projection onto the iso-surface fn = off (steps along the unit gradient, each at most clip)."""
     P = np.asarray(P, F32).reshape(-1, 3).copy()
     for _ in range(it):
         d = fn(P) - off
         g = grad(fn, P)
-        P -= (g * (np.clip(d, -clip, clip) / np.maximum((g * g).sum(1), 1e-6))[:, None]).astype(F32)
+        gn = np.sqrt((g * g).sum(1))
+        stp = np.clip(d / np.maximum(gn, 0.5), -clip, clip)
+        P -= (g / np.maximum(gn, 1e-6)[:, None] * stp[:, None]).astype(F32)
     return P
 
 
@@ -639,18 +669,18 @@ def normal_at(node, p):
 
 # ---------------- suit: torso loft, neck, arms, legs (graphite) ----------------
 TORSO = Loft(smooth_rows([  # z, half width, cx, y front, y back, exponent
-    (0.346, 0.028, 0, -0.030, 0.040, 2.0),
-    (0.360, 0.062, 0, -0.050, 0.062, 2.2),
+    (0.352, 0.026, 0, -0.030, 0.040, 2.0),
+    (0.366, 0.060, 0, -0.050, 0.062, 2.2),
     (0.385, 0.088, 0, -0.062, 0.074, 2.4),
     (0.410, 0.095, 0, -0.068, 0.079, 2.5),
     (0.440, 0.097, 0, -0.074, 0.080, 2.5),
     (0.470, 0.097, 0, -0.077, 0.077, 2.5),
     (0.500, 0.092, 0, -0.077, 0.075, 2.5),
-    (0.530, 0.092, 0, -0.079, 0.080, 2.5),
-    (0.560, 0.093, 0, -0.084, 0.089, 2.6),
-    (0.600, 0.092, 0, -0.085, 0.097, 2.6),
-    (0.640, 0.089, 0, -0.078, 0.094, 2.6),
-    (0.670, 0.081, 0, -0.064, 0.078, 2.4),
+    (0.530, 0.092, 0, -0.078, 0.080, 2.5),
+    (0.560, 0.093, 0, -0.080, 0.088, 2.6),
+    (0.600, 0.092, 0, -0.076, 0.094, 2.6),
+    (0.640, 0.089, 0, -0.068, 0.091, 2.6),
+    (0.670, 0.081, 0, -0.058, 0.077, 2.4),
     (0.695, 0.062, 0, -0.047, 0.058, 2.2),
     (0.712, 0.040, 0, -0.035, 0.042, 2.0)]))
 NECK = RCone((0, 0.004, 0.66), (0, 0.002, 0.745), 0.043, 0.040, bone="Body")
@@ -674,34 +704,40 @@ TORSO_NECK = U(TORSO, NECK, k=0.02)
 SUIT = U(*[U(TORSO_NECK, ARM[s], LEG[s], k=0.022) for s in SIDES])  # legs blend with the hips, not with each other
 part("suit", SUIT, "graphite", ("suit",))
 
-# ---------------- hands (glove: palm, bundled fingers curling in, thumb in front) ----------------
-HANDF = {}
+# ---------------- hands (glove: palm, three half-bent fingers curling toward the palm, thumb in front) ----------------
+HANDF, FINGER_INFO = {}, {}
 for s in SIDES:
     a = "Arm" + SN[s]
     dn = nrm(mirror((-0.36, 0.0, -0.93), s))                  # hand axis, ~21 deg from vertical, outward
-    o0 = mirror((-1.0, -0.55, 0.0), s)                         # back of the hand: outward, turned 30 deg forward
-    out = nrm(o0 - dn * np.dot(o0, dn))                        # back of the hand (outward)
-    fw = np.cross(dn, out)
-    fw = nrm(fw if fw[1] < 0 else -fw)                         # forward (-Y)
+    f0 = np.array([-s * 0.55, -0.83, 0.0])                    # finger spread / thumb side: forward and inward
+    fw = nrm(f0 - dn * np.dot(f0, dn))
+    out = np.cross(fw, dn)
+    out = nrm(out if out[0] * s > 0 else -out)                 # back of the hand (outward)
     W0 = WR[s]
-    pc = W0 + dn * 0.040
+    pc = W0 + dn * 0.042 + out * 0.004
     HANDF[s] = (pc, dn, out, fw)
     Rh = np.stack([out, fw, dn], 1)  # local x = outward (back of the hand), y = forward, z = down
     palm = RBox(pc + out * 0.002, (0.024, 0.041, 0.037), 0.018, Rh, bone=a)
     wrist = RCone(W0 - dn * 0.012, pc - dn * 0.012, 0.031, 0.031, bone=a)
-    kn = pc + dn * 0.031 + out * 0.003
-    mid = kn + dn * 0.032 + out * 0.001
-    tip = mid + dn * 0.027 - out * 0.013
-    fingers = Ribbon([kn, mid, tip], [fw] * 3, [out] * 3, [0.042, 0.040, 0.031], [0.020, 0.0185, 0.0145], bone=a)
+    fingers = []
+    for k, fo in enumerate((-0.0225, 0.0, 0.0225)):
+        ln = (0.92, 1.0, 0.94)[k]
+        b0 = pc + dn * 0.024 + fw * fo + out * 0.003            # knuckle
+        b1 = b0 + dn * 0.030 * ln + out * 0.001 + fw * fo * 0.05  # first joint (straight down)
+        b2 = b1 + dn * 0.021 * ln - out * 0.011                   # half bent toward the palm
+        b3 = b2 + dn * 0.007 * ln - out * 0.012                   # tip
+        fingers += [RCone(b0, b1, 0.0122, 0.0116, bone=a), RCone(b1, b2, 0.0116, 0.0106, bone=a),
+                    RCone(b2, b3, 0.0106, 0.0094, bone=a)]
+    FINGER_INFO[s] = (pc + dn * 0.024 + out * 0.003, dn, out, fw)
     tb = pc + fw * 0.031 - out * 0.010 - dn * 0.014
-    tm = tb + fw * 0.010 + dn * 0.030 - out * 0.003
-    tt = tm + fw * 0.002 + dn * 0.024 - out * 0.004
-    thumb = U(RCone(tb, tm, 0.0170, 0.0160, bone=a), RCone(tm, tt, 0.0160, 0.0135, bone=a), k=0.004)
-    HAND = U(wrist, palm, fingers, thumb, k=0.010)
+    tm = tb + fw * 0.012 + dn * 0.028 - out * 0.004
+    tt = tm + fw * 0.004 + dn * 0.022 - out * 0.006
+    thumb = U(RCone(tb, tm, 0.0170, 0.0158, bone=a), RCone(tm, tt, 0.0158, 0.0132, bone=a), k=0.004)
+    HAND = U(U(wrist, palm, thumb, k=0.010), U(*fingers, k=0.0), k=0.007)
     part("hand_" + SN[s], HAND, "graphite", (a,))
     # gold plates: back of the hand (over the palm) and on the thumb
-    bp = pc + out * 0.024 + dn * 0.004 + fw * 0.004
-    part("glove_plate_" + SN[s], I(Off(HAND, 0.0045), RBox(bp, (0.012, 0.030, 0.030), 0.010, Rh), k=0.003), "gold", (a,))
+    bp = pc + out * 0.024 - dn * 0.003 + fw * 0.004
+    part("glove_plate_" + SN[s], I(Off(HAND, 0.0045), RBox(bp, (0.012, 0.031, 0.024), 0.009, Rh), k=0.003), "gold", (a,))
     part("thumb_plate_" + SN[s], I(Off(HAND, 0.0040), RBox(tb + (tm - tb) * 0.45 + fw * 0.010, (0.016, 0.013, 0.018), 0.008,
                                                               np.stack([out, fw, nrm(tm - tb)], 1)), k=0.003), "gold", (a,))
 
@@ -747,8 +783,8 @@ HVOL = Loft(smooth_rows([  # outer hair envelope from the notches between the lo
     (0.830, 0.111, 0, -0.090, 0.118, 2.5),
     (0.860, 0.118, 0, -0.108, 0.122, 2.6),
     (0.890, 0.120, 0, -0.112, 0.122, 2.7),
-    (0.920, 0.115, 0, -0.108, 0.115, 2.8),
-    (0.945, 0.102, 0, -0.098, 0.100, 2.8),
+    (0.920, 0.112, 0, -0.108, 0.115, 2.8),
+    (0.945, 0.098, 0, -0.098, 0.100, 2.8),
     (0.962, 0.080, 0, -0.080, 0.078, 2.6),
     (0.974, 0.045, 0, -0.050, 0.045, 2.2),
     (0.979, 0.010, 0, -0.012, 0.012, 2.0)], 60))
@@ -779,7 +815,7 @@ def slerp(d0, d1, t):
     return (math.sin((1 - t) * om) * d0 + math.sin(t * om) * d1) / math.sin(om)
 
 
-def lock(start, tip, W, th=0.50, n=16, rise=0.62):
+def lock(start, tip, W, th=0.46, n=32, rise=0.62):
     """Lock from start (az, el) on the volume to the tip point along a great circle: the body lies on the envelope (top
     flush with it), the last part lifts off so that the tip lands on the target (silhouette spikes)."""
     tip = np.asarray(tip, float)
@@ -791,9 +827,9 @@ def lock(start, tip, W, th=0.50, n=16, rise=0.62):
         pts.append(p)
         nors.append(nn)
     pts, nors = np.array(pts), np.array(nors)
-    prof = (0.55 + 1.2 * s - 0.9 * s * s) * np.clip(1 - s ** 3, 0, 1) ** 0.7
-    w = np.maximum(W * prof / prof.max(), 0.0020)
-    t = np.maximum(w * th, 0.0014)
+    prof = (0.15 + 0.85 * sstep_np(0.0, 0.30, s)) * np.cos(np.clip(s, 0, 1) * math.pi / 2) ** 0.65
+    w = np.maximum(W * prof / prof.max(), 0.0024)
+    t = np.maximum(w * th, 0.0013)
     end_out = float(np.dot(tip - pts[-1], nors[-1]))
     lift = sstep_np(rise, 1.0, s) ** 1.5
     sink = 0.80 + 1.2 * (1 - sstep_np(0.0, 0.25, s))
@@ -826,29 +862,27 @@ LOCK_DEF = [  # start (az, el) on the envelope -> tip point (silhouette targets 
     ((2, 16), (0.007, -0.040, 1.000), 0.031),
     ((26, 20), (0.105, -0.040, 0.955), 0.031),
     ((-46, 22), (-0.055, -0.080, 0.993), 0.031),
-    ((-10, 30), (-0.040, -0.136, 0.930), 0.029),
+    ((-20, 40), (-0.028, -0.118, 0.948), 0.031),
     ((-62, 30), (-0.110, -0.050, 0.970), 0.028),
     ((-55, 62), (0.064, -0.100, 0.862), 0.034),
     ((-40, 52), (-0.074, -0.104, 0.860), 0.026),
     ((40, 25), (0.138, -0.010, 0.905), 0.027),
-    # crown: one spike swept up-back
-    ((-40, 50), (0.030, 0.060, 0.985), 0.027),
     # character's left side (+X, viewer's right)
-    ((-20, 75), (0.105, -0.040, 0.955), 0.029),
-    ((20, 65), (0.138, -0.010, 0.905), 0.029),
+    ((-20, 75), (0.112, 0.012, 0.950), 0.029),
+    ((20, 65), (0.140, 0.028, 0.898), 0.029),
     ((45, 55), (0.130, 0.000, 0.862), 0.025),
     ((60, 30), (0.105, -0.034, 0.818), 0.019),
     # character's right side (-X, viewer's left)
-    ((10, 78), (-0.110, -0.050, 0.970), 0.029),
+    ((10, 78), (-0.112, 0.004, 0.962), 0.029),
     ((-20, 65), (-0.140, -0.020, 0.935), 0.029),
     ((-40, 55), (-0.143, 0.000, 0.875), 0.027),
     ((-55, 35), (-0.114, -0.030, 0.844), 0.020),
     # back, upper row swept back over the crown
-    ((-20, 64), (-0.030, 0.100, 0.955), 0.031),
-    ((10, 66), (0.010, 0.137, 0.915), 0.033),
-    ((40, 64), (0.070, 0.110, 0.940), 0.031),
-    ((-100, 62), (-0.110, 0.080, 0.930), 0.029),
-    ((100, 62), (0.110, 0.080, 0.925), 0.029),
+    ((-25, 44), (-0.030, 0.100, 0.955), 0.031),
+    ((5, 42), (0.010, 0.137, 0.915), 0.033),
+    ((35, 44), (0.070, 0.110, 0.940), 0.031),
+    ((-70, 48), (-0.110, 0.080, 0.930), 0.029),
+    ((70, 48), (0.110, 0.080, 0.925), 0.029),
     # back, middle row pointing down-back
     ((-170, 60), (-0.060, 0.127, 0.855), 0.031),
     ((170, 60), (0.055, 0.127, 0.850), 0.031),
@@ -861,7 +895,7 @@ LOCK_DEF = [  # start (az, el) on the envelope -> tip point (silhouette targets 
     ((-150, 20), (-0.076, 0.078, 0.775), 0.025),
     ((150, 20), (0.077, 0.078, 0.772), 0.025),
 ]
-HAIR = U(CAP, *[lock(st, tp, w * 1.22) for st, tp, w in LOCK_DEF], k=0.0)
+HAIR = U(CAP, *[lock(st, tp, w * 1.16) for st, tp, w in LOCK_DEF], k=0.003)
 part("hair", HAIR, "hair", ("Head",))
 
 # ---------------- visor (monocle on the character's left eye, +X) and headset (right ear, -X) ----------------
@@ -881,33 +915,86 @@ part("headset", U(RCone((-0.102, -0.012, 0.783), (-0.102, -0.012, 0.832), 0.0095
                   RCone((-0.066, -0.094, 0.731), (-0.046, -0.101, 0.731), 0.0068, 0.0068), k=0.004), "headset", ("Head",))
 
 # ---------------- collar, vest (chest + back plates with the abdomen tongue), spine panel ----------------
-COLLAR_C = np.array([0.0, 0.008, 0.683])
-COLLAR = S(RCyl(COLLAR_C, (0, 0, 1), 0.077, 0.0205, 0.009, sxy=(1, 0.84)),
-           RCyl(COLLAR_C + [0, 0, 0.01], (0, 0, 1), 0.052, 0.04, 0.0, sxy=(1, 0.84)), k=0.005)
+COLLAR_C = np.array([0.0, 0.002, 0.6865])   # the ring sits on the chest plate: its front flush with the neckline trim
+COLLAR = S(RCyl(COLLAR_C, (0, 0, 1), 0.079, 0.0205, 0.009, sxy=(1, 0.98)),
+           RCyl(COLLAR_C + [0, 0, 0.01], (0, 0, 1), 0.054, 0.04, 0.0, sxy=(1, 0.98)), k=0.005)
 part("collar", COLLAR, "red", ("Body",))
-VEST_F = np.array([(-0.135, 0.705), (0.135, 0.705), (0.135, 0.62), (0.113, 0.56), (0.106, 0.537), (0.080, 0.546),
+VEST_F = np.array([(-0.135, 0.705), (-0.086, 0.700), (-0.066, 0.679), (-0.052, 0.663), (0.052, 0.663), (0.066, 0.679),
+                   (0.086, 0.700), (0.135, 0.705), (0.135, 0.62), (0.113, 0.56), (0.106, 0.537), (0.080, 0.546),
                    (0.050, 0.553), (0.047, 0.545), (0.046, 0.474), (-0.046, 0.474), (-0.047, 0.545), (-0.050, 0.553),
                    (-0.080, 0.546), (-0.106, 0.537), (-0.113, 0.56), (-0.135, 0.62)])
 VEST_B = np.array([(-0.135, 0.705), (0.135, 0.705), (0.135, 0.52), (0.090, 0.505), (0.050, 0.518), (0.0, 0.528),
                    (-0.050, 0.518), (-0.090, 0.505), (-0.135, 0.52)])
 VEST_REG = U(I(Poly2(VEST_F, "xz"), Half((0, 1, 0), (0, 0.012, 0))), I(Poly2(VEST_B, "xz"), Half((0, -1, 0), (0, 0.012, 0))))
-VEST = I(Off(TORSO, 0.011), VEST_REG, k=0.005)
+def vest_bulge(P):
+    """Convex chest plate (pectoral dome, slight abdomen and back domes) on top of the plate thickness."""
+    x, y, z = P[:, 0], P[:, 1], P[:, 2]
+    fr = np.clip((0.0 - y) / 0.04, 0, 1)
+    bk = np.clip((y - 0.0) / 0.04, 0, 1)
+    chest = 0.0135 * np.exp(-((x / 0.078) ** 2 + ((z - 0.592) / 0.045) ** 2)) * fr
+    tongue = 0.0035 * np.exp(-((x / 0.040) ** 2 + ((z - 0.515) / 0.035) ** 2)) * fr
+    back = 0.0040 * np.exp(-((x / 0.075) ** 2 + ((z - 0.600) / 0.050) ** 2)) * bk
+    return chest + tongue + back
+
+
+VEST_T = 0.013
+VEST = I(OffVar(TORSO, VEST_T, vest_bulge), VEST_REG, k=0.006)
 part("vest", VEST, "red", ("Body",))
-SPINE = I(Off(TORSO, 0.020), Poly2([(-0.036, 0.666), (0.036, 0.666), (0.027, 0.553), (-0.027, 0.553)], "xz"),
+ARCH = [(-0.113, 0.566), (-0.107, 0.5415), (-0.080, 0.5505), (-0.050, 0.5575), (0.0, 0.5600), (0.050, 0.5575), (0.080, 0.5505),
+        (0.107, 0.5415), (0.113, 0.566)]
+YOKE = [(-0.086, 0.697), (-0.066, 0.676), (-0.052, 0.660), (0.052, 0.660), (0.066, 0.676), (0.086, 0.697)]
+BACK_TRIM = [(-0.136, 0.525), (-0.090, 0.5095), (-0.050, 0.5225), (0.0, 0.5325), (0.050, 0.5225), (0.090, 0.5095),
+             (0.136, 0.525)]
+FRONT_H, BACK_H = Half((0, 1, 0), (0, 0.012, 0)), Half((0, -1, 0), (0, 0.012, 0))
+TRIM_SURF = OffVar(TORSO, VEST_T + 0.0035, vest_bulge)
+part("vest_trim", U(I(TRIM_SURF, U(Band2(ARCH, 0.0046), Band2(YOKE, 0.0046)), Half((0, 1, 0), (0, -0.045, 0)), k=0.0025),
+                    I(TRIM_SURF, Band2(BACK_TRIM, 0.0046), Half((0, -1, 0), (0, 0.045, 0)), k=0.0025)), "gold", ("Body",))
+SPINE = I(OffVar(TORSO, VEST_T + 0.008, vest_bulge), Poly2([(-0.036, 0.666), (0.036, 0.666), (0.027, 0.553), (-0.027, 0.553)], "xz"),
           Half((0, -1, 0), (0, 0.03, 0)), k=0.004)
 part("spine", SPINE, "red", ("Body",))
 
-# ---------------- shoulder pads: faceted upper plate + lower lame (gold) ----------------
-PAD_INFO = {}
+# ---------------- shoulder pads: three layered faceted plates (box shells with big chamfers = "hip roof" facets), rivets --
+PAD_INFO, RIVETS = {}, {}
 for s in SIDES:
     w = {"Body": 0.6, "Arm" + SN[s]: 0.4}
-    PAD_INFO[s] = ((mirror((-0.152, 0.016, 0.664), s), rot((0, 1, 0), s * 22), np.array([0.063, 0.086, 0.041])),
-                   (mirror((-0.178, 0.016, 0.611), s), rot((0, 1, 0), s * 50), np.array([0.035, 0.080, 0.032])))
-    up = I(RBox(mirror((-0.152, 0.016, 0.664), s), (0.063, 0.086, 0.041), 0.013, rot((0, 1, 0), s * 22)),
-           Ell(mirror((-0.120, 0.016, 0.590), s), (0.103, 0.094, 0.115)), k=0.006)
-    lo_ = I(RBox(mirror((-0.178, 0.016, 0.611), s), (0.035, 0.080, 0.032), 0.012, rot((0, 1, 0), s * 50)),
-            Ell(mirror((-0.150, 0.016, 0.592), s), (0.072, 0.086, 0.082)), k=0.006)
-    part("pad_" + SN[s], U(up, lo_, k=0.0), "gold", ("fixed", w))
+
+    def frm(tilt):
+        t = math.radians(tilt)
+        ax = mirror((-math.cos(t), 0, -math.sin(t)), s)   # outward (down the slope)
+        az = mirror((-math.sin(t), 0, math.cos(t)), s)    # face normal of the top facet (up, tilted outward)
+        return np.stack([ax, np.array([0.0, 1.0, 0.0]), az], 1)
+
+    def roof(hx, hy, hz, c_top, c_fb, c_out, c_vert):
+        # chamfers: top-outer, top-front/back, outer-front/back (vertical), top-inner
+        return [((2, 1), (0, 1), c_out), ((2, 1), (1, -1), c_fb), ((2, 1), (1, 1), c_fb), ((0, 1), (1, -1), c_vert),
+                ((0, 1), (1, 1), c_vert), ((2, 1), (0, -1), c_top)]
+    layers = []
+    for (cx, cy, cz), tilt, half, cham, t_, zcut in (
+            ((-0.142, 0.016, 0.657), 15, (0.049, 0.082, 0.046), roof(0.049, 0.082, 0.046, 0.012, 0.030, 0.028, 0.024), 0.011,
+             -0.022),
+            ((-0.168, 0.016, 0.613), 45, (0.024, 0.076, 0.028), roof(0.024, 0.076, 0.028, 0.006, 0.022, 0.016, 0.018), 0.010,
+             -0.010),
+            ((-0.173, 0.016, 0.588), 62, (0.020, 0.070, 0.022), roof(0.020, 0.070, 0.022, 0.005, 0.019, 0.013, 0.016), 0.009,
+             -0.008)):
+        R_ = frm(tilt)
+        c_ = mirror((cx, cy, cz), s)
+        h_ = np.array(half)
+        solid = chamfer_box(c_, R_, h_, 0.003, cham, k=0.003)
+        # solid plate above its cut plane (a hollow shell would leave dark voids over the shoulder for the bake)
+        shell = I(solid, Half(-R_[:, 2], c_ + R_[:, 2] * zcut), k=0.002)
+        layers.append((c_, R_, h_, solid, shell, zcut))
+    pad_geo = U(*[L[4] for L in layers])
+    RIVETS[s] = []
+    for x, z, side in ((0.128, 0.662, -1), (0.163, 0.625, -1), (0.118, 0.660, 1), (0.160, 0.624, 1)):
+        try:
+            p = trace(pad_geo.d, (s * x, side * 0.4, z), (0, -side, 0))
+        except RuntimeError:
+            continue
+        nn = normal_at(pad_geo, p)
+        RIVETS[s].append((p, nn))
+    riv = [Ell(p + nn * 0.0006, (0.0060, 0.0060, 0.0034), frame(nn)) for p, nn in RIVETS[s]]
+    PAD_INFO[s] = [(c_, R_, h_, zc) for c_, R_, h_, _, _, zc in layers]
+    part("pad_" + SN[s], U(pad_geo, *riv, k=0.0015), "gold", ("fixed", w))
 
 # ---------------- bracers (red band, gold rims, stepped plates, cyan light) ----------------
 GEM_INFO = {}
@@ -1125,10 +1212,12 @@ def mesh_field(fn, h, lo=(-0.34, -0.17, -0.012), hi=(0.34, 0.17, 1.03)):
     V, Q = surface_nets(Fv, lo, h)
     del Fv
     V = V.astype(F32)
-    for _ in range(3):
+    for _ in range(3):  # Newton steps along the unit gradient, at most 0.4 cell each (no jumps where the gradient vanishes)
         d = fn(V)
         g = grad(fn, V, e=h * 0.25)
-        V -= (g * (np.clip(d, -0.4 * h, 0.4 * h) / np.maximum((g * g).sum(1), 1e-4))[:, None]).astype(F32)
+        gn = np.sqrt((g * g).sum(1))
+        stp = np.clip(d / np.maximum(gn, 0.5), -0.4 * h, 0.4 * h)
+        V -= (g / np.maximum(gn, 1e-6)[:, None] * stp[:, None]).astype(F32)
     tris = np.concatenate([Q[:, [0, 1, 2]], Q[:, [0, 2, 3]]])
     log(f"surface nets: {len(V)} verts {len(tris)} tris")
     return V.astype(np.float64), tris
@@ -1202,6 +1291,52 @@ def quick_preview(ob, path, views=(("front", 0, 4), ("34", 40, 10), ("side", 90,
     log("preview", path)
 
 
+CLOSEUPS = [  # name, target, yaw, pitch, ortho scale (camera from yaw: 0 = front, 90 = character's left side)
+    ("pad", (-0.150, 0.0, 0.640), -35, 15, 0.20),
+    ("hand", (-0.258, -0.010, 0.372), -10, 5, 0.17),
+    ("crown", (0.0, 0.010, 0.920), 0, 80, 0.30),
+    ("chest", (0.0, -0.070, 0.600), 50, 0, 0.25),
+]
+
+
+def closeups(objs, path, color_type="VERTEX", engine="WORKBENCH", size=480):
+    """Close-up panels (pad, hand, crown, chest) of the given objects -> one PNG row."""
+    sc = bpy.context.scene
+    sc.render.engine = "BLENDER_WORKBENCH"
+    sc.display.shading.light = "STUDIO"
+    sc.display.shading.color_type = color_type
+    sc.display.shading.show_cavity = False
+    sc.render.film_transparent = False
+    sc.world = sc.world or bpy.data.worlds.new("W")
+    sc.render.resolution_x = sc.render.resolution_y = size
+    cam = bpy.data.objects.get("CloseCam") or bpy.data.objects.new("CloseCam", bpy.data.cameras.new("CloseCam"))
+    if cam.name not in sc.collection.objects:
+        sc.collection.objects.link(cam)
+    cam.data.type = "ORTHO"
+    sc.camera = cam
+    keep = set(objs)
+    hid = [o for o in sc.objects if o.type == "MESH" and o not in keep and not o.hide_render]
+    for o in hid:
+        o.hide_render = True
+    panels = []
+    for name, tgt, yaw, pitch, sca in CLOSEUPS:
+        yr, pr = math.radians(yaw), math.radians(pitch)
+        t = Vector(tgt)
+        dv = Vector((math.sin(yr) * math.cos(pr), -math.cos(yr) * math.cos(pr), math.sin(pr)))
+        cam.location = t + dv * 3
+        cam.rotation_euler = (t - cam.location).to_track_quat("-Z", "Y").to_euler()
+        cam.data.ortho_scale = sca
+        fp = os.path.join(PREV_DIR, f"_c_{name}.png")
+        sc.render.filepath = fp
+        bpy.ops.render.render(write_still=True)
+        panels.append(TS.load_rgba(fp)[..., :3])
+        os.remove(fp)
+    for o in hid:
+        o.hide_render = False
+    TS.save_rgb(np.concatenate(panels, 1), path)
+    log("closeups", path)
+
+
 def shape_stage():
     V, T = mesh_field(fig_d, 0.003)
     ob = to_mesh("TheoHi", V, T)
@@ -1217,6 +1352,7 @@ def shape_stage():
     TS.report(views, masks, os.path.join(PREV_DIR, "v3_overlay_dev.png"), "v3 shape")
     TS.compare_sheet(views, TS.render_shaded(views, [ob]), os.path.join(PREV_DIR, "v3_compare_dev.png"))
     quick_preview(ob, os.path.join(PREV_DIR, "v3_quick.png"))
+    closeups([ob], os.path.join(PREV_DIR, "v3_closeups_dev.png"))
 
 
 # =====================================================================================================================
@@ -1355,19 +1491,13 @@ def paint_suit(P, N, occ):
 
 
 def paint_hand(s):
-    pc, dn, out, fw = HANDF[s]
-    kn = pc + dn * 0.031 + out * 0.003
+    kn, dn, out, fw = FINGER_INFO[s]
 
     def f(P, N, occ):
-        c = shade("graphite", N, occ, 0.08)
-        g = np.full(len(P), 0.22)
-        lf = (P - kn) @ fw
+        c = shade("graphite", N, occ, 0.10)
         ld = (P - kn) @ dn
-        fing = sstep(0.0, 0.008, ld)
-        for k in (-1, 0, 1):
-            w = line_w(np.abs(lf - k * 0.0185), 0.0011) * fing
-            c = stroke(c, w * 0.85, H("#1A1715"))
-        return c, g
+        c = stroke(c, line_w(np.abs(ld - 0.0005), 0.0012) * 0.35 * sstep(0.0, 0.5, (P - kn) @ out / 0.012), H("#1A1715"))
+        return c, np.full(len(P), 0.22)
     return f
 
 
@@ -1547,20 +1677,15 @@ def paint_hair(P, N, occ):
     edge = sstep(0.62, 1.0, np.abs(xw))  # lock edges read as creases where the locks overlap
     v = (0.10 + 0.50 * light + 0.16 * sstep(0.2, 1.0, sp) + 0.14 * ridge - 0.22 * edge
          - 0.07 * line_w(np.abs(np.abs(xw) - 0.45), 0.06, 0.04))
-    v = v * on + (0.12 + 0.36 * light) * (1 - on)
+    v = v * on + (0.18 + 0.50 * light) * (1 - on)   # scalp between the locks: close to the lock colour (no dark patches)
     c = ramp("hair", v)
     sp_ = np.clip(N @ HALF_V, 0, 1) ** 18 * 0.20 * (1 - edge)
     c = c + (1 - c) * sp_[:, None]
-    c = c * (1 - 0.90 * occ)[:, None]
+    c = c * (1 - 0.60 * np.minimum(occ, 0.60))[:, None]
     return np.clip(c, 0, 1), np.full(n, 0.35)
 
 
 # ---- vest: chest plate, abdomen tongue, back plate ----
-ARCH = [(-0.113, 0.566), (-0.107, 0.5415), (-0.080, 0.5505), (-0.050, 0.5575), (0.0, 0.5600), (0.050, 0.5575), (0.080, 0.5505),
-        (0.107, 0.5415), (0.113, 0.566)]
-YOKE = [(-0.084, 0.694), (-0.063, 0.673), (-0.051, 0.6645), (0.051, 0.6645), (0.063, 0.673), (0.084, 0.694)]
-BACK_TRIM = [(-0.136, 0.525), (-0.090, 0.5095), (-0.050, 0.5225), (0.0, 0.5325), (0.050, 0.5225), (0.090, 0.5095),
-             (0.136, 0.525)]
 PANEL_F = [[(s * 0.094, 0.652), (s * 0.097, 0.606), (s * 0.089, 0.584), (s * 0.071, 0.569), (s * 0.052, 0.564)] for s in SIDES]
 PANEL_B = [[(s * 0.030, 0.560), (s * 0.068, 0.574), (s * 0.090, 0.602)] for s in SIDES] + \
           [[(s * 0.040, 0.652), (s * 0.066, 0.660), (s * 0.095, 0.662)] for s in SIDES]
@@ -1644,9 +1769,9 @@ def paint_vest(P, N, occ):
 
 def paint_collar(P, N, occ):
     c = shade("red", N, occ, 0.45)
-    w = sstep(0.6865, 0.6885, P[:, 2])
+    w = sstep(0.6900, 0.6920, P[:, 2])
     c = stroke(c, w, shade("gold", N, occ))
-    c = stroke(c, line_w(np.abs(P[:, 2] - 0.6865), 0.0009) * 0.7, H("#4A060B"))
+    c = stroke(c, line_w(np.abs(P[:, 2] - 0.6900), 0.0009) * 0.7, H("#4A060B"))
     return c, np.where(w > 0.5, 0.88, 0.75)
 
 
@@ -1726,33 +1851,27 @@ def paint_belt(P, N, occ):
 
 
 def paint_pad(s):
-    (c1, R1, h1), (c2, R2, h2) = PAD_INFO[s]
-    riv = []
-    for x, z in ((0.130, 0.656), (0.165, 0.627)):
-        for side in (-1, 1):
-            try:
-                p = trace(PARTS_BY["pad_" + SN[s]].node.d, (s * x, side * 0.4, z), (0, -side, 0))
-                riv.append(p)
-            except RuntimeError:
-                pass
+    layers = PAD_INFO[s]
+    rivs = RIVETS[s]
 
     def f(P, N, occ):
         c = shade("gold", N, occ)
         g = np.full(len(P), 0.88)
-        L1 = (P - c1) @ np.asarray(R1, float)
-        q = np.maximum(np.abs(L1[:, 0]) / (h1[0] - 0.013), np.abs(L1[:, 1]) / (h1[1] - 0.013))
-        top = sstep(0.0, 0.02, L1[:, 2] + 0.01)
-        groove = line_w(np.abs(q - 1.0) * 0.045, 0.0009) * top
-        c = stroke(c, groove * 0.75, H("#7A4E14"))
-        L2 = (P - c2) @ np.asarray(R2, float)
-        in2 = np.max(np.abs(L2) / (h2 + 0.003), axis=1) < 1.0
-        for off in (-0.40, -0.62):
-            dl = np.abs(L2[:, 0] / h2[0] - off * (-s)) * h2[0]
-            c, g = glow_line(c, g, np.where(in2, dl, 1.0), 0.0016)
-        for p in riv:
+        c_, R_, h_, zc = layers[0]   # top plate: inset groove 10 mm inside its outline (front / back / outer facets)
+        L = (P - c_) @ np.asarray(R_, float)
+        q = np.maximum(np.abs(L[:, 0]) / (h_[0] - 0.010), np.abs(L[:, 1]) / (h_[1] - 0.010))
+        on_top = (np.max(np.abs(L) / (h_ + 0.004), axis=1) < 1.0) & (L[:, 2] > zc + 0.012)
+        grv = line_w(np.abs(q - 1.0) * min(h_[0], h_[1]), 0.0010) * on_top
+        c = stroke(c, grv * 0.80, H("#5E3C0E"))
+        c = stroke(c, line_w(np.abs(q - 1.0) * min(h_[0], h_[1]) - 0.0022, 0.0008) * on_top * 0.6, H("#FFE7A0"))
+        for (c_, R_, h_, zc) in layers[1:]:  # orange piping around the two lower lames, near their open lower edge
+            L = (P - c_) @ np.asarray(R_, float)
+            inside = np.max(np.abs(L) / (h_ + 0.004), axis=1) < 1.0
+            c, g = glow_line(c, g, np.where(inside, np.abs(L[:, 2] - (zc + 0.0075)), 1.0), 0.0015)
+        for p, nn in rivs:
             r = np.linalg.norm(P - p, axis=1)
-            c = stroke(c, line_w(r, 0.0072), H("#6E4612"))
-            c = stroke(c, line_w(r, 0.0057), mixc(H("#B07A22"), H("#FFF0B8"), sstep(-0.004, 0.004, (P[:, 2] - p[2]))))
+            c = stroke(c, line_w(np.abs(r - 0.0068), 0.0010), H("#5E3C0E"))
+            c = stroke(c, line_w(r, 0.0058), mixc(H("#B07A22"), H("#FFF0B8"), sstep(-0.004, 0.004, P[:, 2] - p[2])))
         return np.clip(c, 0, 1), g
     return f
 
@@ -1897,23 +2016,37 @@ def field_ao(P, N):
     return np.clip(occ, 0, 1)
 
 
-def surface_normals(P):
-    g = grad(fig_d, P, e=2.5e-4)
+def surface_normals(P, fn=None):
+    g = grad(fn or fig_d, P, e=2.5e-4)
     return (g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-9)).astype(F32)
 
 
-def paint_points(P):
-    """P on the exact surface -> sRGB colour, gloss, owner index."""
+def paint_points(P, parts=None):
+    """P on the exact surface -> sRGB colour, gloss, owner index. parts: restrict normals and owners to these parts (one
+    shell of the game mesh); the AO always sees the whole figure."""
     P = np.asarray(P, F32)
-    N = surface_normals(P)
+    idx = list(range(len(PARTS))) if parts is None else [PARTS.index(p) for p in parts]
+    fn = None if parts is None else shell_fn(parts)
+    N = surface_normals(P, fn)
     occ = field_ao(P, N)
-    own, _ = fig_owner(P)
+    best = np.full(len(P), BIG, F32)
+    own = np.full(len(P), idx[0], np.int32)
+    for i in idx:
+        p = PARTS[i]
+        m = _inbb(P, p.lo, p.hi, 0.01)
+        if not m.any():
+            continue
+        j = np.nonzero(m)[0]
+        d = p.node.d(P[j])
+        b = d < best[j]
+        best[j[b]] = d[b]
+        own[j[b]] = i
     col = np.zeros((len(P), 3))
     gl = np.zeros(len(P))
-    for i, p in enumerate(PARTS):
+    for i in idx:
         m = own == i
         if m.any():
-            c, g = p.paint(P[m].astype(np.float64), N[m].astype(np.float64), occ[m].astype(np.float64))
+            c, g = PARTS[i].paint(P[m].astype(np.float64), N[m].astype(np.float64), occ[m].astype(np.float64))
             col[m], gl[m] = c, g
     return np.clip(col, 0, 1), np.clip(gl, 0, 1), own
 
@@ -1943,8 +2076,40 @@ def decimate_to(ob, target):
     return sum(len(p.vertices) - 2 for p in ob.data.polygons)
 
 
-def build_low(Vh, Th, target):
-    ob = to_mesh("Theo", Vh, Th)
+# The game mesh is three overlapping closed shells (head + hair, two hands, body), meshed and decimated on their own so
+# that each gets an exact budget: the hair gets most of it. The joins are hidden: the neck goes up into the head, the
+# wrists into the bracers. (The union of the shells is the same surface as the whole figure.)
+SHELLS = [  # name, part-name prefixes, game triangles
+    ("head", ("head", "brow", "hair", "visor", "headset"), 1850),
+    ("hand_R", ("hand_R", "glove_plate_R", "thumb_plate_R"), 190),
+    ("hand_L", ("hand_L", "glove_plate_L", "thumb_plate_L"), 190),
+    ("body", (), 1730),
+]
+
+
+def shell_parts(k):
+    pre = SHELLS[k][1]
+    if pre:
+        return [p for p in PARTS if any(p.name.startswith(x) for x in pre)]
+    taken = {p.name for kk in range(len(SHELLS)) if SHELLS[kk][1] for p in shell_parts(kk)}
+    return [p for p in PARTS if p.name not in taken]
+
+
+def shell_fn(parts):
+    def fn(P):
+        P = np.asarray(P, F32)
+        out = np.full(len(P), BIG, F32)
+        for p in parts:
+            m = _inbb(P, p.lo, p.hi, 0.01)
+            if m.any():
+                idx = np.nonzero(m)[0]
+                out[idx] = np.minimum(out[idx], p.node.d(P[idx]))
+        return out
+    return fn
+
+
+def build_low(Vh, Th, target, fn, name="Theo"):
+    ob = to_mesh(name, Vh, Th)
     # surface nets pinch thin features into non-manifold edges; quadric collapse stalls on them -> split them open
     bm = bmesh.new()
     bm.from_mesh(ob.data)
@@ -1953,9 +2118,7 @@ def build_low(Vh, Th, target):
         bmesh.ops.split_edges(bm, edges=bad)
     bm.to_mesh(ob.data)
     bm.free()
-    log(f"split {len(bad)} non-manifold edges")
-    tris = decimate_to(ob, target)
-    # clean: merge doubles, drop loose bits, consistent normals
+    decimate_to(ob, target)
     bm = bmesh.new()
     bm.from_mesh(ob.data)
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
@@ -1964,27 +2127,52 @@ def build_low(Vh, Th, target):
     bm.to_mesh(ob.data)
     bm.free()
     V, T = mesh_np(ob)
+    bpy.data.objects.remove(ob, do_unlink=True)
     area = np.linalg.norm(np.cross(V[T[:, 1]] - V[T[:, 0]], V[T[:, 2]] - V[T[:, 0]]), axis=1)
     _, first = np.unique(np.sort(T, 1), axis=0, return_index=True)
     keep = np.zeros(len(T), bool)
     keep[first] = True
     keep &= (area > 1e-10) & (T[:, 0] != T[:, 1]) & (T[:, 1] != T[:, 2]) & (T[:, 0] != T[:, 2])
-    if (~keep).any():
-        log(f"dropped {int((~keep).sum())} degenerate / duplicate triangles")
-        used = np.unique(T[keep])
-        remap = np.full(len(V), -1)
-        remap[used] = np.arange(len(used))
-        V, T = V[used], remap[T[keep]]
-        bpy.data.objects.remove(ob, do_unlink=True)
-        ob = to_mesh("Theo", V, T)
-    # small Newton correction onto the exact surface
-    V = project(fig_d, V, it=3, clip=0.0015).astype(np.float64)
-    ob.data.vertices.foreach_set("co", V.ravel())
-    ob.data.update()
+    used = np.unique(T[keep])
+    remap = np.full(len(V), -1)
+    remap[used] = np.arange(len(used))
+    V, T = V[used], remap[T[keep]]
+    V = project(fn, V, it=3, clip=0.0015).astype(np.float64)   # small Newton correction onto the shell's surface
+    log(f"  shell {name}: {len(V)} verts {len(T)} tris (target {target}), {len(bad)} non-manifold edges split")
+    return V, T
+
+
+def build_shells(h):
+    Vs, Ts, sid, base = [], [], [], 0
+    for k, (name, _, budget) in enumerate(SHELLS):
+        parts = shell_parts(k)
+        fn = shell_fn(parts)
+        lo = np.min([p.lo for p in parts], 0) - 0.02
+        hi = np.max([p.hi for p in parts], 0) + 0.02
+        lo, hi = np.maximum(lo, (-0.34, -0.17, -0.012)), np.minimum(hi, (0.34, 0.17, 1.03))
+        Vh, Th = mesh_field(fn, h, lo, hi)
+        V, T = build_low(Vh, Th, budget, fn, name)
+        Vs.append(V)
+        Ts.append(T + base)
+        sid.append(np.full(len(V), k))
+        base += len(V)
+    V, T, sid = np.concatenate(Vs), np.concatenate(Ts), np.concatenate(sid)
+    ob = to_mesh("Theo", V, T)
     for p in ob.data.polygons:
         p.use_smooth = True
-    log(f"low poly: {len(ob.data.vertices)} verts {sum(len(p.vertices) - 2 for p in ob.data.polygons)} tris (target {target})")
-    return ob
+    own, _ = fig_owner(V[T].mean(1).astype(F32))
+    hair = sum(1 for i in own if PARTS[i].name == "hair")
+    log(f"low poly: {len(V)} verts {len(T)} tris in {len(SHELLS)} shells, hair {hair}")
+    return ob, sid
+
+
+def project_shells(V, sid, it=5, clip=0.002):
+    V = np.asarray(V, float).copy()
+    for k in range(len(SHELLS)):
+        m = sid == k
+        if m.any():
+            V[m] = project(shell_fn(shell_parts(k)), V[m], it=it, clip=clip)
+    return V
 
 
 def face_factor(C, own_names):
@@ -2124,7 +2312,8 @@ def dilate(img, filled, iters=24):
     return img
 
 
-def bake_texture(ob, uv):
+def bake_texture(ob, uv, sid):
+    """Per texel: the point of the game mesh -> the exact surface of ITS shell (sid per vertex), paint there."""
     me = ob.data
     V, T = mesh_np(ob)
     me.calc_loop_triangles()
@@ -2142,34 +2331,40 @@ def bake_texture(ob, uv):
     P0 = (V[T[ti, 0]] * b[:, :1] + V[T[ti, 1]] * b[:, 1:2] + V[T[ti, 2]] * b[:, 2:3])
     N0 = (vn[T[ti, 0]] * b[:, :1] + vn[T[ti, 1]] * b[:, 1:2] + vn[T[ti, 2]] * b[:, 2:3])
     N0 /= np.maximum(np.linalg.norm(N0, axis=1, keepdims=True), 1e-9)
+    tsid = sid[T[ti, 0]]
     log(f"bake: {has.sum()} texels ({has.mean() * 100:.0f}% of {TEX}^2)")
-    # project along the interpolated normal onto the exact surface (cage-like), then a short closest-point fix
-    P = P0.astype(F32)
-    n = N0.astype(F32)
-    # (a) along the interpolated normal (cage-like), (b) closest point; (a) only where it converged close by -- where the low
-    # poly bridges a crease (chin / collar, between hair locks) the closest point gives a clean split instead of noise
-    t = np.zeros(len(P), F32)
-    for _ in range(6):
-        Q = P + n * t[:, None]
-        d = fig_d(Q)
-        e = F32(3e-4)
-        dd = (fig_d(Q + n * e) - fig_d(Q - n * e)) / (2 * e)
-        stp = np.where(np.abs(dd) > 0.25, d / np.where(np.abs(dd) > 0.25, dd, 1), d)
-        t = np.clip(t - np.clip(stp, -0.003, 0.003), -0.008, 0.008).astype(F32)
-    Qr = P + n * t[:, None]
-    ok = np.abs(fig_d(Qr)) < 3e-4
-    Qc = project(fig_d, P, it=6, clip=0.003)
-    dr, dc = np.linalg.norm(Qr - P, axis=1), np.linalg.norm(Qc - P, axis=1)
-    use_r = ok & (dr < 1.5 * dc + 0.0008)
-    log(f"bake projection: along normal {use_r.mean() * 100:.0f}%, closest point {100 - use_r.mean() * 100:.0f}%")
-    Q = np.where(use_r[:, None], Qr, Qc)
-    Q = project(fig_d, Q, it=2, clip=0.002)
-    cols, gls = np.zeros((len(Q), 3)), np.zeros(len(Q))
-    CH = 120000
-    for c0 in range(0, len(Q), CH):
-        cc, gg, _ = paint_points(Q[c0:c0 + CH])
-        cols[c0:c0 + CH], gls[c0:c0 + CH] = cc, gg
-        log(f"  painted {min(c0 + CH, len(Q))}/{len(Q)}")
+    cols, gls = np.zeros((len(P0), 3)), np.zeros(len(P0))
+    n_r = 0
+    for k in range(len(SHELLS)):
+        sel = np.nonzero(tsid == k)[0]
+        if not len(sel):
+            continue
+        parts = shell_parts(k)
+        fn = shell_fn(parts)
+        # (a) along the interpolated normal (cage-like), (b) closest point; (a) only where it converged close by
+        P = P0[sel].astype(F32)
+        n = N0[sel].astype(F32)
+        t = np.zeros(len(P), F32)
+        for _ in range(6):
+            Q = P + n * t[:, None]
+            d = fn(Q)
+            e = F32(3e-4)
+            dd = (fn(Q + n * e) - fn(Q - n * e)) / (2 * e)
+            stp = np.where(np.abs(dd) > 0.25, d / np.where(np.abs(dd) > 0.25, dd, 1), d)
+            t = np.clip(t - np.clip(stp, -0.003, 0.003), -0.008, 0.008).astype(F32)
+        Qr = P + n * t[:, None]
+        ok = np.abs(fn(Qr)) < 3e-4
+        Qc = project(fn, P, it=6, clip=0.003)
+        dr, dc = np.linalg.norm(Qr - P, axis=1), np.linalg.norm(Qc - P, axis=1)
+        use_r = ok & (dr < 1.5 * dc + 0.0008)
+        n_r += int(use_r.sum())
+        Q = project(fn, np.where(use_r[:, None], Qr, Qc), it=2, clip=0.002)
+        CH = 120000
+        for c0 in range(0, len(Q), CH):
+            cc, gg, _ = paint_points(Q[c0:c0 + CH], parts)
+            cols[sel[c0:c0 + CH]], gls[sel[c0:c0 + CH]] = cc, gg
+        log(f"  painted shell {SHELLS[k][0]}: {len(sel)} texels")
+    log(f"bake projection: along normal {n_r / len(P0) * 100:.0f}%, closest point {100 - n_r / len(P0) * 100:.0f}%")
     img = np.zeros((TEX * TEX, 4), np.float32)
     img[has, :3] = cols
     img[has, 3] = gls
@@ -2255,8 +2450,33 @@ def suit_weights(P):
     return out
 
 
-def vertex_weights(V):
-    own, _ = fig_owner(V.astype(F32))
+def shell_owner(V, sid):
+    """Owning part per vertex, among the parts of the vertex's own shell."""
+    own = np.zeros(len(V), np.int32)
+    for k in range(len(SHELLS)):
+        sel = np.nonzero(sid == k)[0]
+        if not len(sel):
+            continue
+        idx = [PARTS.index(p) for p in shell_parts(k)]
+        P = V[sel].astype(F32)
+        best = np.full(len(P), BIG, F32)
+        o = np.full(len(P), idx[0], np.int32)
+        for i in idx:
+            pr = PARTS[i]
+            m = _inbb(P, pr.lo, pr.hi, 0.01)
+            if not m.any():
+                continue
+            j = np.nonzero(m)[0]
+            d = pr.node.d(P[j])
+            b = d < best[j]
+            best[j[b]] = d[b]
+            o[j[b]] = i
+        own[sel] = o
+    return own
+
+
+def vertex_weights(V, sid):
+    own = shell_owner(V, sid)
     W = [None] * len(V)
     for i, p in enumerate(PARTS):
         idx = np.nonzero(own == i)[0]
@@ -2346,9 +2566,13 @@ def export(ob, arm, base):
     bpy.ops.export_scene.gltf(filepath=base + ".glb", export_format="GLB", use_selection=True)
 
 
+SUB_EDGES = {}
+
+
 def subdivide(V, T, uvc, W):
     """1:4 split; midpoints shared per edge; per-corner UVs interpolated; weights averaged."""
-    key = {}
+    key = SUB_EDGES
+    key.clear()
     newV = [v for v in V]
     newW = [dict(w) for w in W]
 
@@ -2381,14 +2605,15 @@ def subdivide(V, T, uvc, W):
 
 def full_stage():
     t_start = time.time()
-    Vh, Th = mesh_field(fig_d, 0.0025)
+    Vh, Th = mesh_field(fig_d, 0.003)   # the exact union, for the normalisation only
     lo, hi = Vh.min(0), Vh.max(0)
+    del Vh, Th
     shift = np.array([-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]])
     scale = 1.0 / (hi[2] - lo[2])
     log("normalisation shift", np.round(shift, 4), "scale", round(scale, 4))
-    low = build_low(Vh, Th, BUDGET["game"] - 40)
+    low, sid = build_shells(0.0025)
     uv_loops = unwrap(low)
-    img = bake_texture(low, uv_loops)
+    img = bake_texture(low, uv_loops, sid)
     tex_path = os.path.join(OUT_DIR, "theo_v3_tex.png")
     save_texture(img, tex_path)
     log("texture", tex_path)
@@ -2398,7 +2623,7 @@ def full_stage():
     lt = np.empty(len(me.loop_triangles) * 3, np.int64)
     me.loop_triangles.foreach_get("loops", lt)
     uvc = uv_loops[lt]
-    W = vertex_weights(V)
+    W = vertex_weights(V, sid)
     bpy.data.objects.remove(low, do_unlink=True)
     res = {}
     ob, arm = make_object("Theo", V, T, uvc, W, img, tex_path, shift, scale)
@@ -2414,7 +2639,10 @@ def full_stage():
     bpy.data.objects.remove(arm, do_unlink=True)
     # show: the game mesh split 1:4, every vertex projected onto the exact surface (same UVs, same texture)
     V2, T2, U2, W2 = subdivide(V, T, uvc, W)
-    V2 = project(fig_d, V2, it=5, clip=0.002).astype(np.float64)
+    sid2 = np.concatenate([sid, np.zeros(len(V2) - len(V), int)])
+    for (a_, b_), j in SUB_EDGES.items():  # midpoints belong to the shell of their edge
+        sid2[j] = sid[a_]
+    V2 = project_shells(V2, sid2).astype(np.float64)
     ob, arm = make_object("Theo", V2, T2, U2, W2, img, tex_path, shift, scale)
     export(ob, arm, os.path.join(OUT_DIR, "theo_v3_show"))
     res["show"] = (len(T2), len(V2), max(len(w) for w in W2))
