@@ -3,9 +3,10 @@ using UnityEngine;
 namespace Arena.Gameplay.View.Anim
 {
     /// <summary>
-    /// Offset of one bone from its rest pose, summed over the animation layers (brief A-TheoAnim §2). All parts are in the bone's
-    /// rest frame: final position = rest + restRotation × <see cref="Position"/>, rotation = restRotation × Euler(<see cref="Euler"/>),
-    /// scale — see <see cref="ComposeScale"/>. Euler angles (degrees) instead of a quaternion so weighted layers simply add.
+    /// Offset of one bone from its rest pose, summed over the animation layers (brief A-TheoAnim §2). Position is in the bone's
+    /// rest frame (final = rest + restRotation × <see cref="Position"/>: a prop slides along its own axis); rotation is in the
+    /// parent's frame (final = Euler(<see cref="Euler"/>) × restRotation: two arms holding one prop, turned by the same pitch about
+    /// the body's X axis, keep their grip whatever their rest poses); scale — see <see cref="ComposeScale"/>. Euler angles (degrees) instead of a quaternion so weighted layers simply add.
     /// </summary>
     public struct BonePose
     {

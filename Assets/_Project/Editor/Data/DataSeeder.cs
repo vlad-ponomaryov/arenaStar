@@ -712,6 +712,7 @@ namespace Arena.Editor.Data
         private const float AnimStrideLengthPerHeight = 0.55f;
         private const float AnimLegSwingDeg = 40f;
         private const float AnimArmSwingDeg = 30f;
+        private const float AnimTwoHandSwingShare = 0.3f;
         private const float AnimBounceHeight = 0.06f;
         private const float AnimLeanForwardDeg = 12f;
         private const float AnimLeanTurnDeg = 8f;
@@ -720,7 +721,8 @@ namespace Arena.Editor.Data
         private const float AnimShotSeconds = 0.2f;
         private const float AnimRecoilDeg = 18f;
         private const float AnimRecoilDistance = 0.05f;
-        private const float AnimBodyRecoilDeg = 2f;
+        private const float AnimTwoHandRecoilShare = 0.6f;
+        private const float AnimBodyRecoilDeg = 3f;
         private const float AnimShotPeakTime = 0.15f;
         private const float AnimUltSeconds = 0.5f;
         private const float AnimUltCrouchFraction = 0.3f;
@@ -743,6 +745,7 @@ namespace Arena.Editor.Data
         private const float AnimVictoryHopHz = 1.6f;
         private const float AnimVictoryHopHeight = 0.12f;
         private const float AnimVictoryArmDeg = 140f;
+        private const float AnimVictoryTwoHandDeg = 60f;
         private const float AnimBlinkSeconds = 0.12f;
         private const float AnimBlinkIntervalMin = 3f;
         private const float AnimBlinkIntervalMax = 5f;
@@ -1040,6 +1043,7 @@ namespace Arena.Editor.Data
             c.StrideLengthPerHeight = AnimStrideLengthPerHeight;
             c.LegSwingDeg = AnimLegSwingDeg;
             c.ArmSwingDeg = AnimArmSwingDeg;
+            c.TwoHandSwingShare = AnimTwoHandSwingShare;
             c.BounceHeight = AnimBounceHeight;
             c.LeanForwardDeg = AnimLeanForwardDeg;
             c.LeanTurnDeg = AnimLeanTurnDeg;
@@ -1048,6 +1052,7 @@ namespace Arena.Editor.Data
             c.ShotSeconds = AnimShotSeconds;
             c.RecoilDeg = AnimRecoilDeg;
             c.RecoilDistance = AnimRecoilDistance;
+            c.TwoHandRecoilShare = AnimTwoHandRecoilShare;
             c.BodyRecoilDeg = AnimBodyRecoilDeg;
             // Fast kick to the peak, slower settle; 0 at both ends.
             c.ShotEnvelope = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(AnimShotPeakTime, 1f), new Keyframe(1f, 0f));
@@ -1072,6 +1077,7 @@ namespace Arena.Editor.Data
             c.VictoryHopHz = AnimVictoryHopHz;
             c.VictoryHopHeight = AnimVictoryHopHeight;
             c.VictoryArmDeg = AnimVictoryArmDeg;
+            c.VictoryTwoHandDeg = AnimVictoryTwoHandDeg;
             c.BlinkSeconds = AnimBlinkSeconds;
             c.BlinkIntervalMin = AnimBlinkIntervalMin;
             c.BlinkIntervalMax = AnimBlinkIntervalMax;

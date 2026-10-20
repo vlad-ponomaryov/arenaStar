@@ -52,13 +52,21 @@ namespace Arena.Gameplay.View.Anim
         }
 
         /// <summary>
-        /// World point and rotation (+Z along the barrel) of the muzzle of a rig: the end of its prop bone, MuzzleOffset along the
-        /// bone's +Z. False if the rig has no prop.
+        /// World point and rotation (+Z along the barrel) of the muzzle of a rig: its <see cref="FighterRig.Muzzle"/> transform at the
+        /// end of the barrel; without one, <paramref name="offset"/> along the prop bone's +Z. False if the rig has neither.
         /// </summary>
         public static bool MuzzlePoint(FighterRig rig, float offset, out Vector3 position, out Quaternion rotation)
         {
             position = default;
             rotation = Quaternion.identity;
+            Transform muzzle = rig.Muzzle;
+            if (muzzle != null)
+            {
+                if (muzzle.lossyScale.sqrMagnitude <= 0f) return false; // prop hidden
+                position = muzzle.position;
+                rotation = muzzle.rotation;
+                return true;
+            }
             Transform[] bones = rig.Bones;
             int prop = (int)FighterBone.Prop;
             Transform t = bones != null && prop < bones.Length ? bones[prop] : null;

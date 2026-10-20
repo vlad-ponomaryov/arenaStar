@@ -22,6 +22,7 @@ MonoBehaviour:
   StrideLengthPerHeight: 0.55
   LegSwingDeg: 40
   ArmSwingDeg: 30
+  TwoHandSwingShare: 0.3
   BounceHeight: 0.06
   LeanForwardDeg: 12
   LeanTurnDeg: 8
@@ -30,7 +31,8 @@ MonoBehaviour:
   ShotSeconds: 0.2
   RecoilDeg: 18
   RecoilDistance: 0.05
-  BodyRecoilDeg: 2
+  TwoHandRecoilShare: 0.6
+  BodyRecoilDeg: 3
   ShotEnvelope:
     serializedVersion: 2
     m_Curve:
@@ -85,6 +87,7 @@ MonoBehaviour:
   VictoryHopHz: 1.6
   VictoryHopHeight: 0.12
   VictoryArmDeg: 140
+  VictoryTwoHandDeg: 60
   BlinkSeconds: 0.12
   BlinkIntervalMin: 3
   BlinkIntervalMax: 5

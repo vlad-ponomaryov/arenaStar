@@ -300,6 +300,73 @@ namespace Arena.Tests.EditMode.Gameplay.Anim
             Assert.Greater(maxClosure, 0.5f);
         }
 
+        [Test]
+        public void TwoHandedProp_GripHoldsThroughRunShotUltVictory()
+        {
+            FighterRig rig = TwoHandedRig(out Transform hand, out Transform grip);
+            FighterAnimator a = MakeAnimator(FighterTrickStyle.None);
+            a.Bind(rig);
+            Assert.IsTrue(a.TwoHanded);
+            Assert.AreEqual(0f, Vector3.Distance(hand.position, grip.position), 1e-4f, "grip at rest");
+
+            float worst = 0f;
+            int worstFrame = -1;
+            float armTurn = 0f;
+            Quaternion armRest = rig.Bones[(int)FighterBone.ArmR].localRotation;
+            for (int i = 0; i < 120; i++)
+            {
+                a.OnMove(_config.RunSpeedRef, Vector3.forward, Dt);
+                if (i == 40) a.OnShoot(AbilitySlot.Attack, Vector3.forward);
+                if (i == 60) a.OnShoot(AbilitySlot.Ult, Vector3.forward);
+                if (i == 100) a.OnMatchEnd(true);
+                a.Evaluate(Dt);
+                a.Apply(rig);
+                float d = Vector3.Distance(hand.position, grip.position);
+                if (d > worst) { worst = d; worstFrame = i; }
+                armTurn = Mathf.Max(armTurn, Quaternion.Angle(armRest, rig.Bones[(int)FighterBone.ArmR].localRotation));
+            }
+            Assert.Greater(armTurn, 5f, "the arms do move");
+            Assert.Less(worst, 0.01f, "the left hand stays on the prop (worst " + worst + " at frame " + worstFrame + ")");
+        }
+
+        [Test]
+        public void OneHanded_RigWithPropOnBody_IsNotTwoHanded()
+        {
+            FighterRig rig = Rig();
+            Assert.IsFalse(FighterAnimator.HoldsPropWithBothHands(rig));
+        }
+
+        /// <summary>Body with two shoulders (different rest turns), the prop on the right arm; "hand" on the left arm sits on "grip" of the prop.</summary>
+        private FighterRig TwoHandedRig(out Transform hand, out Transform grip)
+        {
+            FighterRig rig = Rig();
+            Transform body = rig.Bones[(int)FighterBone.Body];
+            Transform armL = rig.Bones[(int)FighterBone.ArmL];
+            Transform armR = rig.Bones[(int)FighterBone.ArmR];
+            Transform prop = rig.Bones[(int)FighterBone.Prop];
+            armL.SetParent(body, false);
+            armR.SetParent(body, false);
+            prop.SetParent(armR, false);
+            Set(rig, FighterBone.Body, new Vector3(0f, 0.5f, 0f), Quaternion.identity);
+            Set(rig, FighterBone.ArmL, new Vector3(-0.135f, 0.62f, 0f), Quaternion.Euler(-67.3f, 18.2f, 34.9f));
+            Set(rig, FighterBone.ArmR, new Vector3(0.135f, 0.62f, 0f), Quaternion.Euler(-44.5f, -17.8f, -20f));
+            Set(rig, FighterBone.Prop, new Vector3(0.28f, 0.351f, 0.049f), Quaternion.Euler(30f, 10f, 0f));
+            rig.ResetPose();
+            grip = new GameObject("Grip").transform;
+            grip.SetParent(prop, false);
+            grip.localPosition = new Vector3(0f, 0.05f, 0.3f);
+            hand = new GameObject("Hand").transform;
+            hand.SetParent(armL, true);
+            hand.position = grip.position;
+            return rig;
+        }
+
+        private static void Set(FighterRig rig, FighterBone bone, Vector3 position, Quaternion rotation)
+        {
+            rig.RestPositions[(int)bone] = position;
+            rig.RestRotations[(int)bone] = rotation;
+        }
+
         private void Frame(FighterAnimator a, FighterRig rig)
         {
             a.OnMove(_config.RunSpeedRef, Vector3.forward, Dt);

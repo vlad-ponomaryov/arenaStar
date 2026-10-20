@@ -44,6 +44,9 @@ namespace Arena.Data
         [Tooltip("Arm swing (the arm holding the prop swings half as much), degrees.")]
         [Min(0f)] public float ArmSwingDeg;
 
+        [Tooltip("A prop held with both hands: the arms bob together with the steps by this share of ArmSwingDeg.")]
+        [Range(0f, 1f)] public float TwoHandSwingShare;
+
         [Tooltip("Root hop per step, units.")]
         [Min(0f)] public float BounceHeight;
 
@@ -67,6 +70,9 @@ namespace Arena.Data
 
         [Tooltip("Prop pushed back along its own axis, units.")]
         [Min(0f)] public float RecoilDistance;
+
+        [Tooltip("A prop held with both hands: both arms kick up by this share of RecoilDeg.")]
+        [Range(0f, 1f)] public float TwoHandRecoilShare;
 
         [Tooltip("Body rocks back, degrees.")]
         [Min(0f)] public float BodyRecoilDeg;
@@ -134,6 +140,9 @@ namespace Arena.Data
 
         [Tooltip("Arms raised at victory, degrees.")]
         public float VictoryArmDeg;
+
+        [Tooltip("A prop held with both hands is lifted at victory by this pitch of both arms, degrees.")]
+        public float VictoryTwoHandDeg;
 
         [Header("Face")]
         [Tooltip("One blink (close + open), seconds.")]

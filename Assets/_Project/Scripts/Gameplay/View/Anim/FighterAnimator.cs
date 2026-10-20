@@ -29,6 +29,7 @@ namespace Arena.Gameplay.View.Anim
         private FighterAttackStyle _ultStyle;
         private FighterTrickStyle _trickStyle;
         private FighterAnimState _state;
+        private bool _twoHanded;
 
         /// <summary>Bone offsets of the last <see cref="Evaluate"/>.</summary>
         public readonly PoseBuffer Pose = new PoseBuffer();
@@ -51,11 +52,25 @@ namespace Arena.Gameplay.View.Anim
 
         /// <summary>Takes the per-fighter data (height, styles, springs) from the rig.</summary>
         public void Bind(FighterRig rig) =>
-            Configure(rig.TopHeight, rig.AttackStyle, rig.UltStyle, rig.TrickStyle, rig.Springs);
+            Configure(rig.TopHeight, rig.AttackStyle, rig.UltStyle, rig.TrickStyle, rig.Springs, HoldsPropWithBothHands(rig));
+
+        /// <summary>The prop rides on the right arm and there is a left arm to hold it too (Theo's blaster): the arms move together.</summary>
+        public static bool HoldsPropWithBothHands(FighterRig rig)
+        {
+            Transform[] bones = rig.Bones;
+            if (bones == null || bones.Length <= (int)FighterBone.Prop) return false;
+            Transform prop = bones[(int)FighterBone.Prop];
+            Transform armR = bones[(int)FighterBone.ArmR];
+            Transform armL = bones[(int)FighterBone.ArmL];
+            return prop != null && armR != null && armL != null && prop.parent == armR;
+        }
+
+        public bool TwoHanded => _twoHanded;
 
         public void Configure(float topHeight, FighterAttackStyle attack, FighterAttackStyle ult, FighterTrickStyle trick,
-            FighterSpring[] springs)
+            FighterSpring[] springs, bool twoHanded = false)
         {
+            _twoHanded = twoHanded;
             _topHeight = topHeight;
             _attackStyle = attack;
             _ultStyle = ult;
@@ -215,7 +230,7 @@ namespace Arena.Gameplay.View.Anim
             if (_state.Ended && _state.Won)
             {
                 _state.VictoryTime = c.VictoryHopHz > 0f ? Mathf.Repeat(_state.VictoryTime + dt, 1f / c.VictoryHopHz) : 0f;
-                PuppetPose.Victory(Pose, c, _state.VictoryTime, 1f);
+                PuppetPose.Victory(Pose, c, _state.VictoryTime, 1f, _twoHanded);
             }
             else
             {
@@ -228,7 +243,7 @@ namespace Arena.Gameplay.View.Anim
                 if (_state.RunWeight > 0f)
                 {
                     float speed01 = Mathf.Clamp01(speed / c.RunSpeedRef);
-                    PuppetPose.Run(Pose, c, _state.Phase, speed01, _state.Lean, _state.RunWeight);
+                    PuppetPose.Run(Pose, c, _state.Phase, speed01, _state.Lean, _state.RunWeight, _twoHanded);
                     PuppetPose.Look(Pose, c, Mathf.Clamp(_state.Lean, -1f, 1f), _state.RunWeight);
                 }
             }
@@ -237,7 +252,7 @@ namespace Arena.Gameplay.View.Anim
             if (_state.ShotLeft > 0f)
             {
                 _state.ShotLeft -= dt;
-                PuppetPose.Shot(Pose, c, Progress(_state.ShotLeft, c.ShotSeconds), _attackStyle, 1f, 1f);
+                PuppetPose.Shot(Pose, c, Progress(_state.ShotLeft, c.ShotSeconds), _attackStyle, 1f, 1f, _twoHanded);
             }
             if (_state.UltLeft > 0f)
             {
@@ -248,7 +263,7 @@ namespace Arena.Gameplay.View.Anim
                     _state.UltShotStarted = true;
                     if (_ultStyle == FighterAttackStyle.Shoot) RequestMuzzle(c.UltShotScale);
                 }
-                PuppetPose.Ult(Pose, c, u, _ultStyle, 1f);
+                PuppetPose.Ult(Pose, c, u, _ultStyle, 1f, _twoHanded);
             }
             if (_state.TrickLeft > 0f)
             {
@@ -295,7 +310,7 @@ namespace Arena.Gameplay.View.Anim
                 BonePose p = Pose.Bones[i];
                 Quaternion restRotation = rig.RestRotations[i];
                 t.SetLocalPositionAndRotation(rig.RestPositions[i] + restRotation * p.Position,
-                    restRotation * Quaternion.Euler(p.Euler));
+                    Quaternion.Euler(p.Euler) * restRotation);
                 t.localScale = BonePose.ComposeScale(rig.RestScales[i], p.Scale);
             }
         }
