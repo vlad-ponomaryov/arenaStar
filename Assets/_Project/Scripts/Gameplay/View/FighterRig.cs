@@ -22,6 +22,12 @@ namespace Arena.Gameplay.View
         public FighterTrickStyle TrickStyle;
         public FighterSpring[] Springs;
 
+        /// <summary>
+        /// Empty transform at the end of the held prop's barrel (child of <see cref="FighterBone.Prop"/>, its +Z = the barrel):
+        /// where the muzzle flash and the shots start; null when the model has no barrel.
+        /// </summary>
+        public Transform Muzzle;
+
         public Transform Bone(FighterBone bone) => Bones[(int)bone];
 
         /// <summary>Puts every bone back to its rest pose (eyelids open, prop shown).</summary>

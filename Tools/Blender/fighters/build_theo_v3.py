@@ -815,7 +815,7 @@ def slerp(d0, d1, t):
     return (math.sin((1 - t) * om) * d0 + math.sin(t * om) * d1) / math.sin(om)
 
 
-def lock(start, tip, W, th=0.46, n=32, rise=0.62):
+def lock(start, tip, W, th=0.36, n=32, rise=0.62, tone=0.0):
     """Lock from start (az, el) on the volume to the tip point along a great circle: the body lies on the envelope (top
     flush with it), the last part lifts off so that the tip lands on the target (silhouette spikes)."""
     tip = np.asarray(tip, float)
@@ -827,9 +827,12 @@ def lock(start, tip, W, th=0.46, n=32, rise=0.62):
         pts.append(p)
         nors.append(nn)
     pts, nors = np.array(pts), np.array(nors)
-    prof = (0.15 + 0.85 * sstep_np(0.0, 0.30, s)) * np.cos(np.clip(s, 0, 1) * math.pi / 2) ** 0.65
+    # back locks (tip behind the head) end in a sharper point: rounded ends hanging down read as drips (A-TheoPolish)
+    taper = 1.2 if tip[1] > 0.05 else 0.65
+    prof = (0.15 + 0.85 * sstep_np(0.0, 0.30, s)) * np.cos(np.clip(s, 0, 1) * math.pi / 2) ** taper
     w = np.maximum(W * prof / prof.max(), 0.0024)
-    t = np.maximum(w * th, 0.0013)
+    # thinner towards the tip (a flat blade, not a rounded drop: A-TheoPolish "melting wax" on the back locks)
+    t = np.maximum(w * th * (1.0 - 0.40 * sstep_np(0.45, 1.0, s)), 0.0015)
     end_out = float(np.dot(tip - pts[-1], nors[-1]))
     lift = sstep_np(rise, 1.0, s) ** 1.5
     sink = 0.80 + 1.2 * (1 - sstep_np(0.0, 0.25, s))
@@ -846,6 +849,7 @@ def lock(start, tip, W, th=0.46, n=32, rise=0.62):
         Tv.append(up)
         Wv.append(np.cross(tg, up))
     rb = Ribbon(C, Wv, Tv, w, t, bone="Head")
+    rb.tone = tone
     LOCKS.append(rb)
     return rb
 
@@ -895,7 +899,9 @@ LOCK_DEF = [  # start (az, el) on the envelope -> tip point (silhouette targets 
     ((-150, 20), (-0.076, 0.078, 0.775), 0.025),
     ((150, 20), (0.077, 0.078, 0.772), 0.025),
 ]
-HAIR = U(CAP, *[lock(st, tp, w * 1.16) for st, tp, w in LOCK_DEF], k=0.003)
+# A-TheoPolish: an even blond with a few tonal strands - lighter locks of the quiff and the crown, one darker at the back
+LOCK_TONE = {1: 0.13, 6: 0.11, 18: 0.10, 10: 0.09, 3: -0.08, 26: -0.09}
+HAIR = U(CAP, *[lock(st, tp, w * 1.16, tone=LOCK_TONE.get(i, 0.0)) for i, (st, tp, w) in enumerate(LOCK_DEF)], k=0.003)
 part("hair", HAIR, "hair", ("Head",))
 
 # ---------------- visor (monocle on the character's left eye, +X) and headset (right ear, -X) ----------------
@@ -1660,7 +1666,7 @@ def paint_hinge(P, N, occ):
 def paint_hair(P, N, occ):
     n = len(P)
     best = np.full(n, BIG, F32)
-    sp, xw = np.zeros(n, F32), np.zeros(n, F32)
+    sp, xw, tone = np.zeros(n, F32), np.zeros(n, F32), np.zeros(n, F32)
     for L in LOCKS:
         m = _inbb(P, L.lo, L.hi, 0.006)
         if not m.any():
@@ -1669,19 +1675,20 @@ def paint_hair(P, N, occ):
         d, s_, x_, _ = L.local(P[idx].astype(F32))
         b = d < best[idx]
         j = idx[b]
-        best[j], sp[j], xw[j] = d[b], s_[b], x_[b]
+        best[j], sp[j], xw[j], tone[j] = d[b], s_[b], x_[b], L.tone
     on = sstep(0.0065, 0.0015, best)
     lam = np.clip(N @ KEY_L, -1, 1)
     light = sstep(-0.85, 0.90, 0.6 * lam + 0.4 * N[:, 2])
     ridge = 1 - np.clip(np.abs(xw), 0, 1) ** 2
-    edge = sstep(0.62, 1.0, np.abs(xw))  # lock edges read as creases where the locks overlap
-    v = (0.10 + 0.50 * light + 0.16 * sstep(0.2, 1.0, sp) + 0.14 * ridge - 0.22 * edge
-         - 0.07 * line_w(np.abs(np.abs(xw) - 0.45), 0.06, 0.04))
-    v = v * on + (0.18 + 0.50 * light) * (1 - on)   # scalp between the locks: close to the lock colour (no dark patches)
+    edge = sstep(0.70, 1.0, np.abs(xw))
+    # A-TheoPolish: an even blond (narrow light range, the engine shades it again), one soft streak along each lock and a
+    # few tonal strands (LOCK_TONE); no dark creases on the lock edges and little AO - they read as drips of melted wax.
+    v = (0.46 + 0.30 * light + 0.08 * sstep(0.3, 1.0, sp) + 0.06 * ridge - 0.05 * edge + tone)
+    v = v * on + (0.46 + 0.30 * light) * (1 - on)   # scalp between the locks: the lock colour (no dark patches)
     c = ramp("hair", v)
-    sp_ = np.clip(N @ HALF_V, 0, 1) ** 18 * 0.20 * (1 - edge)
+    sp_ = np.clip(N @ HALF_V, 0, 1) ** 18 * 0.12 * (1 - edge)
     c = c + (1 - c) * sp_[:, None]
-    c = c * (1 - 0.60 * np.minimum(occ, 0.60))[:, None]
+    c = c * (1 - 0.35 * np.minimum(occ, 0.50))[:, None]
     return np.clip(c, 0, 1), np.full(n, 0.35)
 
 

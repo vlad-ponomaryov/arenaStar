@@ -183,6 +183,17 @@ namespace Arena.Editor.Art
         public const string BarFrameTexturePath = TexturesFolder + "/HudBarFrame.png";
         public const string BeadTexturePath = TexturesFolder + "/HudBead.png";
         public const string RingTexturePath = TexturesFolder + "/HudRing.png";
+        public const string RingEdgeTexturePath = TexturesFolder + "/HudRingEdge.png";
+        /// <summary>Name of the edge quad under a model fighter's team ring (<see cref="AddRingEdge"/>).</summary>
+        public const string RingEdgeName = "RingEdge";
+        // Ring edge (A-TheoPolish §4): a quad this much larger than the ring; light band from just inside the ring's outer edge,
+        // then a dark line; not tinted (cream), so it reads against a suit of the team colour.
+        private const float RingEdgeScale = 1.12f;
+        private const float RingEdgeOverlapPx = 2f;
+        private const float RingEdgeOutlinePx = 3f;
+        private const float RingEdgeOutlineAlpha = 0.85f;
+        private const float RingEdgeHeight = 0.015f;
+        private static readonly Color RingEdgeColor = new Color(1f, 0.97f, 0.88f, 1f);
 
         // Fighter view geometry (cells): capsule of diameter 0.9 (≈ body radius 0.45), ring slightly larger.
         private const float BodyDiameter = 0.9f;
@@ -397,6 +408,10 @@ namespace Arena.Editor.Art
             Texture2D ringTexture = BuildHudTexture(RingTexturePath, RingTextureSize, RingTextureSize, RingPixel);
             Material ally = SaveTexturedMaterial("TeamAlly", Lighten(AllyColor), ringTexture);
             Material enemy = SaveTexturedMaterial("TeamEnemy", Lighten(EnemyColor), ringTexture);
+            // A-TheoPolish §4 (D-146, proposed): untinted light edge + dark line around the team ring of the model fighters, so a
+            // red suit does not merge with a red ring.
+            Texture2D ringEdgeTexture = BuildHudTexture(RingEdgeTexturePath, RingTextureSize, RingTextureSize, RingEdgePixel);
+            Material ringEdge = SaveTexturedMaterial("TeamRingEdge", RingEdgeColor, ringEdgeTexture);
             Material body = SaveToonMaterial("FighterBody", ToonCharacterShader, BodyColor, 0f);
             (Texture2D grass, float grassMean) = FlowImageImporter.ImportTileable(GrassSource, GrassTexturePath, GrassTextureSize,
                 GrassTargetMean, GrassMaxGain, GrassSeamFeatherPx);
@@ -507,7 +522,7 @@ namespace Arena.Editor.Art
             ViewCatalog catalog = LoadOrCreate<ViewCatalog>(ViewCatalogPath);
             catalog.FighterViewPrefab = fighterView;
             // Per-fighter procedural models (A.1b: Pix; A.1c–A.1d: the rest); fighters without one use the fallback capsule.
-            catalog.FighterVisuals = FighterModelBuilder.BuildAll(body, ally, blobShadow);
+            catalog.FighterVisuals = FighterModelBuilder.BuildAll(body, ally, blobShadow, ringEdge);
             catalog.LightPitch = LightPitch;
             catalog.LightYawFromCamera = LightYawFromCamera;
             catalog.AimIndicatorPrefab = aimIndicator;
@@ -814,6 +829,19 @@ namespace Arena.Editor.Art
         private static readonly int BarFrameTextureHeight = Mathf.RoundToInt((BarHeight + BarPadding * 2f) * BarTexturePixelsPerUnit);
 
         /// <summary>Unlit transparent material with a texture tinted by <paramref name="color"/>.</summary>
+        /// <summary>
+        /// A-TheoPolish §4: the untinted edge quad around the team ring of a model fighter (a little lower than the ring, larger).
+        /// </summary>
+        internal static Renderer AddRingEdge(Transform root, Material edge)
+        {
+            GameObject edgeGo = CreatePart(PrimitiveType.Quad, RingEdgeName, root, edge);
+            edgeGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            float d = RingDiameter * RingEdgeScale;
+            edgeGo.transform.localScale = new Vector3(d, d, 1f);
+            edgeGo.transform.localPosition = new Vector3(0f, RingEdgeHeight, 0f);
+            return edgeGo.GetComponent<Renderer>();
+        }
+
         private static Material SaveTexturedMaterial(string name, Color color, Texture2D texture)
         {
             Material mat = SaveMaterial(name, UnlitShader, color, true);
@@ -833,6 +861,17 @@ namespace Arena.Editor.Art
             if (r > RingBandInner) return new Color(RingBandShade, RingBandShade, RingBandShade, 1f);
             if (r > RingRimInner) return Color.white;
             return new Color(1f, 1f, 1f, RingDiscAlpha);
+        }
+
+        /// <summary>Ring edge (A-TheoPolish §4): light band around the ring's outer edge and a dark line outside; clear elsewhere.</summary>
+        private static Color RingEdgePixel(float x, float y)
+        {
+            float half = RingTextureSize * 0.5f;
+            float r = Mathf.Sqrt((x - half) * (x - half) + (y - half) * (y - half)) / half;
+            if (r > 1f) return Color.clear;
+            if (r > 1f - RingEdgeOutlinePx / half) return WithAlpha(UiSpriteBaker.Outline, RingEdgeOutlineAlpha);
+            if (r > 1f / RingEdgeScale - RingEdgeOverlapPx / half) return Color.white;
+            return Color.clear;
         }
 
         /// <summary>Health bar frame (A.7a): rounded box with the dark outline, dark translucent inside (the missing health).</summary>

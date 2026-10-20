@@ -219,6 +219,31 @@ namespace Arena.Tests.EditMode.Art
         }
 
         [Test]
+        public void Theo_HoldsTheBlasterForward_InTheRightHand_WithAMuzzle()
+        {
+            ViewCatalog catalog = Catalog();
+            foreach (FighterView view in new[] { catalog.FighterPrefab(TheoRecipe.FighterId), catalog.FighterHeroPrefab(TheoRecipe.FighterId) })
+            {
+                FighterRig rig = view.Rig;
+                Transform prop = rig.Bone(FighterBone.Prop);
+                Assert.AreSame(rig.Bone(FighterBone.ArmR), prop.parent, view.name + ": the blaster follows the right arm");
+                Assert.IsNotNull(rig.Muzzle, view.name + ": muzzle");
+                Assert.AreSame(prop, rig.Muzzle.parent, view.name + ": the muzzle is on the blaster");
+                Transform root = view.transform;
+                Vector3 barrel = root.InverseTransformDirection(prop.forward);
+                Assert.Greater(barrel.z, 0.95f, view.name + ": the barrel points forward " + barrel);
+                Assert.That(barrel.y, Is.InRange(-0.2f, 0f), view.name + ": level or a little down " + barrel);
+                Vector3 grip = root.InverseTransformPoint(prop.position);
+                Assert.That(grip.x, Is.InRange(0f, 0.3f), view.name + ": grip in front of the right hip " + grip);
+                Assert.Greater(grip.z, 0.15f, view.name + ": grip in front of the body " + grip);
+                Vector3 muzzle = root.InverseTransformPoint(rig.Muzzle.position);
+                Assert.Greater(muzzle.z, grip.z + 0.5f, view.name + ": the muzzle at the far end of the barrel " + muzzle);
+                Quaternion arm = rig.Bone(FighterBone.ArmR).localRotation;
+                Assert.AreEqual(arm, rig.RestRotations[(int)FighterBone.ArmR], view.name + ": the pose is the rig's rest");
+            }
+        }
+
+        [Test]
         public void Theo_VertexColours_AreLinear_WithGlossInAlpha()
         {
             ViewCatalog catalog = Catalog();

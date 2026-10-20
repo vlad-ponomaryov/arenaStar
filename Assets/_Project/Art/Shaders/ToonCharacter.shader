@@ -23,6 +23,7 @@ Shader "Arena/ToonCharacter"
         _OutlineMix ("Outline Color Mix", Range(0, 1)) = 0.5
         _OutlinePx ("Outline Pixels At Ref Height", Range(0, 6)) = 2
         _OutlineRefHeight ("Outline Ref Screen Height", Float) = 1080
+        _OutlineDepthPush ("Outline Depth Push (units)", Range(0, 0.2)) = 0.03
         _Flash ("Flash", Range(0, 1)) = 0
         _BaseMap ("Base Map (RGB colour, A gloss)", 2D) = "white" {}
         _BaseMapOn ("Base Map On", Range(0, 1)) = 0
@@ -53,6 +54,7 @@ Shader "Arena/ToonCharacter"
             half _OutlineMix;
             float _OutlinePx;
             float _OutlineRefHeight;
+            float _OutlineDepthPush;
             half _Flash;
             float4 _BaseMap_ST;
             half _BaseMapOn;
@@ -153,7 +155,7 @@ Shader "Arena/ToonCharacter"
             Varyings Vert(Attributes v)
             {
                 Varyings o;
-                o.positionCS = ArenaToonOutlinePosition(v.positionOS.xyz, v.normalOS, _OutlinePx, _OutlineRefHeight);
+                o.positionCS = ArenaToonOutlinePosition(v.positionOS.xyz, v.normalOS, _OutlinePx, _OutlineRefHeight, _OutlineDepthPush);
                 o.color = v.color;
                 return o;
             }

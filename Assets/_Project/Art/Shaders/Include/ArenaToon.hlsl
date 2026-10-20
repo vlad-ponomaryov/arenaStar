@@ -55,9 +55,14 @@ half3 ArenaToonShade(ArenaToonSurface s, ArenaToonParams p)
 
 // Clip-space position pushed out along the normal by a constant number of pixels: `pixelsAtRef` at a screen of
 // `refHeight` pixels (scales with the resolution, does not depend on the distance).
-float4 ArenaToonOutlinePosition(float3 positionOS, float3 normalOS, float pixelsAtRef, float refHeight)
+// depthPush (world units): the hull is drawn this much further from the camera, so it shows only where the model is in front
+// of something farther away (silhouettes, a blaster held before the body) and not as lines inside overlapping thin parts
+// (hair locks, plates: A-TheoPolish §3).
+float4 ArenaToonOutlinePosition(float3 positionOS, float3 normalOS, float pixelsAtRef, float refHeight, float depthPush)
 {
-    float4 positionCS = TransformObjectToHClip(positionOS);
+    float3 positionVS = TransformWorldToView(TransformObjectToWorld(positionOS));
+    positionVS.z -= depthPush; // view space looks down -Z
+    float4 positionCS = TransformWViewToHClip(positionVS);
     float3 normalWS = TransformObjectToWorldNormal(normalOS);
     float2 normalCS = mul((float3x3)UNITY_MATRIX_VP, normalWS).xy;
     float len = length(normalCS);

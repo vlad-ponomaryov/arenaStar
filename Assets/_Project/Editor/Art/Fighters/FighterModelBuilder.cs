@@ -50,7 +50,7 @@ namespace Arena.Editor.Art.Fighters
         private static string Suffix(FighterModelQuality quality) => quality == FighterModelQuality.Hero ? HeroSuffix : "";
 
         /// <summary>Builds every recipe; the entries for <see cref="ViewCatalog.FighterVisuals"/>.</summary>
-        public static FighterVisual[] BuildAll(Material body, Material ring, Material shadow)
+        public static FighterVisual[] BuildAll(Material body, Material ring, Material shadow, Material ringEdge = null)
         {
             ProjectConfigurator.EnsureFolder(MeshFolder);
             ProjectConfigurator.EnsureFolder(PrefabFolder);
@@ -60,8 +60,8 @@ namespace Arena.Editor.Art.Fighters
                 visuals[i] = new FighterVisual
                 {
                     FighterId = recipes[i].FighterId,
-                    Prefab = BuildPrefab(recipes[i], body, ring, shadow, FighterModelQuality.Game),
-                    HeroPrefab = BuildPrefab(recipes[i], body, ring, shadow, FighterModelQuality.Hero)
+                    Prefab = BuildPrefab(recipes[i], body, ring, shadow, FighterModelQuality.Game, ringEdge),
+                    HeroPrefab = BuildPrefab(recipes[i], body, ring, shadow, FighterModelQuality.Hero, ringEdge)
                 };
             return visuals;
         }
@@ -156,11 +156,33 @@ namespace Arena.Editor.Art.Fighters
                 if (pivots[i].HasValue) recipe.Bones[i] = new FighterBoneSpec(recipe.Bones[i].Bone, recipe.Bones[i].Parent, pivots[i].Value);
         }
 
+        /// <summary>Name of the empty transform at the end of the prop's barrel (<see cref="FighterRig.Muzzle"/>).</summary>
+        public const string MuzzleName = "Muzzle";
+
+        /// <summary>
+        /// Turns and shifts the bones to the recipe's rest pose (<see cref="FighterModelRecipe.RestPose"/>) after the bind poses are
+        /// taken, parents first, so the skinned mesh shows the pose and <see cref="FighterRig"/> stores it as the rest.
+        /// </summary>
+        public static void ApplyRestPose(FighterModelRecipe recipe, Transform root, Transform[] bones)
+        {
+            if (recipe.RestPose == null || recipe.RestPose.Length == 0) return;
+            var poses = (FighterBonePose[])recipe.RestPose.Clone();
+            Array.Sort(poses, (a, b) => ((int)a.Bone).CompareTo((int)b.Bone));
+            for (int i = 0; i < poses.Length; i++)
+            {
+                if (i > 0 && poses[i].Bone == poses[i - 1].Bone)
+                    throw new ArgumentException("FighterModelRecipe " + recipe.FighterId + ": two rest poses of " + poses[i].Bone);
+                Transform bone = bones[(int)poses[i].Bone];
+                bone.rotation = root.rotation * Quaternion.Euler(poses[i].Euler);
+                bone.position += root.TransformVector(poses[i].Offset * recipe.Scale);
+            }
+        }
+
         /// <summary>Rest pivot of a bone in scaled model space.</summary>
         public static Vector3 Pivot(FighterModelRecipe recipe, FighterBone bone) => recipe.Bones[(int)bone].Pivot * recipe.Scale;
 
         public static FighterView BuildPrefab(FighterModelRecipe recipe, Material body, Material ring, Material shadow,
-            FighterModelQuality quality = FighterModelQuality.Game)
+            FighterModelQuality quality = FighterModelQuality.Game, Material ringEdge = null)
         {
             var stats = new List<GroupStats>();
             var weights = new List<BoneWeight>();
@@ -173,6 +195,7 @@ namespace Arena.Editor.Art.Fighters
             try
             {
                 (Renderer ringRenderer, Renderer shadowRenderer) = ViewAssetBuilder.AddRingAndShadow(root.transform, ring, shadow);
+                if (ringEdge != null) ViewAssetBuilder.AddRingEdge(root.transform, ringEdge);
 
                 int boneCount = recipe.Bones.Length;
                 var bones = new Transform[boneCount];
@@ -218,9 +241,28 @@ namespace Arena.Editor.Art.Fighters
                 // Eyelids are modelled closed and hidden at rest (scale 0 = open eyes).
                 bones[(int)FighterBone.LidL].localScale = Vector3.zero;
                 bones[(int)FighterBone.LidR].localScale = Vector3.zero;
+                ApplyRestPose(recipe, root.transform, bones);
+                if (recipe.RestPose != null && recipe.RestPose.Length > 0)
+                {
+                    // The posed prop reaches further than the bind pose: bounds over both.
+                    var posed = new Mesh();
+                    smr.BakeMesh(posed, true);
+                    Bounds both = mesh.bounds;
+                    both.Encapsulate(posed.bounds);
+                    Object.DestroyImmediate(posed);
+                    both.extents *= BoundsMargin;
+                    smr.localBounds = both;
+                }
 
                 var rig = root.AddComponent<FighterRig>();
                 rig.Bones = bones;
+                if (recipe.SourceProp != null)
+                {
+                    var muzzle = new GameObject(MuzzleName).transform;
+                    muzzle.SetParent(bones[(int)FighterBone.Prop], false);
+                    muzzle.localPosition = recipe.PropMuzzle * recipe.Scale;
+                    rig.Muzzle = muzzle;
+                }
                 rig.RestPositions = new Vector3[boneCount];
                 rig.RestRotations = new Quaternion[boneCount];
                 rig.RestScales = new Vector3[boneCount];

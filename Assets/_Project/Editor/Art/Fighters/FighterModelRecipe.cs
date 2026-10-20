@@ -1,4 +1,5 @@
 using Arena.Gameplay.View;
+using UnityEngine;
 
 namespace Arena.Editor.Art.Fighters
 {
@@ -33,5 +34,12 @@ namespace Arena.Editor.Art.Fighters
         public string BaseMap;
         /// <summary>Unskinned FBX of the held prop (origin = the grip), weighted to <see cref="FighterBone.Prop"/> at its pivot; or null.</summary>
         public string SourceProp;
+        /// <summary>
+        /// End of the prop's barrel in the prop's own space (origin = the grip, +Z = the barrel, before <see cref="Scale"/>): where
+        /// the <see cref="FighterRig.Muzzle"/> transform goes (muzzle flash, projectiles). Used only with <see cref="SourceProp"/>.
+        /// </summary>
+        public Vector3 PropMuzzle;
+        /// <summary>Rest pose on top of the bind pose (applied parents first); null or empty = the bind pose.</summary>
+        public FighterBonePose[] RestPose;
     }
 }

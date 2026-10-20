@@ -98,6 +98,7 @@ namespace Arena.Editor.Art.Capture
                 stage.SetLocalTeam(1);
                 SaveWithColorBlind(RenderGameplay(camera, config, stage, true, 1), dir, "lineup_team1");
                 stage.SetLocalTeam(0);
+                SaveTeamPairs(camera, config, stage, dir);
                 MatchLightRig.Apply(s_light, 0f, s_catalog); // light and wall shadows as for team 0
                 SaveWithColorBlind(RenderMap(camera, stage), dir, "map");
                 SaveArena(camera, config, stage, database, dir);
@@ -340,6 +341,71 @@ namespace Arena.Editor.Art.Capture
             Object.DestroyImmediate(big);
             Save(crop, dir, name);
             Object.DestroyImmediate(crop);
+        }
+
+        private const int TeamPairScale = 3;
+        private const int TeamPairCellWidth = 1100;
+        private const int TeamPairCellHeight = 620;
+        private const float TeamPairSpacing = 0.75f;
+        private const float TeamPairFocusHeight = 0.6f;
+
+        /// <summary>
+        /// A-TheoPolish §4: for every fighter with a model, two copies side by side at the gameplay angle (3× supersampled crop) —
+        /// ally ring on the left, enemy ring on the right; top row without the ring edge (<see cref="ViewAssetBuilder.RingEdgeName"/>),
+        /// bottom row with it — <c>team_pair_&lt;id&gt;.png</c> (+ protan/deutan). The other stage fighters are hidden meanwhile.
+        /// </summary>
+        private static void SaveTeamPairs(Camera camera, CameraConfig config, CaptureStage stage, string dir)
+        {
+            for (int i = 0; i < stage.FighterCount; i++) stage.Fighter(i).SetVisible(false);
+            try
+            {
+                for (int i = 0; i < stage.FighterCount; i++)
+                {
+                    if (stage.Fighter(i).Rig == null) continue;
+                    string id = stage.FighterId(i);
+                    FighterView prefab = CaptureStage.ResolvePrefab(s_catalog, id);
+                    var pair = new[] { Object.Instantiate(prefab, stage.Root.transform), Object.Instantiate(prefab, stage.Root.transform) };
+                    var sheet = new Texture2D(TeamPairCellWidth, TeamPairCellHeight * 2, TextureFormat.RGBA32, false);
+                    try
+                    {
+                        Vector3 centre = WorldCoords.ToWorld(new Arena.Core.Math.Vec2(stage.Width * 0.5f, CaptureStage.RowZ));
+                        for (int k = 0; k < pair.Length; k++)
+                        {
+                            pair[k].SetBodyMaterial(s_catalog.FighterBody);
+                            pair[k].SetTeamMaterial(k == 0 ? s_catalog.TeamAlly : s_catalog.TeamEnemy);
+                            pair[k].SetPose(centre + Vector3.right * ((k - 0.5f) * 2f * TeamPairSpacing), Vector3.back);
+                        }
+                        for (int row = 0; row < 2; row++)
+                        {
+                            foreach (FighterView v in pair)
+                            {
+                                Transform edge = v.transform.Find(ViewAssetBuilder.RingEdgeName);
+                                if (edge != null) edge.gameObject.SetActive(row == 1);
+                            }
+                            Texture2D big = RenderGameplay(camera, config, stage, false, TeamPairScale);
+                            Vector3 p = camera.WorldToViewportPoint(centre + Vector3.up * TeamPairFocusHeight);
+                            int x = Mathf.Clamp(Mathf.RoundToInt(p.x * big.width) - TeamPairCellWidth / 2, 0, big.width - TeamPairCellWidth);
+                            int y = Mathf.Clamp(Mathf.RoundToInt(p.y * big.height) - TeamPairCellHeight / 2, 0, big.height - TeamPairCellHeight);
+                            // Texture rows go up: the top row of the sheet (without the edge) is the upper half.
+                            sheet.SetPixels32(0, (1 - row) * TeamPairCellHeight, TeamPairCellWidth, TeamPairCellHeight,
+                                Crop(big, x, y, TeamPairCellWidth, TeamPairCellHeight));
+                            Object.DestroyImmediate(big);
+                        }
+                        sheet.Apply();
+                        SaveWithColorBlind(sheet, dir, "team_pair_" + id);
+                        sheet = null;
+                    }
+                    finally
+                    {
+                        foreach (FighterView v in pair) Object.DestroyImmediate(v.gameObject);
+                        if (sheet != null) Object.DestroyImmediate(sheet);
+                    }
+                }
+            }
+            finally
+            {
+                for (int i = 0; i < stage.FighterCount; i++) stage.Fighter(i).SetVisible(true);
+            }
         }
 
         /// <summary>
