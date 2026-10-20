@@ -1,8 +1,10 @@
 # Preview sheet for the procedural Theo model (Docs/Briefs/A-Theo3D.md step 2). Headless:
 #   blender -b --factory-startup --python Tools/Blender/fighters/render_theo_sheet.py -- [model_dir] [out.png] [--size 480]
-# Imports theo_game.glb + theo_blaster.glb (blaster origin snapped to the Prop bone head), shades the vertex colours with
-# gloss = alpha (roughness 1 - 0.7 * alpha) and composes one row: reference 001 | front | 3/4 | back | side | game camera
-# (55 deg from above) | blaster side next to reference 003. Nothing is written next to the models.
+#       [--body theo_game.glb] [--gun theo_blaster.glb]
+# Imports the body (default theo_game.glb) + the blaster (default theo_blaster.glb; origin snapped to the Prop bone head),
+# shades the vertex colours with gloss = alpha (roughness 1 - 0.7 * alpha) or, when the body material has an image texture
+# (v3: RGB = albedo, A = gloss), the texture the same way, and composes one row: reference 001 | front | 3/4 | back | side |
+# game camera (55 deg from above) | blaster side next to reference 003. Nothing is written next to the models.
 import bpy, sys, os, math
 import numpy as np
 from mathutils import Vector
@@ -10,7 +12,8 @@ from mathutils import Vector
 here = os.path.dirname(os.path.abspath(__file__))
 repo = os.path.abspath(os.path.join(here, "..", "..", ".."))
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-pos = [a for a in argv if not a.startswith("--") and not a.isdigit()]
+OPT = {k: argv[argv.index(k) + 1] for k in ("--body", "--gun") if k in argv}
+pos = [a for i, a in enumerate(argv) if not a.startswith("--") and not a.isdigit() and (i == 0 or argv[i - 1] not in OPT)]
 mdir = os.path.abspath(pos[0]) if pos else os.path.join(repo, "Art", "Source", "3D", "theo")
 dst = os.path.abspath(pos[1]) if len(pos) > 1 else os.path.join(repo, "Tools", "out", "art", "theo3d", "blender_sheet.png")
 S = int(argv[argv.index("--size") + 1]) if "--size" in argv else 480
@@ -19,7 +22,7 @@ REF = os.path.join(repo, "Art", "Source", "Flow", "2026-10-19_theo-3dref")
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 before = set(scene.objects)
-bpy.ops.import_scene.gltf(filepath=os.path.join(mdir, "theo_game.glb"))
+bpy.ops.import_scene.gltf(filepath=os.path.join(mdir, OPT.get("--body", "theo_game.glb")))
 body_objs = set(scene.objects) - before
 arm = next(o for o in body_objs if o.type == "ARMATURE")
 shapes = {pb.custom_shape for pb in arm.pose.bones if pb.custom_shape}
@@ -27,7 +30,7 @@ for o in shapes:
     bpy.data.objects.remove(o, do_unlink=True)
 prop = arm.matrix_world @ arm.data.bones["Prop"].head_local
 before = set(scene.objects)
-bpy.ops.import_scene.gltf(filepath=os.path.join(mdir, "theo_blaster.glb"))
+bpy.ops.import_scene.gltf(filepath=os.path.join(mdir, OPT.get("--gun", "theo_blaster.glb")))
 gun = [o for o in set(scene.objects) - before if o.parent is None]
 for o in gun:
     o.location = prop
@@ -47,6 +50,26 @@ nt.links.new(mul.outputs[0], bsdf.inputs["Roughness"])
 bsdf.inputs["Specular IOR Level"].default_value = 0.4
 for o in scene.objects:
     if o.type == "MESH":
+        img = next((n.image for m in o.data.materials if m and m.node_tree for n in m.node_tree.nodes
+                    if n.type == "TEX_IMAGE" and n.image), None)
+        if img is not None:  # textured (v3): albedo + gloss in alpha
+            img.alpha_mode = "CHANNEL_PACKED"
+            tm = bpy.data.materials.new("TEX")
+            tm.use_nodes = True
+            tt = tm.node_tree
+            tb = next(n for n in tt.nodes if n.type == "BSDF_PRINCIPLED")
+            ti = tt.nodes.new("ShaderNodeTexImage")
+            ti.image = img
+            tmul = tt.nodes.new("ShaderNodeMath")
+            tmul.operation, tmul.inputs[1].default_value = "MULTIPLY_ADD", -0.65
+            tmul.inputs[2].default_value = 0.95
+            tt.links.new(ti.outputs["Color"], tb.inputs["Base Color"])
+            tt.links.new(ti.outputs["Alpha"], tmul.inputs[0])
+            tt.links.new(tmul.outputs[0], tb.inputs["Roughness"])
+            tb.inputs["Specular IOR Level"].default_value = 0.4
+            o.data.materials.clear()
+            o.data.materials.append(tm)
+            continue
         vc.layer_name = o.data.color_attributes[0].name
         o.data.materials.clear()
         o.data.materials.append(mat)
