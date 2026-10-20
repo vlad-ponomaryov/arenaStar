@@ -1,5 +1,7 @@
 using System;
 using Arena.Data;
+using Arena.Data.Audio;
+using Arena.Gameplay.Audio;
 using UnityEngine;
 
 namespace Arena.Gameplay.Feel
@@ -7,8 +9,9 @@ namespace Arena.Gameplay.Feel
     /// <summary>
     /// Short procedural sounds of the prototype (D-028): clips are generated once at match start with
     /// <see cref="AudioClip.Create(string,int,int,int,bool)"/> from <see cref="FeelConfig"/> (hit, ult, ult ready) and played
-    /// with <see cref="AudioSource.PlayOneShot(AudioClip)"/> on one 2D source. No asset files, original content.
-    /// Hits are rate-limited (<see cref="FeelConfig.HitSoundMinInterval"/>).
+    /// through the match <see cref="ISfxOutput"/> (<see cref="SfxPlayer"/>: voice limit, volume setting). No asset files, original
+    /// content. Hits are rate-limited (<see cref="FeelConfig.HitSoundMinInterval"/>). Fighters with their own sound set
+    /// (<see cref="FighterSfx"/>) skip these (see <see cref="HitFeedback"/>).
     /// </summary>
     public sealed class ProceduralSounds
     {
@@ -17,7 +20,8 @@ namespace Arena.Gameplay.Feel
         private const float TwoPi = Mathf.PI * 2f;
         private const int NoiseSeed = 12345;
 
-        private readonly AudioSource _source;
+        private readonly ISfxOutput _output;
+        private readonly int _priority;
         private readonly float _hitMinInterval;
         private float _nextHitTime;
 
@@ -25,10 +29,13 @@ namespace Arena.Gameplay.Feel
         public AudioClip Ult { get; }
         public AudioClip UltReady { get; }
 
-        public ProceduralSounds(AudioSource source, FeelConfig feel)
+        /// <param name="output">Null = silent.</param>
+        /// <param name="priority">Voice-limit priority of these sounds.</param>
+        public ProceduralSounds(ISfxOutput output, FeelConfig feel, int priority)
         {
             if (feel == null) throw new ArgumentNullException(nameof(feel));
-            _source = source;
+            _output = output;
+            _priority = priority;
             _hitMinInterval = feel.HitSoundMinInterval;
             Hit = CreateClip("Hit", feel.HitSound, feel.SampleRate);
             Ult = CreateClip("Ult", feel.UltSound, feel.SampleRate);
@@ -49,7 +56,7 @@ namespace Arena.Gameplay.Feel
 
         private void Play(AudioClip clip)
         {
-            if (_source != null && clip != null) _source.PlayOneShot(clip);
+            if (_output != null && clip != null) _output.Play(clip, SfxChannel.Sfx, 1f, 1f, 0f, _priority);
         }
 
         public static AudioClip CreateClip(string name, ProceduralSoundSettings s, int sampleRate)

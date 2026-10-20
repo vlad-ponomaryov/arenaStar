@@ -125,6 +125,12 @@ namespace Arena.Data
         [Tooltip("Vibration strength, percent (0 = off).")]
         [Range(0, 100)] public int DefaultVibrationPercent;
 
+        [Tooltip("Sound volume, percent (0 = off; brief A-TheoSfx).")]
+        [Range(0, 100)] public int DefaultSoundPercent;
+
+        [Tooltip("Steps of the sound volume setting, percent (0 = off).")]
+        public int[] SoundSteps = new int[0];
+
         [Tooltip("Aim magnet (GDD §5.1: on).")]
         public bool DefaultAimMagnet;
 

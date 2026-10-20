@@ -3,6 +3,7 @@ using Arena.Core.Sim;
 using Arena.Core.Sim.Events;
 using Arena.Core.State;
 using Arena.Data;
+using Arena.Gameplay.Audio;
 using Arena.Gameplay.View;
 
 namespace Arena.Gameplay.Feel
@@ -17,6 +18,7 @@ namespace Arena.Gameplay.Feel
     /// <item>An ult fired by a fighter the local team sees: the ult sound. The local ult becoming charged: the ready signal.</item>
     /// <item>Healing of a seen fighter: a green number.</item>
     /// </list>
+    /// Procedural hit / ult sounds are skipped for fighters that have their own sounds (<see cref="FighterSfx"/>).
     /// Every output is optional (null = skipped), so the rules are testable without a scene. No allocations per tick.
     /// </summary>
     public sealed class HitFeedback
@@ -29,11 +31,13 @@ namespace Arena.Gameplay.Feel
         private readonly Haptics _haptics;
         private readonly ProceduralSounds _sounds;
         private readonly DamageNumberPool _numbers;
+        private readonly FighterSfx _fighterSounds;
         private readonly float[] _flashUntil = new float[SimLimits.MaxFighters];
 
         public HitFeedback(FeelConfig feel, int localSlot, int localTeam, HitStop hitStop, CameraShake shake, Haptics haptics,
-            ProceduralSounds sounds, DamageNumberPool numbers)
+            ProceduralSounds sounds, DamageNumberPool numbers, FighterSfx fighterSounds = null)
         {
+            _fighterSounds = fighterSounds;
             _feel = feel;
             _localSlot = localSlot;
             _localTeam = localTeam;
@@ -72,7 +76,7 @@ namespace Arena.Gameplay.Feel
                         if (e.Value >= 0 && MatchDefs.SlotOf(e.Value) == AbilitySlot.Ult && IsSeen(state, e.Source))
                         {
                             UltSoundsPlayed++;
-                            _sounds?.PlayUlt();
+                            if (!HasOwnSounds(e.Source)) _sounds?.PlayUlt();
                         }
                         break;
                     case SimEventType.UltReady:
@@ -115,7 +119,7 @@ namespace Arena.Gameplay.Feel
 
             bool local = e.Source == _localSlot || target == _localSlot;
             if (!local) return;
-            _sounds?.PlayHit(now);
+            if (!HasOwnSounds(e.Source) && !HasOwnSounds(target)) _sounds?.PlayHit(now);
             if (ult)
             {
                 UltHitsFelt++;
@@ -128,6 +132,8 @@ namespace Arena.Gameplay.Feel
                 _haptics?.Vibrate(_feel.HitVibrationMs, now);
             }
         }
+
+        private bool HasOwnSounds(int slot) => _fighterSounds != null && _fighterSounds.HasSet(slot);
 
         /// <summary>Own team always; others by the visibility rules (D-024).</summary>
         private bool IsSeen(MatchState state, int slot)

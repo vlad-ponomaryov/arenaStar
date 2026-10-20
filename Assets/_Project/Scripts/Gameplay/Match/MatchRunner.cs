@@ -10,6 +10,7 @@ using Arena.Core.State;
 using Arena.Data;
 using Arena.Data.Conversion;
 using Arena.Data.Localization;
+using Arena.Gameplay.Audio;
 using Arena.Gameplay.Cameras;
 using Arena.Gameplay.Feel;
 using Arena.Gameplay.Flow;
@@ -69,6 +70,7 @@ namespace Arena.Gameplay.Match
         private readonly CameraShake _shake = new CameraShake();
         private Haptics _haptics;
         private ProceduralSounds _sounds;
+        private MatchAudio _audio;
         private FloatingTextLayer _floatingText;
         private DamageNumberPool _damageNumbers;
         private OwnHealthLabel _ownHealth;
@@ -241,6 +243,7 @@ namespace Arena.Gameplay.Match
             SimEventBuffer events = _driver.Events;
             MatchState state = _driver.State;
             _feedback.Process(events, state, Time.unscaledTime);
+            _audio.Process(events, state, Time.unscaledTime);
             _anim.ProcessEvents(events, state);
             for (int i = 0; i < events.Count; i++)
                 if (events[i].Type == SimEventType.TileBroken) _mapView.OnTileBroken(events[i].Value);
@@ -377,14 +380,12 @@ namespace Arena.Gameplay.Match
             }
         }
 
-        /// <summary>Feedback objects of the match (D-059): sounds on a 2D source of this object, vibration, floating texts.</summary>
+        /// <summary>Feedback objects of the match (D-059): sounds (<see cref="MatchAudio"/>), vibration, floating texts.</summary>
         private void CreateFeel(MatchDefs defs)
         {
-            AudioSource source = GetComponent<AudioSource>();
-            if (source == null) source = gameObject.AddComponent<AudioSource>();
-            source.playOnAwake = false;
-            source.spatialBlend = 0f;
-            _sounds = new ProceduralSounds(source, _feel);
+            _audio = MatchAudio.Create(transform, _database, defs, _driver.Setup, _settings, LocalSlot, LocalTeam,
+                _inputCollector.ViewRotated);
+            _sounds = _audio.Procedural;
             _haptics = new Haptics(_settings.VibrationStrength, _feel.VibrationMinInterval);
             _floatingText = new FloatingTextLayer(transform, _feel, _viewCatalog.TextFont, _viewCatalog.TextOutlineColor,
                 _viewCatalog.TextOutlineDistance);
@@ -393,7 +394,7 @@ namespace Arena.Gameplay.Match
             _berryBonus = new BerryBonusFeedback(_damageNumbers, _feel, Loc.Get(LocKeys.FeelBerryPower));
             _hitStop.Reset();
             _shake.Reset();
-            _feedback = new HitFeedback(_feel, LocalSlot, LocalTeam, _hitStop, _shake, _haptics, _sounds, _damageNumbers);
+            _feedback = new HitFeedback(_feel, LocalSlot, LocalTeam, _hitStop, _shake, _haptics, _sounds, _damageNumbers, _audio.Fighters);
 
             // Damage and health numbers of this match do not allocate after the start.
             int maxHealth = 0;

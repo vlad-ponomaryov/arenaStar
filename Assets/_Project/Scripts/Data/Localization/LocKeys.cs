@@ -33,6 +33,7 @@ namespace Arena.Data.Localization
         public const string SettingsTitle = "settings.title";
         public const string SettingsMirror = "settings.mirror";
         public const string SettingsVibration = "settings.vibration";
+        public const string SettingsSound = "settings.sound";
         public const string SettingsAimMagnet = "settings.aim_magnet";
         public const string SettingsColorblind = "settings.colorblind";
         public const string SettingsBatterySaver = "settings.battery_saver";
@@ -113,7 +114,8 @@ namespace Arena.Data.Localization
             DevNetSimulator, MenuLastBeast, MenuTraining, MenuRegion, ModeLastBeast, QueueFound, NetReconnecting, NetBotPlaying,
             NetRejoin, ErrorUdpBlocked, ErrorMatchOver, HudPingMs, ResultsPlace, HudAliveLeft, HudFogIn, HudBerries, HudBerryPower, FeelBerryPower,
             MenuTrainingMode,
-            PauseTitle, PauseMenuTitle, PauseResume, PauseLeave, PauseOnlineHint, PauseLeaveConfirm, PauseLeaveYes, PauseLeaveNo
+            PauseTitle, PauseMenuTitle, PauseResume, PauseLeave, PauseOnlineHint, PauseLeaveConfirm, PauseLeaveYes, PauseLeaveNo,
+            SettingsSound
         };
     }
 }

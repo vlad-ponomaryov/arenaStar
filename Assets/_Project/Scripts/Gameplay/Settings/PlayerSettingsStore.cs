@@ -13,6 +13,7 @@ namespace Arena.Gameplay.Settings
     {
         public const string MirroredLayoutKey = "arena.settings.mirrored";
         public const string VibrationKey = "arena.settings.vibration";
+        public const string SoundKey = "arena.settings.sound";
         public const string AimMagnetKey = "arena.settings.aim_magnet";
         public const string ColorblindKey = "arena.settings.colorblind";
         public const string BatterySaverKey = "arena.settings.battery_saver";
@@ -66,6 +67,7 @@ namespace Arena.Gameplay.Settings
             {
                 MirroredLayout = ReadBool(MirroredLayoutKey, d.MirroredLayout),
                 VibrationPercent = GameSettings.Clamp(_store.GetInt(VibrationKey, d.VibrationPercent)),
+                SoundPercent = GameSettings.Clamp(_store.GetInt(SoundKey, d.SoundPercent)),
                 AimMagnet = ReadBool(AimMagnetKey, d.AimMagnet),
                 ColorblindPalette = ReadBool(ColorblindKey, d.ColorblindPalette),
                 BatterySaver = ReadBool(BatterySaverKey, d.BatterySaver)
@@ -79,6 +81,7 @@ namespace Arena.Gameplay.Settings
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             _store.SetInt(MirroredLayoutKey, settings.MirroredLayout ? 1 : 0);
             _store.SetInt(VibrationKey, GameSettings.Clamp(settings.VibrationPercent));
+            _store.SetInt(SoundKey, GameSettings.Clamp(settings.SoundPercent));
             _store.SetInt(AimMagnetKey, settings.AimMagnet ? 1 : 0);
             _store.SetInt(ColorblindKey, settings.ColorblindPalette ? 1 : 0);
             _store.SetInt(BatterySaverKey, settings.BatterySaver ? 1 : 0);

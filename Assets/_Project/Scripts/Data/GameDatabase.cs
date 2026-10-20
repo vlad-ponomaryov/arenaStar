@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Arena.Bots;
+using Arena.Data.Audio;
 using Arena.Data.Localization;
 using UnityEngine;
 
@@ -51,6 +52,9 @@ namespace Arena.Data
 
         [Tooltip("Procedural animation of the fighter models (view only, D-109).")]
         public FighterAnimConfig FighterAnim;
+
+        [Tooltip("Match audio: mixer, voice limit, distance fade, fighters' sound sets (brief A-TheoSfx).")]
+        public AudioConfig Audio;
 
         /// <summary>Fighter config by id, or null.</summary>
         public FighterConfig FindFighter(string id)

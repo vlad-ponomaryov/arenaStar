@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3dfa57d9a4321d44ab941f251e65e990, type: 3}
+  m_Name: Audio
+  m_EditorClassIdentifier: Arena.Data::Arena.Data.Audio.AudioConfig
+  Mixer: {fileID: 24100000, guid: 29460fb538f61dc49a18af2d7ea6bdca, type: 2}
+  SfxGroup: {fileID: -2789589978532536664, guid: 29460fb538f61dc49a18af2d7ea6bdca, type: 2}
+  VoiceGroup: {fileID: -922742773026822126, guid: 29460fb538f61dc49a18af2d7ea6bdca, type: 2}
+  MaxVoices: 12
+  SfxVolume: 0.9
+  VoiceVolume: 0.8
+  FullVolumeDistance: 3
+  SilentDistance: 14
+  PanStrength: 0.6
+  PanDistance: 6
+  ProceduralPriority: 1
+  FighterSounds:
+  - {fileID: 11400000, guid: 0e5fd3c0835646943b38abc5b3798e1a, type: 2}

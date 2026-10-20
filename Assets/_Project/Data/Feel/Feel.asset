@@ -69,6 +69,8 @@ MonoBehaviour:
   AutoAimMarkerFill: 0.3
   DefaultMirroredLayout: 0
   DefaultVibrationPercent: 100
+  DefaultSoundPercent: 100
+  SoundSteps: 0000000019000000320000004b00000064000000
   DefaultAimMagnet: 1
   DefaultColorblindPalette: 0
   DefaultBatterySaver: 0

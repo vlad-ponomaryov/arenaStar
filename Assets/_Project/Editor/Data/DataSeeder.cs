@@ -2,6 +2,7 @@ using Arena.Bots;
 using Arena.Core.Defs;
 using Arena.Data;
 using Arena.Data.Localization;
+using Arena.Editor.Audio;
 using Arena.Editor.Net;
 using Arena.Editor.Setup;
 using Arena.Net.Client;
@@ -259,6 +260,7 @@ namespace Arena.Editor.Data
             new[] { LocKeys.SettingsTitle, "Settings", "Настройки" },
             new[] { LocKeys.SettingsMirror, "Mirrored layout", "Зеркальная раскладка" },
             new[] { LocKeys.SettingsVibration, "Vibration", "Вибрация" },
+            new[] { LocKeys.SettingsSound, "Sound", "Звук" },
             new[] { LocKeys.SettingsAimMagnet, "Aim assist", "Примагничивание прицела" },
             new[] { LocKeys.SettingsColorblind, "Colour-blind palette", "Палитра для дальтоников" },
             new[] { LocKeys.SettingsBatterySaver, "Battery saver (30 FPS)", "Экономия батареи (30 FPS)" },
@@ -690,6 +692,9 @@ namespace Arena.Editor.Data
         private const bool FeelDefaultAimMagnet = true;
         private const bool FeelDefaultColorblindPalette = false;
         private const bool FeelDefaultBatterySaver = false;
+        // Sound volume setting (brief A-TheoSfx): full by default, the same five steps as the vibration.
+        private const int FeelDefaultSoundPercent = 100;
+        private static readonly int[] FeelSoundSteps = { 0, 25, 50, 75, 100 };
         private const int FeelTargetFrameRate = 60;
         private const int FeelBatterySaverFrameRate = 30;
 
@@ -807,6 +812,7 @@ namespace Arena.Editor.Data
             db.Camera = SeedCamera();
             db.Feel = SeedFeel();
             db.FighterAnim = SeedFighterAnim();
+            db.Audio = AudioDataSeeder.Seed();
             db.MatchRunner = SeedMatchRunner();
             db.AcornsMode = SeedAcornsMode();
             db.LastBeastMode = SeedLastBeastMode();
@@ -1005,6 +1011,8 @@ namespace Arena.Editor.Data
             c.DefaultAimMagnet = FeelDefaultAimMagnet;
             c.DefaultColorblindPalette = FeelDefaultColorblindPalette;
             c.DefaultBatterySaver = FeelDefaultBatterySaver;
+            c.DefaultSoundPercent = FeelDefaultSoundPercent;
+            c.SoundSteps = (int[])FeelSoundSteps.Clone();
             c.TargetFrameRate = FeelTargetFrameRate;
             c.BatterySaverFrameRate = FeelBatterySaverFrameRate;
             EditorUtility.SetDirty(c);

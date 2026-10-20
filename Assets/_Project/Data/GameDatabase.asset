@@ -40,3 +40,4 @@ MonoBehaviour:
   BotBehaviour: {fileID: 11400000, guid: 35810c262d4d60e46a805fdf1ca47aee, type: 2}
   Net: {fileID: 11400000, guid: 6ecd977101b556e4eaa0ba22dc7a6775, type: 2}
   FighterAnim: {fileID: 11400000, guid: 1012026fb1f61384180bef9e557c5034, type: 2}
+  Audio: {fileID: 11400000, guid: 46bc8366fe27d3f4b99471103056cace, type: 2}

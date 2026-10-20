@@ -12,7 +12,8 @@ namespace Arena.UI.Settings
 {
     /// <summary>
     /// Settings screen over the menu (GDD §5.1, §5.3, D-029, D-059), built in code from <see cref="UiStyle"/>: mirrored layout
-    /// (Off/On), vibration strength (the steps of <see cref="FeelConfig.VibrationSteps"/>), aim magnet (Off/On), colour-blind
+    /// (Off/On), vibration strength (the steps of <see cref="FeelConfig.VibrationSteps"/>), sound volume (the steps of
+    /// <see cref="FeelConfig.SoundSteps"/>), aim magnet (Off/On), colour-blind
     /// palette (Off/On), battery saver (Off/On, 30 FPS — S2.13), "Close". Every choice is saved at once through <see cref="PlayerSettingsStore"/> (local PlayerPrefs);
     /// the match reads the settings when it starts; the frame rate is applied at once (<see cref="FrameRateApplier"/>). No text input. All texts through localization keys.
     /// </summary>
@@ -25,9 +26,11 @@ namespace Arena.UI.Settings
         private UiStyle _style;
         private FeelConfig _feel;
         private int[] _vibrationSteps = new int[0];
+        private int[] _soundSteps = new int[0];
         private Action _onClose;
         private Button _mirrorOff, _mirrorOn, _magnetOff, _magnetOn, _colorOff, _colorOn, _batteryOff, _batteryOn;
         private Button[] _vibrationButtons = new Button[0];
+        private Button[] _soundButtons = new Button[0];
 
         public bool IsShown => gameObject.activeSelf;
         public GameSettings Settings => _store.Current;
@@ -46,6 +49,9 @@ namespace Arena.UI.Settings
             panel._onClose = onClose;
             panel._vibrationSteps = feel != null && feel.VibrationSteps != null && feel.VibrationSteps.Length > 0
                 ? feel.VibrationSteps
+                : new[] { 0, GameSettings.MaxVibrationPercent };
+            panel._soundSteps = feel != null && feel.SoundSteps != null && feel.SoundSteps.Length > 0
+                ? feel.SoundSteps
                 : new[] { 0, GameSettings.MaxVibrationPercent };
             panel.Build(canvas.transform);
             canvas.gameObject.SetActive(false);
@@ -66,6 +72,7 @@ namespace Arena.UI.Settings
 
         public void SetMirrored(bool on) => Change(s => s.MirroredLayout = on);
         public void SetVibration(int percent) => Change(s => s.VibrationPercent = percent);
+        public void SetSound(int percent) => Change(s => s.SoundPercent = percent);
         public void SetAimMagnet(bool on) => Change(s => s.AimMagnet = on);
         public void SetColorblind(bool on) => Change(s => s.ColorblindPalette = on);
         public void SetBatterySaver(bool on) => Change(s => s.BatterySaver = on);
@@ -102,6 +109,15 @@ namespace Arena.UI.Settings
                     step <= 0 ? Loc.Get(LocKeys.SettingsOff) : NumberStringCache.Percent(step), () => SetVibration(step));
             }
 
+            RectTransform sound = CreateRow(column, LocKeys.SettingsSound);
+            _soundButtons = new Button[_soundSteps.Length];
+            for (int i = 0; i < _soundSteps.Length; i++)
+            {
+                int step = _soundSteps[i];
+                _soundButtons[i] = Choice(sound, "Sound" + step,
+                    step <= 0 ? Loc.Get(LocKeys.SettingsOff) : NumberStringCache.Percent(step), () => SetSound(step));
+            }
+
             RectTransform magnet = CreateRow(column, LocKeys.SettingsAimMagnet);
             _magnetOff = Choice(magnet, "MagnetOff", Loc.Get(LocKeys.SettingsOff), () => SetAimMagnet(false));
             _magnetOn = Choice(magnet, "MagnetOn", Loc.Get(LocKeys.SettingsOn), () => SetAimMagnet(true));
@@ -122,7 +138,7 @@ namespace Arena.UI.Settings
         {
             UiStyle s = _style;
             RectTransform row = UiFactory.CreateRow("Row_" + labelKey, column, s.MenuItemSpacing, s.SettingsChoiceSize.y);
-            int widest = Mathf.Max(2, _vibrationSteps.Length);
+            int widest = Mathf.Max(2, Mathf.Max(_vibrationSteps.Length, _soundSteps.Length));
             UiFactory.AlignRowLeft(row, s.SettingsLabelWidth + widest * (s.SettingsChoiceSize.x + s.MenuItemSpacing));
             UiFactory.CreatePanelText("Label", row, s, s.MediumFontSize, new Vector2(s.SettingsLabelWidth, s.SettingsChoiceSize.y),
                 Loc.Get(labelKey), TextAnchor.MiddleRight);
@@ -144,15 +160,17 @@ namespace Arena.UI.Settings
             Highlight(_colorOn, g.ColorblindPalette);
             Highlight(_batteryOff, !g.BatterySaver);
             Highlight(_batteryOn, g.BatterySaver);
-            int nearest = NearestStep(g.VibrationPercent);
+            int nearest = NearestStep(_vibrationSteps, g.VibrationPercent);
             for (int i = 0; i < _vibrationButtons.Length; i++) Highlight(_vibrationButtons[i], i == nearest);
+            int nearestSound = NearestStep(_soundSteps, g.SoundPercent);
+            for (int i = 0; i < _soundButtons.Length; i++) Highlight(_soundButtons[i], i == nearestSound);
         }
 
-        private int NearestStep(int percent)
+        private static int NearestStep(int[] steps, int percent)
         {
             int best = 0;
-            for (int i = 1; i < _vibrationSteps.Length; i++)
-                if (Math.Abs(_vibrationSteps[i] - percent) < Math.Abs(_vibrationSteps[best] - percent)) best = i;
+            for (int i = 1; i < steps.Length; i++)
+                if (Math.Abs(steps[i] - percent) < Math.Abs(steps[best] - percent)) best = i;
             return best;
         }
 
